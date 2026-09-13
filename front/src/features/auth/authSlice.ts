@@ -5,9 +5,20 @@ interface AuthState {
   isAuthenticated: boolean
 }
 
-const initialState: AuthState = {
-  username: '',
-  isAuthenticated: false,
+function loadAuth(): AuthState {
+  try {
+    const raw = localStorage.getItem('auth')
+    if (raw) return JSON.parse(raw) as AuthState
+  } catch {}
+  return { username: '', isAuthenticated: false }
+}
+
+const initialState: AuthState = loadAuth()
+
+function persist(state: AuthState) {
+  try {
+    localStorage.setItem('auth', JSON.stringify(state))
+  } catch {}
 }
 
 export const authSlice = createSlice({
@@ -16,13 +27,18 @@ export const authSlice = createSlice({
   reducers: {
     setUsername: (state, action: PayloadAction<string>) => {
       state.username = action.payload
+      persist(state)
     },
     login: (state) => {
       state.isAuthenticated = true
+      persist(state)
     },
     logout: (state) => {
       state.isAuthenticated = false
       state.username = ''
+      try {
+        localStorage.removeItem('auth')
+      } catch {}
     },
   },
 })
