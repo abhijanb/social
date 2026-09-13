@@ -1,8 +1,11 @@
 import { Outlet, Link } from 'react-router-dom'
-import { useAppSelector } from './app/hooks'
+import { useAppDispatch, useAppSelector } from './app/hooks'
+import { logout } from './features/auth/authSlice'
 
 export default function App() {
   const username = useAppSelector((state) => state.auth.username)
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated)
+  const dispatch = useAppDispatch()
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#16171d]">
@@ -25,9 +28,15 @@ export default function App() {
               Register
             </Link>
           </div>
-          {username && (
-            <span className="hidden text-sm text-gray-600 dark:text-zinc-300 sm:inline">
+          {isAuthenticated && (
+            <span className="hidden items-center gap-3 text-sm text-gray-600 dark:text-zinc-300 sm:inline-flex">
               Welcome, <span className="font-medium text-gray-900 dark:text-white">{username}</span>
+              <button
+                onClick={() => dispatch(logout())}
+                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+              >
+                Logout
+              </button>
             </span>
           )}
         </div>

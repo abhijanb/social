@@ -1,23 +1,8 @@
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useAppDispatch } from '../../../app/hooks'
-import { setUsername } from '../authSlice'
 import { Link } from 'react-router-dom'
-import { loginSchema, type LoginFormData } from '../schema'
+import { useLogin } from '../hooks/useLogin'
 
 export default function Login() {
-  const dispatch = useAppDispatch()
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-  })
-
-  const onSubmit = (data: LoginFormData) => {
-    dispatch(setUsername(data.username))
-  }
+  const { register, handleSubmit, errors, onSubmit } = useLogin()
 
   return (
     <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-gray-50 px-4 py-12 dark:bg-[#16171d]">
