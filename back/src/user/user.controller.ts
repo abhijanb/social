@@ -1,14 +1,15 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
 import { UserService } from './user.service'
-import type { CreateUserDto } from './dto/create-user.dto'
-import type { UpdateUserDto } from './dto/update-user.dto'
+import { createUserSchema, type CreateUserDto } from './dto/create-user.dto'
+import { updateUserSchema, type UpdateUserDto } from './dto/update-user.dto'
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe'
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  async register(@Body() createUserDto: CreateUserDto) {
+  async register(@Body(new ZodValidationPipe(createUserSchema)) createUserDto: CreateUserDto) {
     return this.userService.register(createUserDto)
   }
 
@@ -23,7 +24,7 @@ export class UserController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  update(@Param('id') id: string, @Body(new ZodValidationPipe(updateUserSchema)) updateUserDto: UpdateUserDto) {
     return this.userService.update(id, updateUserDto)
   }
 
