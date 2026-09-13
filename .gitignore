@@ -1,0 +1,15 @@
+.env
+.env.*
+node_modules/
+dist/
+build/
+*.log
+logs/
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
