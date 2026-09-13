@@ -1,11 +1,14 @@
-import { store } from "./store";
-import { Provider } from "react-redux";
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { store } from './store'
+import { Provider } from 'react-redux'
+import { routes } from './route'
 
-export default function AppProvider({ children }: { children: React.ReactNode }) {
-  // Implementation for the app provider
+const router = createBrowserRouter(routes)
+
+export default function AppProvider() {
   return (
     <Provider store={store}>
-      {children}
+      <RouterProvider router={router} />
     </Provider>
   )
 }
