@@ -1,15 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/hooks/useAuth'
 import ChatSidebar from '../features/chat/components/ChatSidebar'
 import ChatWindow from '../features/chat/components/ChatWindow'
-import type { Conversation, Message } from '../features/chat/types'
-import { useGetMeQuery } from '../features/users/usersApi'
-import { useGetFriendsQuery } from '../features/friendship/friendshipApi'
-import { usePresence } from '../features/presence/usePresence'
-import { useChat } from '../features/chat/useChat'
-import { useAppDispatch } from '../app/hooks'
-import { logout } from '../features/auth/authSlice'
+import { useChatConversations } from '../features/chat/hooks/useChatConversations'
+import { useActiveChat } from '../features/chat/hooks/useActiveChat'
 
 function isUnauthorizedError(error: unknown): boolean {
   return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
@@ -17,73 +11,31 @@ function isUnauthorizedError(error: unknown): boolean {
 
 export default function ChatPage() {
   const { isAuthenticated } = useAuth()
-  const dispatch = useAppDispatch()
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const [filter, setFilter] = useState('')
-
-  const { data: me, error: meError } = useGetMeQuery(undefined, { skip: !isAuthenticated })
-  const currentUserId = me?.id
-
-  useEffect(() => {
-    if (isUnauthorizedError(meError)) dispatch(logout())
-  }, [meError, dispatch])
-
-  const { data: friends, isLoading: isLoadingFriends, error: friendsError } = useGetFriendsQuery(currentUserId!, {
-    skip: !currentUserId,
-  })
-
-  useEffect(() => {
-    if (isUnauthorizedError(friendsError)) dispatch(logout())
-  }, [friendsError, dispatch])
-
-  const conversations: Conversation[] = useMemo(() => {
-    if (!friends) return []
-    return friends.map((f) => ({
-      id: f.friend.id,
-      username: f.friend.username,
-      avatar: f.friend.username.charAt(0).toUpperCase(),
-      lastMessage: '',
-    }))
-  }, [friends])
-
-  const friendIds = useMemo(() => conversations.map((c) => c.id), [conversations])
-  const { isOnline, lastSeen } = usePresence(friendIds)
-
-  const { messages: chatMessages, isLoading: isLoadingChat, send } = useChat(activeId)
-
-  useEffect(() => {
-    if (!activeId && conversations.length > 0) setActiveId(conversations[0].id)
-    if (activeId && conversations.length > 0 && !conversations.find((c) => c.id === activeId)) {
-      setActiveId(conversations[0].id)
-    }
-    if (conversations.length === 0) setActiveId(null)
-  }, [conversations, activeId])
+  const {
+    currentUserId,
+    conversations,
+    activeId,
+    setActiveId,
+    filter,
+    setFilter,
+    isOnline,
+    lastSeen,
+    isLoadingFriends,
+    meError,
+    friendsError,
+  } = useChatConversations(isAuthenticated)
+  const { uiMessages, isLoadingChat, handleSend } = useActiveChat(activeId, currentUserId)
 
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (isUnauthorizedError(meError) || isUnauthorizedError(friendsError)) return <Navigate to="/login" replace />
 
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null
-
-  const uiMessages: Message[] = useMemo(() => {
-    if (!currentUserId) return []
-    return chatMessages.map((m) => ({
-      id: m.id,
-      text: m.text,
-      sender: m.senderId === currentUserId ? 'me' : 'other',
-      at: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    }))
-  }, [chatMessages, currentUserId])
-
-  const handleSend = (text: string) => {
-    void send(text)
-  }
-
-  const isLoading = (isLoadingFriends && !friends) || isLoadingChat
+  const isLoading = (isLoadingFriends && !conversations.length) || isLoadingChat
 
   return (
     <div className="flex h-[calc(100vh-64px)] bg-white dark:bg-[#16171d]">
       <div className="hidden w-80 shrink-0 sm:block">
-        {isLoadingFriends && !friends ? (
+        {isLoadingFriends && !conversations.length ? (
           <div className="flex h-full items-center justify-center border-r border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
             <p className="text-sm text-gray-500 dark:text-zinc-400">Loading chats...</p>
           </div>
@@ -109,7 +61,7 @@ export default function ChatPage() {
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="sm:hidden border-b border-gray-200 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-900">
-          {isLoadingFriends && !friends ? (
+          {isLoadingFriends && !conversations.length ? (
             <p className="py-2 text-center text-sm text-gray-500 dark:text-zinc-400">Loading...</p>
           ) : conversations.length === 0 ? (
             <p className="py-2 text-center text-sm text-gray-500 dark:text-zinc-400">No friends yet</p>
