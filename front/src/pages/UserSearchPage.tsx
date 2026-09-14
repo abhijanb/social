@@ -1,9 +1,13 @@
 import { Navigate } from 'react-router-dom'
 import { useUserSearch } from '../features/search/hooks/useUserSearch'
 import SearchBar from '../features/search/components/SearchBar'
+import { useFriendRequests } from '../features/friendship/hooks/useFriendRequests'
+import { useSendRequestMutation } from '../features/friendship/friendshipApi'
 
 export default function UserSearchPage() {
   const { isAuthenticated, query, setQuery, debouncedTrimmed, users, isLoading, error } = useUserSearch()
+  const { currentUserId, pending, accept, cancel, decline, isRemoving, isAccepting } = useFriendRequests()
+  const [sendRequest, { isLoading: isSending }] = useSendRequestMutation()
   if (!isAuthenticated) return <Navigate to="/login" replace />
 
   return (
@@ -27,14 +31,59 @@ export default function UserSearchPage() {
               </p>
             ) : (
               <ul className="mt-6 space-y-2">
-                {users.map((u) => (
-                  <li
-                    key={u.id}
-                    className="rounded-lg border border-gray-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800"
-                  >
-                    <p className="font-medium text-gray-900 dark:text-white">{u.username}</p>
-                  </li>
-                ))}
+                {users.map((u) => {
+                  const sent = pending?.find((p) => p.requesterId === currentUserId && p.addresseeId === u.id)
+                  const received = pending?.find((p) => p.requesterId === u.id && p.addresseeId === currentUserId)
+                  return (
+                    <li
+                      key={u.id}
+                      className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800"
+                    >
+                      <p className="font-medium text-gray-900 dark:text-white">{u.username}</p>
+                      <div className="flex items-center gap-2">
+                        {sent ? (
+                          <>
+                            <span className="rounded-md bg-gray-100 px-3 py-1.5 text-sm text-gray-600 dark:bg-zinc-700 dark:text-zinc-300">
+                              Pending
+                            </span>
+                            <button
+                              onClick={() => cancel(sent.id)}
+                              disabled={isRemoving}
+                              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : received ? (
+                          <>
+                            <button
+                              onClick={() => accept(received.id)}
+                              disabled={isAccepting || isRemoving}
+                              className="rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => decline(received.id)}
+                              disabled={isAccepting || isRemoving}
+                              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+                            >
+                              Decline
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => currentUserId && sendRequest({ requesterId: currentUserId, addresseeId: u.id })}
+                            disabled={!currentUserId || isSending}
+                            className="rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+                          >
+                            Send Request
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </>

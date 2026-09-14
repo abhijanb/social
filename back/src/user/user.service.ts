@@ -51,10 +51,24 @@ export class UserService {
   }
 
   async findAll(search?: string, currentUserId?: string) {
+    let friendIds: string[] = []
+    if (currentUserId) {
+      const friendships = await this.prisma.friendship.findMany({
+        where: {
+          status: 'ACCEPTED',
+          OR: [{ requesterId: currentUserId }, { addresseeId: currentUserId }],
+        },
+        select: { requesterId: true, addresseeId: true },
+      })
+      friendIds = friendships.map((f) => (f.requesterId === currentUserId ? f.addresseeId : f.requesterId))
+    }
+
+    const excludeIds = [...(currentUserId ? [currentUserId] : []), ...friendIds]
+
     const users = await this.prisma.user.findMany({
       where: {
         ...(search ? { username: { contains: search, mode: 'insensitive' as const } } : {}),
-        ...(currentUserId ? { id: { not: currentUserId } } : {}),
+        ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
       },
       take: 10,
       orderBy: { createdAt: 'desc' },
