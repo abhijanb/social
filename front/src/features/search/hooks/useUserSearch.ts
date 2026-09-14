@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useGetUsersQuery } from '../../users/usersApi'
-import { useDebounce } from '../useDebounce'
+import { useDebounce } from './useDebounce'
 import type { User } from '../../users/usersApi'
 
 export function useUserSearch() {

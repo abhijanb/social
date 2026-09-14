@@ -1,8 +1,8 @@
 import { type RouteObject } from 'react-router-dom'
-import Login from '../features/auth/page/Login'
-import Register from '../features/auth/page/Register'
-import UserSearchPage from '../features/search/page/UserSearchPage'
-import UsersPage from '../features/users/UsersPage'
+import Login from '../pages/Login'
+import Register from '../pages/Register'
+import UserSearchPage from '../pages/UserSearchPage'
+import UsersPage from '../pages/UsersPage'
 
 export const routes: RouteObject[] = [
   { path: '/', element: <UserSearchPage /> },

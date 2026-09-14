@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useRegister } from '../hooks/useRegister'
+import { useRegister } from '../features/auth/hooks/useRegister'
 
 export default function Register() {
   const { register, handleSubmit, errors, onSubmit, isLoading, error, errorMessage, suggestions, selectSuggestion } =

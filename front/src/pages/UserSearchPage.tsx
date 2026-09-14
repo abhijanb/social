@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom'
-import { useUserSearch } from '../hooks/useUserSearch'
-import SearchBar from '../SearchBar'
+import { useUserSearch } from '../features/search/hooks/useUserSearch'
+import SearchBar from '../features/search/components/SearchBar'
 
 export default function UserSearchPage() {
   const { isAuthenticated, query, setQuery, debouncedTrimmed, users, isLoading, error } = useUserSearch()

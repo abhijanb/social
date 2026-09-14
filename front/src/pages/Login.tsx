@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useLogin } from '../hooks/useLogin'
+import { useLogin } from '../features/auth/hooks/useLogin'
 
 export default function Login() {
   const { register, handleSubmit, errors, onSubmit } = useLogin()

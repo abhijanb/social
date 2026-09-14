@@ -1,4 +1,4 @@
-import { useGetUsersQuery, useDeleteUserMutation } from './usersApi'
+import { useGetUsersQuery, useDeleteUserMutation } from '../features/users/usersApi'
 
 export default function UsersPage() {
   const { data: users, isLoading, error } = useGetUsersQuery()
