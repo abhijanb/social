@@ -1,25 +1,34 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { useGetUsersQuery } from '../../users/usersApi'
+import { useGetMeQuery } from '../../users/usersApi'
 import {
   useGetPendingQuery,
   useAcceptRequestMutation,
   useRemoveRequestMutation,
 } from '../friendshipApi'
+import { useAppDispatch } from '../../../app/hooks'
+import { logout } from '../../auth/authSlice'
+
+function isUnauthorizedError(error: unknown): boolean {
+  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
+}
 
 export function useFriendRequests() {
-  const { isAuthenticated, username } = useAuth()
+  const { isAuthenticated } = useAuth()
+  const dispatch = useAppDispatch()
 
-  const { data: users, isLoading: isResolvingUser } = useGetUsersQuery(username, {
-    skip: !isAuthenticated || !username,
+  const { data: currentUser, isLoading: isResolvingUser, error: meError } = useGetMeQuery(undefined, {
+    skip: !isAuthenticated,
   })
 
-  const currentUser = useMemo(() => {
-    if (!users || !username) return undefined
-    return users.find((u) => u.username === username)
-  }, [users, username])
+  useEffect(() => {
+    if (isUnauthorizedError(meError)) {
+      dispatch(logout())
+    }
+  }, [meError, dispatch])
 
   const currentUserId = currentUser?.id
+  const username = currentUser?.username ?? ''
 
   const {
     data: pending,

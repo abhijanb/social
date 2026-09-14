@@ -4,11 +4,16 @@ import SearchBar from '../features/search/components/SearchBar'
 import { useFriendRequests } from '../features/friendship/hooks/useFriendRequests'
 import { useSendRequestMutation } from '../features/friendship/friendshipApi'
 
+function isUnauthorizedError(error: unknown): boolean {
+  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
+}
+
 export default function UserSearchPage() {
-  const { isAuthenticated, query, setQuery, debouncedTrimmed, users, isLoading, error } = useUserSearch()
+  const { isAuthenticated, query, setQuery, debouncedTrimmed, users, isLoading, error, isSessionExpired } = useUserSearch()
   const { currentUserId, pending, accept, cancel, decline, isRemoving, isAccepting } = useFriendRequests()
   const [sendRequest, { isLoading: isSending }] = useSendRequestMutation()
   if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (isSessionExpired) return <Navigate to="/login" replace />
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-8 dark:bg-[#16171d]">
@@ -20,7 +25,18 @@ export default function UserSearchPage() {
         )}
 
         {debouncedTrimmed && error && (
-          <p className="mt-6 text-center text-sm text-red-600 dark:text-red-400">Failed to load users</p>
+          <>
+            {isUnauthorizedError(error) ? (
+              <div className="mt-6 text-center">
+                <p className="text-sm text-amber-600 dark:text-amber-400">Session expired, please login again</p>
+                <a href="/login" className="mt-2 inline-block text-sm font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400">
+                  Go to login
+                </a>
+              </div>
+            ) : (
+              <p className="mt-6 text-center text-sm text-red-600 dark:text-red-400">Failed to load users</p>
+            )}
+          </>
         )}
 
         {debouncedTrimmed && !isLoading && !error && users && (

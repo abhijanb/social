@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Req, Res } from '@nestjs/common'
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Req, Res, UnauthorizedException } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { UserService } from './user.service'
 import { createUserSchema, type CreateUserDto } from './dto/create-user.dto'
@@ -6,10 +6,12 @@ import { updateUserSchema, type UpdateUserDto } from './dto/update-user.dto'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe'
 import { verifyToken } from '../lib/jwt'
 
-function getCurrentUserId(req: Request): string | undefined {
+function getCurrentUser(req: Request): { id: string; username: string } | null {
   const token = req.cookies?.token ?? req.headers.authorization?.replace(/^Bearer\s+/i, '')
-  if (!token) return undefined
-  return verifyToken(token)?.id
+  if (!token) return null
+  const payload = verifyToken(token)
+  if (!payload?.id || !payload?.username) return null
+  return { id: payload.id, username: payload.username }
 }
 
 function setAuthCookie(res: Response, token: string) {
@@ -54,7 +56,20 @@ export class UserController {
 
   @Get()
   findAll(@Req() req: Request, @Query('search') search?: string) {
-    return this.userService.findAll(search?.trim(), getCurrentUserId(req))
+    const trimmed = search?.trim()
+    const current = getCurrentUser(req)
+    // Strict for search: must be authenticated to get self-excluded results
+    if (trimmed && !current) throw new UnauthorizedException('Not authenticated')
+    return this.userService.findAll(trimmed, current?.id, current?.username)
+  }
+
+  @Get('me')
+  async getMe(@Req() req: Request) {
+    const current = getCurrentUser(req)
+    if (!current) throw new UnauthorizedException('Not authenticated')
+    const user = await this.userService.findOne(current.id)
+    if (!user) throw new UnauthorizedException('User not found')
+    return user
   }
 
   @Get(':id')

@@ -19,6 +19,10 @@ export const usersApi = baseApi.injectEndpoints({
       query: (id) => `user/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'User', id }],
     }),
+    getMe: build.query<User, void>({
+      query: () => 'user/me',
+      providesTags: ['User'],
+    }),
     registerUser: build.mutation<User, { username: string; password: string }>({
       query: (body) => ({ url: 'user', method: 'POST', body }),
       invalidatesTags: ['User'],
@@ -37,6 +41,7 @@ export const usersApi = baseApi.injectEndpoints({
 export const {
   useGetUsersQuery,
   useGetUserByIdQuery,
+  useGetMeQuery,
   useRegisterUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,

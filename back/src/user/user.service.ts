@@ -50,7 +50,8 @@ export class UserService {
     return { user: safeUser, token: signToken({ id: user.id, username: user.username }) }
   }
 
-  async findAll(search?: string, currentUserId?: string) {
+  async findAll(search?: string, currentUserId?: string, currentUsername?: string) {
+    // currentUserId + currentUsername come from verified JWT
     let friendIds: string[] = []
     if (currentUserId) {
       const friendships = await this.prisma.friendship.findMany({
@@ -65,11 +66,18 @@ export class UserService {
 
     const excludeIds = [...(currentUserId ? [currentUserId] : []), ...friendIds]
 
+    // Build where: search contains + exclude self by id + exclude self by username (case-insensitive) + exclude friends
+    const and: Record<string, unknown>[] = []
+    if (search) and.push({ username: { contains: search, mode: 'insensitive' as const } })
+    if (excludeIds.length) and.push({ id: { notIn: excludeIds } })
+    if (currentUsername?.trim()) {
+      and.push({ NOT: { username: { equals: currentUsername.trim(), mode: 'insensitive' as const } } })
+    }
+
+    const where = and.length ? ({ AND: and } as never) : undefined
+
     const users = await this.prisma.user.findMany({
-      where: {
-        ...(search ? { username: { contains: search, mode: 'insensitive' as const } } : {}),
-        ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
-      },
+      where,
       take: 10,
       orderBy: { createdAt: 'desc' },
     })
