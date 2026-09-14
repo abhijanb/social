@@ -172,3 +172,16 @@ No `bun install` at repo root – apps are independent (root `package.json` remo
 - Simplified user controller and service – removed redundant code and kept single JWT-based exclusion
 - Separated auth API from users API
 - Trimmed JWT utility to only sign and verify
+
+
+
+flow 
+chart
+
+### What happens when you click a friend to chat
+- Clicking a friend only changes the selected chat state (`setActiveId`) – it does not create a new socket connection
+- Two singleton sockets are reused for the whole session: the presence socket (`/presence`) stays connected since the chat page loaded, and the chat socket (`/chat`) is created once on first open and then reused for all friends
+- Authentication happens once via the httpOnly `token` cookie when each socket first connects; the server joins your personal room (`user:<yourId>`) once
+- On each click, only the message listener switches to the new friend and a REST `GET /chat/history?friendId=` fetch loads that friend's history
+- Sending a message uses the same socket with an ack (`chat:send` → `chat:receive`); if the socket is offline it falls back to REST `POST /chat/send`
+- Disconnect only happens on logout or when leaving the chat page – never when switching friends – so switching chats is instant with no re-auth or new handshake
