@@ -18,8 +18,19 @@ export interface FriendshipPending {
   addressee: FriendshipUser
 }
 
+export type FriendshipFriend = {
+  friendshipId: string
+  friend: FriendshipUser & { createdAt: string }
+  status: FriendshipStatus
+  createdAt: string
+}
+
 export const friendshipApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
+    getFriends: build.query<FriendshipFriend[], string>({
+      query: (userId) => `friendship?userId=${encodeURIComponent(userId)}`,
+      providesTags: ['Friendship'],
+    }),
     getPending: build.query<FriendshipPending[], string>({
       query: (userId) => `friendship/pending?userId=${encodeURIComponent(userId)}`,
       providesTags: ['Friendship'],
@@ -40,6 +51,7 @@ export const friendshipApi = baseApi.injectEndpoints({
 })
 
 export const {
+  useGetFriendsQuery,
   useGetPendingQuery,
   useSendRequestMutation,
   useAcceptRequestMutation,
