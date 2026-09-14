@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom'
 import { useRegister } from '../hooks/useRegister'
 
 export default function Register() {
-  const { register, handleSubmit, errors, onSubmit, isLoading, error } = useRegister()
+  const { register, handleSubmit, errors, onSubmit, isLoading, error, errorMessage, suggestions, selectSuggestion } =
+    useRegister()
 
   return (
     <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-gray-50 px-4 py-12 dark:bg-[#16171d]">
@@ -44,12 +45,27 @@ export default function Register() {
               <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{errors.password.message}</p>
             )}
           </div>
-          {error && (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-600 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400">
-              {'data' in error && (error.data as { message?: string })?.message
-                ? (error.data as { message: string }).message
-                : 'Registration failed'}
-            </p>
+          {error && errorMessage && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-600 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400">
+              <p>{errorMessage}</p>
+              {suggestions.length > 0 && (
+                <div className="mt-2">
+                  <p className="mb-1.5 text-xs font-medium text-red-700 dark:text-red-300">Try one of these:</p>
+                  <div className="flex flex-wrap justify-center gap-1.5">
+                    {suggestions.map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onClick={() => selectSuggestion(suggestion)}
+                        className="rounded-full border border-violet-300 bg-white px-3 py-1 text-xs font-medium text-violet-700 transition hover:bg-violet-50 dark:border-violet-700 dark:bg-zinc-900 dark:text-violet-300 dark:hover:bg-zinc-800"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
           <button
             type="submit"

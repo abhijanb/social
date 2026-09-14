@@ -15,6 +15,10 @@ export function useRegister() {
     resolver: zodResolver(registerSchema),
   })
 
+  const errorData = error && 'data' in error ? (error.data as { message?: string; suggestions?: string[] }) : null
+  const suggestions: string[] = errorData?.suggestions ?? []
+  const errorMessage = errorData?.message ?? (error ? 'Registration failed' : null)
+
   const onSubmit = async (data: RegisterFormData) => {
     try {
       await registerUser({ username: data.username, password: data.password }).unwrap()
@@ -26,6 +30,12 @@ export function useRegister() {
     }
   }
 
+  const selectSuggestion = (username: string) => {
+    form.setValue('username', username, { shouldValidate: true, shouldDirty: true })
+    form.clearErrors('username')
+    form.setFocus('username')
+  }
+
   return {
     register: form.register,
     handleSubmit: form.handleSubmit,
@@ -33,5 +43,9 @@ export function useRegister() {
     onSubmit,
     isLoading,
     error,
+    errorMessage,
+    suggestions,
+    selectSuggestion,
+    setValue: form.setValue,
   }
 }
