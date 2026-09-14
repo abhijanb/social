@@ -6,10 +6,18 @@ type Props = {
   onSelect: (id: string) => void
   filter: string
   onFilterChange: (v: string) => void
+  isOnline?: (id: string) => boolean
 }
 
-export default function ChatSidebar({ conversations, activeId, onSelect, filter, onFilterChange }: Props) {
-  const filtered = conversations.filter((c) => c.username.toLowerCase().includes(filter.toLowerCase()))
+export default function ChatSidebar({ conversations, activeId, onSelect, filter, onFilterChange, isOnline }: Props) {
+  const filtered = [...conversations]
+    .filter((c) => c.username.toLowerCase().includes(filter.toLowerCase()))
+    .sort((a, b) => {
+      if (!isOnline) return 0
+      const aOn = isOnline(a.id) ? 0 : 1
+      const bOn = isOnline(b.id) ? 0 : 1
+      return aOn - bOn
+    })
 
   return (
     <div className="flex h-full w-full flex-col border-r border-gray-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
@@ -37,13 +45,21 @@ export default function ChatSidebar({ conversations, activeId, onSelect, filter,
                   onClick={() => onSelect(c.id)}
                   className={`flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-gray-50 dark:hover:bg-zinc-800 ${activeId === c.id ? 'bg-violet-50 dark:bg-zinc-800' : ''}`}
                 >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-[#aa3bff] text-sm font-semibold text-white">
-                    {c.avatar}
+                  <div className="relative">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-[#aa3bff] text-sm font-semibold text-white">
+                      {c.avatar}
+                    </div>
+                    {isOnline && (
+                      <span
+                        className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white dark:border-zinc-900 ${isOnline(c.id) ? 'bg-green-500' : 'bg-gray-300 dark:bg-zinc-600'}`}
+                      />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{c.username}</p>
                     <p className="truncate text-xs text-gray-500 dark:text-zinc-400">{c.lastMessage}</p>
                   </div>
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${isOnline?.(c.id) ? 'bg-green-500' : 'bg-transparent'}`} />
                   {activeId === c.id && <span className="h-2 w-2 rounded-full bg-violet-500" />}
                 </button>
               </li>

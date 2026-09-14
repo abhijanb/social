@@ -17,6 +17,7 @@
     "react-hook-form": "^7.88.0",
     "react-redux": "^9.3.0",
     "react-router-dom": "^7.18.3",
+    "socket.io-client": "^4.8.3",
     "zod": "^4.6.4"
   },
   "devDependencies": {

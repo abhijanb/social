@@ -6,6 +6,7 @@ import ChatWindow from '../features/chat/components/ChatWindow'
 import type { Conversation, Message } from '../features/chat/types'
 import { useGetMeQuery } from '../features/users/usersApi'
 import { useGetFriendsQuery } from '../features/friendship/friendshipApi'
+import { usePresence } from '../features/presence/usePresence'
 import { useAppDispatch } from '../app/hooks'
 import { logout } from '../features/auth/authSlice'
 
@@ -53,6 +54,9 @@ export default function ChatPage() {
     }))
   }, [friends])
 
+  const friendIds = useMemo(() => conversations.map((c) => c.id), [conversations])
+  const { isOnline, lastSeen } = usePresence(friendIds)
+
   useEffect(() => {
     if (!activeId && conversations.length > 0) setActiveId(conversations[0].id)
     if (activeId && conversations.length > 0 && !conversations.find((c) => c.id === activeId)) {
@@ -98,6 +102,7 @@ export default function ChatPage() {
             onSelect={setActiveId}
             filter={filter}
             onFilterChange={setFilter}
+            isOnline={isOnline}
           />
         )}
       </div>
@@ -122,7 +127,13 @@ export default function ChatPage() {
             </select>
           )}
         </div>
-        <ChatWindow conversation={activeConversation} messages={activeMessages} onSend={handleSend} />
+        <ChatWindow
+          conversation={activeConversation}
+          messages={activeMessages}
+          onSend={handleSend}
+          isOnline={activeId ? isOnline(activeId) : undefined}
+          lastSeen={activeId ? lastSeen(activeId) : null}
+        />
       </div>
     </div>
   )

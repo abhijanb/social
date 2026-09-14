@@ -6,9 +6,11 @@ type Props = {
   conversation: Conversation | null
   messages: Message[]
   onSend: (text: string) => void
+  isOnline?: boolean
+  lastSeen?: string | null
 }
 
-export default function ChatWindow({ conversation, messages, onSend }: Props) {
+export default function ChatWindow({ conversation, messages, onSend, isOnline, lastSeen }: Props) {
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -47,7 +49,13 @@ export default function ChatWindow({ conversation, messages, onSend }: Props) {
         </div>
         <div>
           <p className="text-sm font-medium text-gray-900 dark:text-white">{conversation.username}</p>
-          <p className="text-xs text-green-600 dark:text-green-400">Online</p>
+          {isOnline ? (
+            <p className="text-xs text-green-600 dark:text-green-400">Online</p>
+          ) : lastSeen ? (
+            <p className="text-xs text-gray-500 dark:text-zinc-400">Offline • {lastSeen}</p>
+          ) : (
+            <p className="text-xs text-gray-500 dark:text-zinc-400">Offline</p>
+          )}
         </div>
       </div>
 
