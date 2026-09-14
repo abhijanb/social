@@ -21,6 +21,9 @@ export default function App() {
             <Link to="/users" className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white">
               Users
             </Link>
+            <Link to="/requests" className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white">
+              Requests
+            </Link>
             <Link to="/login" className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white">
               Login
             </Link>
@@ -41,6 +44,9 @@ export default function App() {
           )}
         </div>
         <div className="flex items-center gap-2 sm:hidden">
+          <Link to="/requests" className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-zinc-300">
+            Requests
+          </Link>
           <Link to="/login" className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-zinc-300">
             Login
           </Link>
