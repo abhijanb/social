@@ -5,11 +5,11 @@ Monorepo with two independent apps: `back/` (NestJS + Prisma) and `front/` (Reac
 ## Stack
 
 **Backend** `back/` – Node `bun@1.3.14`, `typescript@6.0.3`
-- NestJS `11.x`, `prisma@7.8.0` with `@prisma/adapter-pg` (PostgreSQL), `zod@4.6.4` validation, `bcrypt@6.0.0`, `jsonwebtoken@9.0.3`, `cookie-parser@1.4.7`
+- NestJS `11.x`, `prisma@7.8.0` with `@prisma/adapter-pg` (PostgreSQL), `zod@4.6.4` validation, `bcrypt@6.0.0`, `jsonwebtoken@9.0.3`, `cookie-parser@1.4.7`, `socket.io@4.8.3` via `@nestjs/websockets` + `@nestjs/platform-socket.io`
 - Prisma Client generated to `back/src/generated/prisma` (`runtime = bun`)
 
 **Frontend** `front/` – `vite@8.3.0`, `react@19.2.8`, `react-router-dom@7.18.3`
-- Redux Toolkit `2.12.0` + RTK Query, `react-hook-form@7.88.0` + `zod`, `tailwindcss@4.3.3`, `typescript~6.0.2`
+- Redux Toolkit `2.12.0` + RTK Query, `react-hook-form@7.88.0` + `zod`, `tailwindcss@4.3.3`, `socket.io-client@4.8.3`, `typescript~6.0.2`
 
 **DB** PostgreSQL (see `back/.env` `DATABASE_URL`)
 
@@ -59,17 +59,26 @@ Migrations: `20260913051655_init`, `20260914100000_add_friendship`. Seed: `back/
 - Suggestions respect length limits and are checked in a single database query
 - One click on a suggestion fills it into the form
 
+### 6. Online / Offline Presence — Real-time with Socket
+- Chat shows only real friends with live online status – no mock data
+- Uses socket for instant updates – user instantly knows when a friend comes online and goes offline
+- Sidebar has green dot for online friends (gray when offline) and online friends are sorted first
+- Chat header shows `Online` in green or `Offline • 5m ago` with last seen time
+- Initial status is fetched via REST, live changes come via socket events
+- Heartbeat every 25 seconds keeps the connection alive and multi-tab is handled correctly
+
 ## Project Structure
 
 ```
 social/
 ├── back/                 # Nest app
 │   ├── src/main.ts       # cookieParser, CORS
-│   ├── src/app.module.ts # UserModule, FriendshipModule
+│   ├── src/app.module.ts # UserModule, FriendshipModule, PresenceModule
 │   ├── src/lib/jwt.ts    # sign/verify
 │   ├── src/lib/prisma.ts
 │   ├── src/user/         # controller/service/dto
 │   ├── src/friendship/
+│   ├── src/presence/     # presence.gateway, presence.service, presence.controller (online/offline)
 │   ├── prisma/schema.prisma
 │   └── package.json
 └── front/                # Vite React app
@@ -78,12 +87,14 @@ social/
     ├── src/features/users # usersApi
     ├── src/features/search # useUserSearch, SearchBar
     ├── src/features/friendship
-    └── src/pages/        # Login, Register, UserSearchPage, UsersPage, FriendRequestsPage
+    ├── src/features/presence # socket, presenceApi, usePresence
+    ├── src/features/chat # ChatSidebar, ChatWindow, MessageBubble
+    └── src/pages/        # Login, Register, UserSearchPage, UsersPage, FriendRequestsPage, ChatPage
 ```
 
 ## Routes `front/src/app/route.tsx:8-14`
 
-`/` → `UserSearchPage` (auth required), `/login`, `/register`, `/users`, `/requests`
+`/` → `UserSearchPage` (auth required), `/login`, `/register`, `/users`, `/requests`, `/chat` (real friends, online/offline)
 
 ## API Endpoints
 
@@ -93,6 +104,7 @@ social/
 | POST | /user/login | no | login, sets `token` cookie |
 | POST | /user/logout | cookie | clears cookie |
 | GET | /user?search= | cookie (optional) | search, excludes self if JWT present |
+| GET | /user/me | cookie | current user from JWT |
 | GET | /user/:id | - | findOne |
 | PATCH | /user/:id | - | update |
 | DELETE | /user/:id | - | remove |
@@ -102,6 +114,8 @@ social/
 | PATCH | /friendship/:id | - | update status |
 | PATCH | /friendship/:id/accept | body `userId` | accept |
 | DELETE | /friendship/:id | - | remove |
+| GET | /presence?ids= | cookie | online status for friends |
+| WS | /presence | cookie | `presence:update`, `presence:heartbeat` – instant online/offline |
 
 ## Setup
 
