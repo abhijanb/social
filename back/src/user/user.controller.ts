@@ -72,14 +72,16 @@ export class UserController {
     return user
   }
 
+  @Patch('me')
+  update(@Req() req: Request, @Body(new ZodValidationPipe(updateUserSchema)) dto: UpdateUserDto) {
+    const current = getCurrentUser(req)
+    if (!current) throw new UnauthorizedException('Not authenticated')
+    return this.userService.update(current.id, dto)
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.userService.findOne(id)
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body(new ZodValidationPipe(updateUserSchema)) dto: UpdateUserDto) {
-    return this.userService.update(id, dto)
   }
 
   @Delete(':id')

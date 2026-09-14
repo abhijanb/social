@@ -66,9 +66,12 @@ export class UserService {
 
     const excludeIds = [...(currentUserId ? [currentUserId] : []), ...friendIds]
 
-    // Build where: search contains + exclude self by id + exclude self by username (case-insensitive) + exclude friends
+    // Build where: search contains + isPublic (private hidden from strangers) + exclude self + exclude friends
     const and: Record<string, unknown>[] = []
-    if (search) and.push({ username: { contains: search, mode: 'insensitive' as const } })
+    if (search) {
+      and.push({ username: { contains: search, mode: 'insensitive' as const } })
+      and.push({ isPublic: true })
+    }
     if (excludeIds.length) and.push({ id: { notIn: excludeIds } })
     if (currentUsername?.trim()) {
       and.push({ NOT: { username: { equals: currentUsername.trim(), mode: 'insensitive' as const } } })

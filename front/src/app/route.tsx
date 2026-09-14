@@ -5,6 +5,7 @@ import UserSearchPage from '../pages/UserSearchPage'
 import UsersPage from '../pages/UsersPage'
 import FriendRequestsPage from '../pages/FriendRequestsPage'
 import ChatPage from '../pages/ChatPage'
+import SettingsPage from '../pages/SettingsPage'
 
 export const routes: RouteObject[] = [
   { path: '/', element: <UserSearchPage /> },
@@ -13,4 +14,5 @@ export const routes: RouteObject[] = [
   { path: 'users', element: <UsersPage /> },
   { path: 'requests', element: <FriendRequestsPage /> },
   { path: 'chat', element: <ChatPage /> },
+  { path: 'settings', element: <SettingsPage /> },
 ]

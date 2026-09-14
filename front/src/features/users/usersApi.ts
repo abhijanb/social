@@ -3,6 +3,7 @@ import { baseApi } from "../../app/baseApi"
 export interface User {
   id: string
   username: string
+  isPublic: boolean
   email?: string | null
   name?: string | null
   createdAt: string
@@ -27,9 +28,9 @@ export const usersApi = baseApi.injectEndpoints({
       query: (body) => ({ url: 'user', method: 'POST', body }),
       invalidatesTags: ['User'],
     }),
-    updateUser: build.mutation<User, { id: string; patch: Partial<User> }>({
-      query: ({ id, patch }) => ({ url: `user/${id}`, method: 'PATCH', body: patch }),
-      invalidatesTags: (_result, _error, { id }) => [{ type: 'User', id }, 'User'],
+    updateUser: build.mutation<User, { patch: Partial<User> }>({
+      query: ({ patch }) => ({ url: `user/me`, method: 'PATCH', body: patch }),
+      invalidatesTags: ['User'],
     }),
     deleteUser: build.mutation<void, string>({
       query: (id) => ({ url: `user/${id}`, method: 'DELETE' }),
