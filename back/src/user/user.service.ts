@@ -88,8 +88,9 @@ export class UserService {
     return userWithoutPassword
   }
 
-  async findAll() {
+  async findAll(search?: string) {
     const users = await this.prisma.user.findMany({
+      where: search ? { username: { contains: search, mode: 'insensitive' } } : undefined,
       take: 10,
       orderBy: { createdAt: 'desc' },
     })

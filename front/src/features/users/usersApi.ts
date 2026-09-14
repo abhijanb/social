@@ -11,8 +11,8 @@ export interface User {
 
 export const usersApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    getUsers: build.query<User[], void>({
-      query: () => 'user',
+    getUsers: build.query<User[], string | void>({
+      query: (search) => (search ? `user?search=${encodeURIComponent(search)}` : 'user'),
       providesTags: ['User'],
     }),
     getUserById: build.query<User, string>({
