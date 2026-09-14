@@ -13,15 +13,16 @@ Monorepo with two independent apps: `back/` (NestJS + Prisma) and `front/` (Reac
 
 **DB** PostgreSQL (see `back/.env` `DATABASE_URL`)
 
-## Database Schema `back/prisma/schema.prisma:11-43`
+## Database Schema
 
 ```prisma
-model User { id String @id @default(cuid()); username String @unique; password String; sentRequests/ReceivedRequests Friendship[] }
+model User { id String @id @default(cuid()); username String @unique; password String; sentRequests/receivedRequests Friendship[] + sentMessages/receivedMessages Message[] }
 model Friendship { id String @id @default(cuid()); requesterId, addresseeId String; status FriendshipStatus @default(PENDING); @@unique([requesterId, addresseeId]) }
+model Message { id String @id @default(cuid()); senderId, receiverId String; text String; createdAt DateTime @default(now()); @@index([senderId, receiverId, createdAt]) }
 enum FriendshipStatus { PENDING ACCEPTED BLOCKED }
 ```
 
-Migrations: `20260913051655_init`, `20260914100000_add_friendship`. Seed: `back/prisma/seed.ts` (alice/bob/charlie).
+Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144227_add_message`. Seed: `back/prisma/seed.ts` (alice/bob/charlie).
 
 ## Features Built
 
@@ -67,18 +68,26 @@ Migrations: `20260913051655_init`, `20260914100000_add_friendship`. Seed: `back/
 - Initial status is fetched via REST, live changes come via socket events
 - Heartbeat every 25 seconds keeps the connection alive and multi-tab is handled correctly
 
+### 7. Chat Messages — Real-time with Socket (Friends-only, Text Only)
+- Chat page shows only accepted friends – pick a friend to open conversation
+- Friends-only text chat, up to 1000 characters, empty and self-messages are blocked
+- Messages are saved in the database and history loads last 50 per friend, survives refresh
+- New messages appear instantly on both sides without refresh – no polling needed
+- **Why socket:** REST alone would need polling or manual refresh to see new messages; socket lets the server push each message the moment it is saved, so both sender (multi-tab echo) and receiver see it instantly, with REST as fallback when socket is offline
+
 ## Project Structure
 
 ```
 social/
 ├── back/                 # Nest app
 │   ├── src/main.ts       # cookieParser, CORS
-│   ├── src/app.module.ts # UserModule, FriendshipModule, PresenceModule
+│   ├── src/app.module.ts # UserModule, FriendshipModule, PresenceModule, ChatModule
 │   ├── src/lib/jwt.ts    # sign/verify
 │   ├── src/lib/prisma.ts
 │   ├── src/user/         # controller/service/dto
 │   ├── src/friendship/
 │   ├── src/presence/     # presence.gateway, presence.service, presence.controller (online/offline)
+│   ├── src/chat/         # chat.gateway, chat.service, chat.controller (friends-only text messages)
 │   ├── prisma/schema.prisma
 │   └── package.json
 └── front/                # Vite React app
@@ -88,13 +97,13 @@ social/
     ├── src/features/search # useUserSearch, SearchBar
     ├── src/features/friendship
     ├── src/features/presence # socket, presenceApi, usePresence
-    ├── src/features/chat # ChatSidebar, ChatWindow, MessageBubble
+    ├── src/features/chat # chatApi, socket, useChat, types, ChatSidebar, ChatWindow, MessageBubble
     └── src/pages/        # Login, Register, UserSearchPage, UsersPage, FriendRequestsPage, ChatPage
 ```
 
 ## Routes `front/src/app/route.tsx:8-14`
 
-`/` → `UserSearchPage` (auth required), `/login`, `/register`, `/users`, `/requests`, `/chat` (real friends, online/offline)
+`/` → `UserSearchPage` (auth required), `/login`, `/register`, `/users`, `/requests`, `/chat` (real friends, online/offline, messages)
 
 ## API Endpoints
 
@@ -116,6 +125,9 @@ social/
 | DELETE | /friendship/:id | - | remove |
 | GET | /presence?ids= | cookie | online status for friends |
 | WS | /presence | cookie | `presence:update`, `presence:heartbeat` – instant online/offline |
+| GET | /chat/history?friendId= | cookie | last 50 messages with friend |
+| POST | /chat/send | cookie | send text to friend (friends-only) |
+| WS | /chat | cookie | `chat:send` → `chat:receive` – instant delivery, REST fallback |
 
 ## Setup
 
