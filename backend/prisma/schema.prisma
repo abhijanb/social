@@ -21,6 +21,8 @@ model User {
   sentMessages     Message[]    @relation("SentMessages")
   receivedMessages Message[]    @relation("ReceivedMessages")
   posts            Post[]       @relation("UserPosts")
+  hostedStreams    Livestream[] @relation("HostedStreams")
+  streamComments   LivestreamComment[]
 }
 
 model Message {
@@ -67,6 +69,40 @@ model PostImage {
 enum PostMediaKind {
   IMAGE
   VIDEO
+}
+
+model Livestream {
+  id        String           @id @default(cuid())
+  hostId    String
+  title     String
+  status    LivestreamStatus @default(LIVE)
+  startedAt DateTime         @default(now())
+  endedAt   DateTime?
+
+  host     User                @relation("HostedStreams", fields: [hostId], references: [id], onDelete: Cascade)
+  comments LivestreamComment[]
+
+  @@index([status, startedAt])
+  @@index([hostId, status])
+}
+
+model LivestreamComment {
+  id        String   @id @default(cuid())
+  streamId  String
+  authorId  String
+  text      String
+  createdAt DateTime @default(now())
+
+  stream Livestream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  author User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([streamId, createdAt])
+  @@index([streamId, id])
+}
+
+enum LivestreamStatus {
+  LIVE
+  ENDED
 }
 
 model Friendship {
