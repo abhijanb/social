@@ -21,14 +21,14 @@ export default function App() {
             <Link to="/users" className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white">
               Users
             </Link>
+            <Link to="/search" className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white">
+              Search
+            </Link>
             <Link to="/requests" className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white">
               Requests
             </Link>
             <Link to="/chat" className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white">
               Chat
-            </Link>
-            <Link to="/feed" className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white">
-              Feed
             </Link>
             <Link to="/live" className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white">
               Live
@@ -69,8 +69,8 @@ export default function App() {
           <Link to="/chat" className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-zinc-300">
             Chat
           </Link>
-          <Link to="/feed" className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-zinc-300">
-            Feed
+          <Link to="/search" className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-zinc-300">
+            Search
           </Link>
           <Link to="/live" className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-zinc-300">
             Live

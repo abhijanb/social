@@ -82,7 +82,7 @@ Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144
 - **Why socket:** REST alone would need polling or manual refresh to see new messages; socket lets the server push each message the moment it is saved, so both sender (multi-tab echo) and receiver see it instantly, with REST as fallback when socket is offline
 
 ### 8. Posts Feed — Text + Multi-Media Carousel, Friends-only, REST
-- Feed page at `/feed` for authenticated users – composer on top, newest-first feed below, infinite scroll
+- Feed page at `/` for authenticated users – composer on top, newest-first feed below, infinite scroll
 - Text posts up to 2200 characters (Instagram limit), optional up to 10 attachments mixing images (JPEG/PNG/WebP/GIF, max 5MB each) and videos (MP4/WebM, max 50MB each) with carousel viewer (arrows, dots, counter, touch swipe, video controls)
 - Either-or rule: a post needs text, at least one image/video, or both – media-only posts allowed
 - Uploads stored in `backend/uploads/` (gitignored) and served at `/uploads/*`; DB keeps only the path
@@ -131,7 +131,7 @@ social/
 
 ## Routes `front/src/app/route.tsx`
 
-`/` → `UserSearchPage` (auth required), `/login`, `/register`, `/users`, `/requests`, `/chat` (real friends, online/offline, messages), `/feed` (friends-only posts), `/live` (friends-only livestream rooms)
+`/` → `FeedPage` (friends-only posts, auth required), `/login`, `/register`, `/users`, `/search` (user search), `/requests`, `/chat` (real friends, online/offline, messages), `/live` (friends-only livestream rooms)
 
 ## API Endpoints
 

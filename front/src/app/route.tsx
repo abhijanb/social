@@ -10,8 +10,8 @@ import LivestreamPage from '../pages/LivestreamPage'
 import SettingsPage from '../pages/SettingsPage'
 
 export const routes: RouteObject[] = [
-  { path: '/', element: <UserSearchPage /> },
-  { path: 'feed', element: <FeedPage /> },
+  { path: '/', element: <FeedPage /> },
+  { path: 'search', element: <UserSearchPage /> },
   { path: 'live', element: <LivestreamPage /> },
   { path: 'login', element: <Login /> },
   { path: 'register', element: <Register /> },
