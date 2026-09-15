@@ -27,6 +27,9 @@ export default function App() {
             <Link to="/chat" className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white">
               Chat
             </Link>
+            <Link to="/feed" className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white">
+              Feed
+            </Link>
             <Link to="/login" className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white">
               Login
             </Link>
@@ -62,6 +65,9 @@ export default function App() {
           </Link>
           <Link to="/chat" className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-zinc-300">
             Chat
+          </Link>
+          <Link to="/feed" className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-zinc-300">
+            Feed
           </Link>
           <Link to="/settings" aria-label="Settings" className="rounded-lg p-1.5 text-gray-600 dark:text-zinc-300">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -7,9 +7,10 @@ import { ChartModule } from './chart/chart.module.js';
 import { OnLineOffLineModule } from './on-line-off-line/on-line-off-line.module.js';
 import { PresenceModule } from './presence/presence.module.js';
 import { ChatModule } from './chat/chat.module.js';
+import { PostModule } from './post/post.module.js';
 
 @Module({
-  imports: [UserModule, FriendshipModule, ChartModule, OnLineOffLineModule, PresenceModule, ChatModule],
+  imports: [UserModule, FriendshipModule, ChartModule, OnLineOffLineModule, PresenceModule, ChatModule, PostModule],
   controllers: [AppController],
   providers: [PrismaService],
 })

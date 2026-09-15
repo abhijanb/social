@@ -5,10 +5,12 @@ import UserSearchPage from '../pages/UserSearchPage'
 import UsersPage from '../pages/UsersPage'
 import FriendRequestsPage from '../pages/FriendRequestsPage'
 import ChatPage from '../pages/ChatPage'
+import FeedPage from '../pages/FeedPage'
 import SettingsPage from '../pages/SettingsPage'
 
 export const routes: RouteObject[] = [
   { path: '/', element: <UserSearchPage /> },
+  { path: 'feed', element: <FeedPage /> },
   { path: 'login', element: <Login /> },
   { path: 'register', element: <Register /> },
   { path: 'users', element: <UsersPage /> },

@@ -19,10 +19,11 @@ Monorepo with two independent apps: `back/` (NestJS + Prisma) and `front/` (Reac
 model User { id String @id @default(cuid()); username String @unique; password String; sentRequests/receivedRequests Friendship[] + sentMessages/receivedMessages Message[] }
 model Friendship { id String @id @default(cuid()); requesterId, addresseeId String; status FriendshipStatus @default(PENDING); @@unique([requesterId, addresseeId]) }
 model Message { id String @id @default(cuid()); senderId, receiverId String; text String; createdAt DateTime @default(now()); @@index([senderId, receiverId, createdAt]) }
+model Post { id String @id @default(cuid()); authorId String; text String (max 2200); createdAt DateTime @default(now()); @@index([authorId, createdAt]) }
 enum FriendshipStatus { PENDING ACCEPTED BLOCKED }
 ```
 
-Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144227_add_message`. Seed: `back/prisma/seed.ts` (alice/bob/charlie).
+Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144227_add_message`, `20260915091629_add_post`. Seed: `back/prisma/seed.ts` (alice/bob/charlie).
 
 ## Features Built
 
@@ -75,6 +76,12 @@ Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144
 - New messages appear instantly on both sides without refresh – no polling needed
 - **Why socket:** REST alone would need polling or manual refresh to see new messages; socket lets the server push each message the moment it is saved, so both sender (multi-tab echo) and receiver see it instantly, with REST as fallback when socket is offline
 
+### 8. Posts Feed — Text-only, Friends-only, REST
+- Feed page at `/feed` for authenticated users – composer on top, newest-first feed below
+- Text posts up to 2200 characters (Instagram limit), empty posts blocked
+- Friends-only visibility: feed shows own posts + `ACCEPTED` friends' posts; strangers' posts are hidden and `GET /post?authorId=` returns `403` for non-friends
+- REST only (no socket): RTK Query with `Post` tag invalidation on create, limit-based "Load more" pagination
+
 ## Project Structure
 
 ```
@@ -88,6 +95,7 @@ social/
 │   ├── src/friendship/
 │   ├── src/presence/     # presence.gateway, presence.service, presence.controller (online/offline)
 │   ├── src/chat/         # chat.gateway, chat.service, chat.controller (friends-only text messages)
+│   ├── src/post/         # post.service, post.controller (friends-only text posts, 2200 chars)
 │   ├── prisma/schema.prisma
 │   └── package.json
 └── front/                # Vite React app
@@ -98,12 +106,13 @@ social/
     ├── src/features/friendship
     ├── src/features/presence # socket, presenceApi, usePresence
     ├── src/features/chat # chatApi, socket, useChat, types, ChatSidebar, ChatWindow, MessageBubble
-    └── src/pages/        # Login, Register, UserSearchPage, UsersPage, FriendRequestsPage, ChatPage
+    ├── src/features/posts # postsApi, PostComposer, PostCard, PostFeed
+    └── src/pages/        # Login, Register, UserSearchPage, UsersPage, FriendRequestsPage, ChatPage, FeedPage
 ```
 
 ## Routes `front/src/app/route.tsx:8-14`
 
-`/` → `UserSearchPage` (auth required), `/login`, `/register`, `/users`, `/requests`, `/chat` (real friends, online/offline, messages)
+`/` → `UserSearchPage` (auth required), `/login`, `/register`, `/users`, `/requests`, `/chat` (real friends, online/offline, messages), `/feed` (friends-only posts)
 
 ## API Endpoints
 
@@ -128,6 +137,9 @@ social/
 | GET | /chat/history?friendId= | cookie | last 50 messages with friend |
 | POST | /chat/send | cookie | send text to friend (friends-only) |
 | WS | /chat | cookie | `chat:send` → `chat:receive` – instant delivery, REST fallback |
+| POST | /post | cookie | create text post (max 2200 chars) |
+| GET | /post/feed?limit&cursor= | cookie | friends + self feed, newest first |
+| GET | /post?authorId= | cookie | posts by author (friends-only, else 403) |
 
 ## Setup
 

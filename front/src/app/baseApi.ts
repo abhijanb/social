@@ -6,7 +6,7 @@ export const baseApi = createApi({
     baseUrl: import.meta.env.VITE_API_URL ?? 'http://localhost:3000',
     credentials: 'include',
   }),
-  tagTypes: ['User', 'Friendship', 'Presence', 'Chat'],
+  tagTypes: ['User', 'Friendship', 'Presence', 'Chat', 'Post'],
   endpoints: () => ({}),
 })
 
