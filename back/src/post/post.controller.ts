@@ -23,24 +23,17 @@ export class PostController {
   }
 
   @Get('feed')
-  async getFeed(@Req() req: Request, @Query('limit') limit?: string, @Query('cursor') cursor?: string) {
+  async getFeed(@Req() req: Request, @Query('page') page?: string) {
     const meId = getCurrentUserId(req)
     if (!meId) throw new UnauthorizedException('Not authenticated')
-    const n = limit ? Number(limit) || 20 : 20
-    return this.postService.getFeed(meId, n, cursor?.trim() || undefined)
+    return this.postService.getFeed(meId, page ? Number(page) : 1)
   }
 
   @Get()
-  async getByAuthor(
-    @Req() req: Request,
-    @Query('authorId') authorId?: string,
-    @Query('limit') limit?: string,
-    @Query('cursor') cursor?: string,
-  ) {
+  async getByAuthor(@Req() req: Request, @Query('authorId') authorId?: string, @Query('page') page?: string) {
     const meId = getCurrentUserId(req)
     if (!meId) throw new UnauthorizedException('Not authenticated')
     if (!authorId?.trim()) throw new BadRequestException('authorId required')
-    const n = limit ? Number(limit) || 20 : 20
-    return this.postService.getByAuthor(meId, authorId.trim(), n, cursor?.trim() || undefined)
+    return this.postService.getByAuthor(meId, authorId.trim(), page ? Number(page) : 1)
   }
 }

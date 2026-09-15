@@ -12,6 +12,7 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString()
 }
 
+// PostCard – renders a single post: author avatar/username, time-ago, and text body.
 export default function PostCard({ post }: { post: Post }) {
   return (
     <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">

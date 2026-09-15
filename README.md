@@ -80,7 +80,7 @@ Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144
 - Feed page at `/feed` for authenticated users – composer on top, newest-first feed below
 - Text posts up to 2200 characters (Instagram limit), empty posts blocked
 - Friends-only visibility: feed shows own posts + `ACCEPTED` friends' posts; strangers' posts are hidden and `GET /post?authorId=` returns `403` for non-friends
-- REST only (no socket): RTK Query with `Post` tag invalidation on create, limit-based "Load more" pagination
+- REST only (no socket): RTK Query with `Post` tag invalidation on create, server-owned page pagination (`FEED_PAGE_SIZE=20`, `{ posts, nextPage }` envelope, clients cannot set page size)
 
 ## Project Structure
 
@@ -138,8 +138,8 @@ social/
 | POST | /chat/send | cookie | send text to friend (friends-only) |
 | WS | /chat | cookie | `chat:send` → `chat:receive` – instant delivery, REST fallback |
 | POST | /post | cookie | create text post (max 2200 chars) |
-| GET | /post/feed?limit&cursor= | cookie | friends + self feed, newest first |
-| GET | /post?authorId= | cookie | posts by author (friends-only, else 403) |
+| GET | /post/feed?page= | cookie | friends + self feed, server-fixed 20/page, `{ posts, nextPage }` |
+| GET | /post?authorId=&page= | cookie | posts by author (friends-only, else 403), same envelope |
 
 ## Setup
 

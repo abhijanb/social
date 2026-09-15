@@ -3,7 +3,8 @@ import { useCreatePostMutation } from '../postsApi'
 
 const MAX_LENGTH = 2200
 
-export default function PostComposer() {
+// PostComposer – text box for writing a new post (max 2200 chars) with live counter and Post button.
+export default function PostComposer({ onCreated }: { onCreated?: () => void }) {
   const [text, setText] = useState('')
   const [createPost, { isLoading, error }] = useCreatePostMutation()
 
@@ -16,6 +17,7 @@ export default function PostComposer() {
     try {
       await createPost({ text: trimmed }).unwrap()
       setText('')
+      onCreated?.()
     } catch {
       // error surfaces via `error` below
     }

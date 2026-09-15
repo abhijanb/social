@@ -8,6 +8,7 @@ type Props = {
   onLoadMore: () => void
 }
 
+// PostFeed – renders the list of posts with loading/empty states and a "Load more" button.
 export default function PostFeed({ posts, isLoading, hasMore, onLoadMore }: Props) {
   if (isLoading && posts.length === 0) {
     return <p className="mt-6 text-center text-sm text-gray-500 dark:text-zinc-400">Loading feed...</p>

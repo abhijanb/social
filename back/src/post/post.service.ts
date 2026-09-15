@@ -3,6 +3,23 @@ import { PrismaService } from '../prisma.service.js'
 
 const authorSelect = { id: true, username: true } as const
 
+/** Server-owned page size – clients cannot dictate it via query params. */
+export const FEED_PAGE_SIZE = 20
+
+export type PostWithAuthor = {
+  id: string
+  authorId: string
+  text: string
+  createdAt: Date
+  author: { id: string; username: string }
+}
+
+export type FeedPage = {
+  posts: PostWithAuthor[]
+  /** Next page number, or null when there are no more pages. */
+  nextPage: number | null
+}
+
 @Injectable()
 export class PostService {
   constructor(private readonly prisma: PrismaService) {}
@@ -42,27 +59,27 @@ export class PostService {
     })
   }
 
-  async getFeed(meId: string, limit = 20, cursor?: string) {
-    const n = Math.min(50, Math.max(1, limit))
+  async getFeed(meId: string, page = 1): Promise<FeedPage> {
     const friendIds = await this.getFriendIds(meId)
-    return this.prisma.post.findMany({
-      where: { authorId: { in: [meId, ...friendIds] } },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: n,
-      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-      include: { author: { select: authorSelect } },
-    })
+    return this.findPage([meId, ...friendIds], page)
   }
 
-  async getByAuthor(meId: string, authorId: string, limit = 20, cursor?: string) {
+  async getByAuthor(meId: string, authorId: string, page = 1): Promise<FeedPage> {
     await this.ensureCanView(meId, authorId)
-    const n = Math.min(50, Math.max(1, limit))
-    return this.prisma.post.findMany({
-      where: { authorId },
+    return this.findPage([authorId], page)
+  }
+
+  private async findPage(authorIds: string[], page = 1): Promise<FeedPage> {
+    const p = Math.max(1, Math.floor(page) || 1)
+    const rows = await this.prisma.post.findMany({
+      where: { authorId: { in: authorIds } },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: n,
-      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      skip: (p - 1) * FEED_PAGE_SIZE,
+      take: FEED_PAGE_SIZE + 1,
       include: { author: { select: authorSelect } },
     })
+    const hasMore = rows.length > FEED_PAGE_SIZE
+    const posts = hasMore ? rows.slice(0, FEED_PAGE_SIZE) : rows
+    return { posts, nextPage: hasMore ? p + 1 : null }
   }
 }
