@@ -12,7 +12,8 @@ type Props = {
 }
 
 // PostCarousel – Instagram-style mixed-media viewer: arrows, dots, counter,
-// touch swipe. Videos render with controls and pause when navigating away.
+// touch swipe. Renders edge-to-edge inside the card (the card clips corners).
+// Videos render with controls and pause when navigating away.
 // Single attachment renders without controls. Parent keys by post id
 // so index state resets per post (media is immutable after create).
 export default function PostCarousel({ items, alt }: Props) {
@@ -37,7 +38,7 @@ export default function PostCarousel({ items, alt }: Props) {
 
   return (
     <div
-      className="relative mt-3 overflow-hidden rounded-lg"
+      className="relative overflow-hidden border-y border-gray-100 bg-black dark:border-zinc-800"
       onTouchStart={(e) => {
         touchX.current = e.touches[0].clientX
       }}
@@ -57,14 +58,14 @@ export default function PostCarousel({ items, alt }: Props) {
           controls
           preload="metadata"
           playsInline
-          className="max-h-96 w-full bg-black object-contain"
+          className="max-h-[32rem] w-full bg-black object-contain"
         />
       ) : (
         <img
           src={current.src}
           alt={`${alt} (${safeIndex + 1}/${count})`}
           loading="lazy"
-          className="max-h-96 w-full object-cover"
+          className="max-h-[32rem] w-full bg-black object-cover"
         />
       )}
       {count > 1 && (
@@ -83,10 +84,10 @@ export default function PostCarousel({ items, alt }: Props) {
           >
             ›
           </button>
-          <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-medium text-white">
+          <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold tabular-nums text-white shadow">
             {safeIndex + 1}/{count}
           </span>
-          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5">
+          <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/30 px-2 py-1">
             {items.map((_, i) => (
               <button
                 key={i}

@@ -4,6 +4,7 @@ import { useAppDispatch } from '../app/hooks'
 import { baseApi } from '../app/baseApi'
 import { useAuth } from '../features/auth/hooks/useAuth'
 import { useGetFeedQuery, type Post } from '../features/posts/postsApi'
+import { useGetMeQuery } from '../features/users/usersApi'
 import PostComposer from '../features/posts/components/PostComposer'
 import PostFeed from '../features/posts/components/PostFeed'
 
@@ -20,6 +21,7 @@ export default function FeedPage() {
   const { data, isLoading, isFetching, error } = useGetFeedQuery(page === FIRST_PAGE ? undefined : { page }, {
     skip: !isAuthenticated,
   })
+  const { data: me } = useGetMeQuery(undefined, { skip: !isAuthenticated })
 
   // Each page is cached separately by RTK Query; collect fetched pages here.
   // Guarded so each page is added once (render-time adjustment, not an effect).
@@ -48,11 +50,10 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-8 dark:bg-[#16171d]">
-      <div className="mx-auto max-w-2xl">
-        <h1 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">Feed</h1>
-        {/* PostComposer – text box for writing a new post. */}
-        <PostComposer onCreated={handleCreated} />
+    <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-6 dark:bg-[#16171d]">
+      <div className="mx-auto max-w-xl">
+        {/* PostComposer – avatar + input row for writing a new post. */}
+        <PostComposer onCreated={handleCreated} username={me?.username} />
         {error && !(typeof error === 'object' && 'status' in error && error.status === 401) && (
           <p className="mt-6 text-center text-sm text-red-600 dark:text-red-400">Failed to load feed</p>
         )}
