@@ -52,15 +52,21 @@ model Post {
 }
 
 model PostImage {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   postId    String
   url       String
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
+  kind      PostMediaKind @default(IMAGE)
+  order     Int           @default(0)
+  createdAt DateTime      @default(now())
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId, order])
+}
+
+enum PostMediaKind {
+  IMAGE
+  VIDEO
 }
 
 model Friendship {

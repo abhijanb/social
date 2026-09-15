@@ -20,11 +20,12 @@ model User { id String @id @default(cuid()); username String @unique; password S
 model Friendship { id String @id @default(cuid()); requesterId, addresseeId String; status FriendshipStatus @default(PENDING); @@unique([requesterId, addresseeId]) }
 model Message { id String @id @default(cuid()); senderId, receiverId String; text String; createdAt DateTime @default(now()); @@index([senderId, receiverId, createdAt]) }
 model Post { id String @id @default(cuid()); authorId String; text String (max 2200); images PostImage[]; createdAt DateTime @default(now()); @@index([authorId, createdAt]) }
-model PostImage { id String @id @default(cuid()); postId String; url String; order Int @default(0); createdAt DateTime @default(now()); @@index([postId, order]) }
+model PostImage { id String @id @default(cuid()); postId String; url String; kind PostMediaKind @default(IMAGE); order Int @default(0); createdAt DateTime @default(now()); @@index([postId, order]) }
+enum PostMediaKind { IMAGE VIDEO }
 enum FriendshipStatus { PENDING ACCEPTED BLOCKED }
 ```
 
-Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144227_add_message`, `20260914152018_add_is_public`, `20260915091629_add_post`, `20260915095417_add_post_image`, `20260915175930_add_post_images`. Seed: `backend/prisma/seed.ts` (alice/bob/charlie).
+Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144227_add_message`, `20260914152018_add_is_public`, `20260915091629_add_post`, `20260915095417_add_post_image`, `20260915175930_add_post_images`, `20260915182342_add_post_media_kind`. Seed: `backend/prisma/seed.ts` (alice/bob/charlie).
 
 ## Features Built
 
@@ -77,10 +78,10 @@ Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144
 - New messages appear instantly on both sides without refresh – no polling needed
 - **Why socket:** REST alone would need polling or manual refresh to see new messages; socket lets the server push each message the moment it is saved, so both sender (multi-tab echo) and receiver see it instantly, with REST as fallback when socket is offline
 
-### 8. Posts Feed — Text + Multi-Image Carousel, Friends-only, REST
+### 8. Posts Feed — Text + Multi-Media Carousel, Friends-only, REST
 - Feed page at `/feed` for authenticated users – composer on top, newest-first feed below, infinite scroll
-- Text posts up to 2200 characters (Instagram limit), optional up to 10 images (JPEG/PNG/WebP/GIF, max 5MB each) with carousel viewer (arrows, dots, counter, touch swipe)
-- Either-or rule: a post needs text, at least one image, or both – image-only posts allowed
+- Text posts up to 2200 characters (Instagram limit), optional up to 10 attachments mixing images (JPEG/PNG/WebP/GIF, max 5MB each) and videos (MP4/WebM, max 50MB each) with carousel viewer (arrows, dots, counter, touch swipe, video controls)
+- Either-or rule: a post needs text, at least one image/video, or both – media-only posts allowed
 - Uploads stored in `backend/uploads/` (gitignored) and served at `/uploads/*`; DB keeps only the path
 - Friends-only visibility: feed shows own posts + `ACCEPTED` friends' posts; strangers' posts are hidden and `GET /post?authorId=` returns `403` for non-friends
 - REST only (no socket): RTK Query with `Post` tag invalidation on create, server-owned page pagination (`FEED_PAGE_SIZE=20`, `{ posts, nextPage }` envelope, clients cannot set page size)
@@ -141,7 +142,7 @@ social/
 | GET | /chat/history?friendId= | cookie | last 50 messages with friend |
 | POST | /chat/send | cookie | send text to friend (friends-only) |
 | WS | /chat | cookie | `chat:send` → `chat:receive` – instant delivery, REST fallback |
-| POST | /post | cookie | create post, multipart `text` + optional `images` files (up to 10, JPEG/PNG/WebP/GIF ≤5MB each); needs text or ≥1 image |
+| POST | /post | cookie | create post, multipart `text` + optional `images` files (up to 10 mixed: images JPEG/PNG/WebP/GIF ≤5MB each, videos MP4/WebM ≤50MB each); needs text or ≥1 attachment |
 | GET | /post/feed?page= | cookie | friends + self feed, server-fixed 20/page, `{ posts, nextPage }` |
 | GET | /post?authorId=&page= | cookie | posts by author (friends-only, else 403), same envelope |
 
