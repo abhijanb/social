@@ -1,25 +1,44 @@
 import type { Response } from "express";
+import { unlink } from "node:fs/promises";
+import { join } from "node:path";
 import { AppError } from "../../lib/errorHandler.js";
 import { responseCreated, responseSuccess } from "../../lib/response.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import type { AuthRequest } from "../../middleware/auth.js";
 import { createPost, getByAuthor, getFeed } from "./post.service.js";
+import type { PostMediaInput } from "./post.service.js";
 import {
   authorPostsQuerySchema,
   createPostSchema,
   feedQuerySchema,
 } from "./post.schema.js";
+import { MAX_IMAGE_BYTES } from "./post.upload.js";
 
-// POST /post — multipart text + optional images (up to 10, uploadImage runs
-// first). Port of PostController.create (behind requireAuth).
+// POST /post — multipart text + optional media attachments (up to 10,
+// any mix of images/videos, uploadImage runs first).
+// Port of PostController.create (behind requireAuth).
 export async function createPostController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const dto = validateOrThrow(createPostSchema, req.body);
   const files = (req as AuthRequest & { files?: Express.Multer.File[] }).files;
-  const imageUrls = Array.isArray(files)
-    ? files.map((f) => `/uploads/${f.filename}`)
-    : [];
-  const post = await createPost(req.user.id, dto.text, imageUrls);
+  const list = Array.isArray(files) ? files : [];
+  // Multer caps every file at the video limit; enforce the tighter
+  // image cap here. On failure delete the just-uploaded files so
+  // rejected uploads don't leave orphans on disk.
+  const oversized = list.find(
+    (f) => !f.mimetype.startsWith("video/") && f.size > MAX_IMAGE_BYTES,
+  );
+  if (oversized) {
+    await Promise.allSettled(
+      list.map((f) => unlink(join(process.cwd(), "uploads", f.filename))),
+    );
+    throw new AppError("Image too large (max 5MB per image)", 400);
+  }
+  const media: PostMediaInput[] = list.map((f) => ({
+    url: `/uploads/${f.filename}`,
+    kind: f.mimetype.startsWith("video/") ? "VIDEO" : "IMAGE",
+  }));
+  const post = await createPost(req.user.id, dto.text, media);
   return responseCreated(res, post, "Post created");
 }
 

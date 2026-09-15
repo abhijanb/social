@@ -5,9 +5,12 @@ export type PostAuthor = {
   username: string
 }
 
+export type PostMediaKind = 'IMAGE' | 'VIDEO'
+
 export type PostImage = {
   id: string
   url: string
+  kind: PostMediaKind
   order: number
 }
 
@@ -21,6 +24,13 @@ export type Post = {
 }
 
 export const MAX_POST_IMAGES = 10
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+export const MAX_VIDEO_BYTES = 50 * 1024 * 1024
+export const ACCEPT_MEDIA = 'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm'
+
+export function isVideoFile(file: File): boolean {
+  return file.type.startsWith('video/')
+}
 
 export type FeedPage = {
   posts: Post[]

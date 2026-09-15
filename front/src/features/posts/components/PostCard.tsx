@@ -15,12 +15,15 @@ function timeAgo(iso: string): string {
 }
 
 // PostCard – renders a single post: author avatar/username, time-ago, optional
-// image carousel (up to 10), and text body.
+// media carousel (up to 10 images/videos mixed), and text body.
 export default function PostCard({ post }: { post: Post }) {
-  const imageSrcs = [...(post.images ?? [])]
+  const items = [...(post.images ?? [])]
     .sort((a, b) => a.order - b.order)
-    .map((img) => resolveImageUrl(img.url))
-    .filter((src): src is string => src != null)
+    .map((img) => ({ src: resolveImageUrl(img.url), kind: img.kind }))
+    .filter(
+      (item): item is { src: string; kind: (typeof item)['kind'] } =>
+        item.src != null,
+    )
   return (
     <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
       <div className="flex items-center gap-3">
@@ -32,8 +35,8 @@ export default function PostCard({ post }: { post: Post }) {
           <p className="text-xs text-gray-500 dark:text-zinc-400">{timeAgo(post.createdAt)}</p>
         </div>
       </div>
-      {imageSrcs.length > 0 && (
-        <PostCarousel key={post.id} images={imageSrcs} alt={`Post by ${post.author.username}`} />
+      {items.length > 0 && (
+        <PostCarousel key={post.id} items={items} alt={`Post by ${post.author.username}`} />
       )}
       {post.text && (
         <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-900 dark:text-zinc-100">

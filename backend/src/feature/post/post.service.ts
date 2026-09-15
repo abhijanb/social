@@ -8,8 +8,15 @@ const postInclude = {
   images: { orderBy: imagesOrderBy },
 } as const;
 
-/** Max images per post — mirrors multer MAX_IMAGES in post.upload.ts. */
+/** Max attachments per post — mirrors multer MAX_IMAGES in post.upload.ts. */
 export const MAX_POST_IMAGES = 10;
+
+export type PostMediaKindDto = "IMAGE" | "VIDEO";
+
+export type PostMediaInput = {
+  url: string;
+  kind: PostMediaKindDto;
+};
 
 /** Server-owned page size – clients cannot dictate it via query params. */
 export const FEED_PAGE_SIZE = 20;
@@ -17,6 +24,7 @@ export const FEED_PAGE_SIZE = 20;
 export type PostImageDto = {
   id: string;
   url: string;
+  kind: PostMediaKindDto;
   order: number;
 };
 
@@ -65,26 +73,27 @@ async function ensureCanView(
   if (!friendship) throw new AppError("Not friends", 403);
 }
 
-// Port of PostService.create — text, images, or both required.
-// Accepts up to MAX_POST_IMAGES image URLs (Instagram-style carousel).
+// Port of PostService.create — text, media, or both required.
+// Accepts up to MAX_POST_IMAGES attachments, any mix of images and
+// videos (Instagram-style carousel); upload order = display order.
 export async function createPost(
   authorId: string,
   text: string,
-  imageUrls: string[] = [],
+  media: PostMediaInput[] = [],
 ) {
   const trimmed = text.trim();
   if (trimmed.length > 2200)
     throw new AppError("Post too long (max 2200 characters)", 400);
-  if (imageUrls.length > MAX_POST_IMAGES)
-    throw new AppError(`Max ${MAX_POST_IMAGES} images per post`, 400);
-  if (!trimmed && imageUrls.length === 0)
-    throw new AppError("Post needs text or at least one image", 400);
+  if (media.length > MAX_POST_IMAGES)
+    throw new AppError(`Max ${MAX_POST_IMAGES} attachments per post`, 400);
+  if (!trimmed && media.length === 0)
+    throw new AppError("Post needs text or at least one image or video", 400);
   return prisma.post.create({
     data: {
       authorId,
       text: trimmed,
       images: {
-        create: imageUrls.map((url, i) => ({ url, order: i })),
+        create: media.map((m, i) => ({ url: m.url, kind: m.kind, order: i })),
       },
     },
     include: postInclude,

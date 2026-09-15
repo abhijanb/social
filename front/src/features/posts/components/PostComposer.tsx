@@ -1,15 +1,27 @@
 import { useState } from 'react'
-import { MAX_POST_IMAGES, useCreatePostMutation } from '../postsApi'
+import {
+  ACCEPT_MEDIA,
+  MAX_IMAGE_BYTES,
+  MAX_POST_IMAGES,
+  MAX_VIDEO_BYTES,
+  isVideoFile,
+  useCreatePostMutation,
+} from '../postsApi'
 
 const MAX_LENGTH = 2200
 
+function fileTooBig(file: File): boolean {
+  return isVideoFile(file) ? file.size > MAX_VIDEO_BYTES : file.size > MAX_IMAGE_BYTES
+}
+
 // PostComposer – text box for writing a new post (max 2200 chars) with live counter,
-// optional multi-image attach (up to MAX_POST_IMAGES) + previews, and Post button.
-// Needs text, at least one image, or both.
+// optional media attach (up to MAX_POST_IMAGES images/videos mixed) + previews,
+// and Post button. Needs text, at least one attachment, or both.
 export default function PostComposer({ onCreated }: { onCreated?: () => void }) {
   const [text, setText] = useState('')
   const [images, setImages] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
+  const [pickError, setPickError] = useState<string | null>(null)
   const [createPost, { isLoading, error }] = useCreatePostMutation()
 
   const trimmed = text.trim()
@@ -21,7 +33,16 @@ export default function PostComposer({ onCreated }: { onCreated?: () => void }) 
     const picked = Array.from(files)
     if (picked.length === 0) return
     const room = MAX_POST_IMAGES - images.length
-    const accepted = picked.slice(0, Math.max(0, room))
+    const withinRoom = picked.slice(0, Math.max(0, room))
+    const accepted = withinRoom.filter((f) => !fileTooBig(f))
+    const rejected = withinRoom.length - accepted.length
+    setPickError(
+      rejected > 0
+        ? 'Some files were skipped (images max 5MB each, videos max 50MB each)'
+        : picked.length > withinRoom.length
+          ? `Max ${MAX_POST_IMAGES} attachments per post`
+          : null,
+    )
     if (accepted.length === 0) return
     setImages((prev) => [...prev, ...accepted])
     setPreviews((prev) => [...prev, ...accepted.map((f) => URL.createObjectURL(f))])
@@ -38,6 +59,7 @@ export default function PostComposer({ onCreated }: { onCreated?: () => void }) 
 
   const handleClearImages = () => {
     setImages([])
+    setPickError(null)
     setPreviews((prev) => {
       for (const url of prev) URL.revokeObjectURL(url)
       return []
@@ -70,14 +92,24 @@ export default function PostComposer({ onCreated }: { onCreated?: () => void }) 
         <div className="mt-2 grid grid-cols-3 gap-2">
           {previews.map((src, i) => (
             <div key={`${src}-${i}`} className="relative">
-              <img
-                src={src}
-                alt={`Attachment preview ${i + 1}`}
-                className="h-24 w-full rounded-lg object-cover"
-              />
+              {isVideoFile(images[i]) ? (
+                <video
+                  src={src}
+                  muted
+                  preload="metadata"
+                  playsInline
+                  className="h-24 w-full rounded-lg object-cover"
+                />
+              ) : (
+                <img
+                  src={src}
+                  alt={`Attachment preview ${i + 1}`}
+                  className="h-24 w-full rounded-lg object-cover"
+                />
+              )}
               <button
                 onClick={() => handleRemoveAt(i)}
-                aria-label={`Remove image ${i + 1}`}
+                aria-label={`Remove attachment ${i + 1}`}
                 className="absolute right-1 top-1 rounded-full bg-black/60 px-2 py-0.5 text-xs font-medium text-white hover:bg-black/80"
               >
                 ✕
@@ -86,16 +118,19 @@ export default function PostComposer({ onCreated }: { onCreated?: () => void }) 
           ))}
         </div>
       )}
+      {pickError && (
+        <p className="mt-2 text-xs text-red-600 dark:text-red-400">{pickError}</p>
+      )}
       <div className="mt-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <p className={`text-xs ${overLimit ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-zinc-500'}`}>
             {text.length}/{MAX_LENGTH}
           </p>
           <label className="cursor-pointer rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800">
-            {images.length > 0 ? `Add images (${images.length}/${MAX_POST_IMAGES})` : 'Add images'}
+            {images.length > 0 ? `Add media (${images.length}/${MAX_POST_IMAGES})` : 'Add media'}
             <input
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
+              accept={ACCEPT_MEDIA}
               multiple
               className="hidden"
               onChange={(e) => {
