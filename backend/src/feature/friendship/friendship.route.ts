@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireAuth } from "../../middleware/auth.js";
 import {
   acceptFriendshipController,
   createFriendshipController,
@@ -13,10 +14,10 @@ export const friendshipRouter = Router();
 
 // NOTE: /pending is registered before /:id so "pending" is not
 // captured as an id param (same order as the Nest controller).
-friendshipRouter.post("/", createFriendshipController);
-friendshipRouter.get("/", listFriendshipsController);
-friendshipRouter.get("/pending", listPendingController);
-friendshipRouter.get("/:id", getFriendshipController);
-friendshipRouter.patch("/:id", updateFriendshipController);
-friendshipRouter.patch("/:id/accept", acceptFriendshipController);
-friendshipRouter.delete("/:id", deleteFriendshipController);
+friendshipRouter.post("/", requireAuth, createFriendshipController);
+friendshipRouter.get("/", requireAuth, listFriendshipsController);
+friendshipRouter.get("/pending", requireAuth, listPendingController);
+friendshipRouter.get("/:id", requireAuth, getFriendshipController);
+friendshipRouter.patch("/:id", requireAuth, updateFriendshipController);
+friendshipRouter.patch("/:id/accept", requireAuth, acceptFriendshipController);
+friendshipRouter.delete("/:id", requireAuth, deleteFriendshipController);

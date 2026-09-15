@@ -94,7 +94,7 @@ export default function PostComposer({ onCreated, username }: { onCreated?: () =
         />
       </div>
       {previews.length > 0 && (
-        <div className="mt-3 grid grid-cols-3 gap-2 pl-13">
+        <div className="mt-3 grid grid-cols-3 gap-2 pl-12">
           {previews.map((src, i) => (
             <div key={`${src}-${i}`} className="group relative">
               {isVideoFile(images[i]) ? (
@@ -131,9 +131,9 @@ export default function PostComposer({ onCreated, username }: { onCreated?: () =
         </div>
       )}
       {pickError && (
-        <p className="mt-2 pl-13 text-xs text-red-600 dark:text-red-400">{pickError}</p>
+        <p className="mt-2 pl-12 text-xs text-red-600 dark:text-red-400">{pickError}</p>
       )}
-      <div className="mt-3 flex items-center justify-between border-t border-gray-100 pl-13 pt-3 dark:border-zinc-800">
+      <div className="mt-3 flex items-center justify-between border-t border-gray-100 pl-12 pt-3 dark:border-zinc-800">
         <div className="flex items-center gap-2">
           <label
             title="Add photos or videos"
@@ -167,7 +167,7 @@ export default function PostComposer({ onCreated, username }: { onCreated?: () =
         </button>
       </div>
       {error && (
-        <p className="mt-2 pl-13 text-sm text-red-600 dark:text-red-400">
+        <p className="mt-2 pl-12 text-sm text-red-600 dark:text-red-400">
           {'status' in error && error.status === 401 ? 'Session expired, please login again' : 'Failed to post'}
         </p>
       )}

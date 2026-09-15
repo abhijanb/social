@@ -14,7 +14,6 @@ import { updateUserSchema } from "./user.schema.js";
 export async function findAll(
   search: string,
   currentUserId?: string,
-  currentUsername?: string,
 ) {
   let friendIds: string[] = [];
   if (currentUserId) {
@@ -38,13 +37,6 @@ export async function findAll(
     and.push({ isPublic: true });
   }
   if (excludeIds.length) and.push({ id: { notIn: excludeIds } });
-  if (currentUsername?.trim()) {
-    and.push({
-      NOT: {
-        username: { equals: currentUsername.trim(), mode: "insensitive" as const },
-      },
-    });
-  }
 
   const where = and.length ? ({ AND: and } as never) : undefined;
 

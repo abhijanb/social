@@ -19,7 +19,7 @@ export async function listUsersController(req: AuthRequest, res: Response) {
   const trimmed = search.trim();
   // Strict for search: must be authenticated to get self-excluded results.
   if (trimmed && !req.user) throw new AppError("Not authenticated", 401);
-  const users = await findAll(trimmed, req.user?.id, req.user?.username);
+  const users = await findAll(trimmed, req.user?.id);
   return responseSuccess(res, users);
 }
 
@@ -40,8 +40,10 @@ export async function updateMeController(req: AuthRequest, res: Response) {
 }
 
 // DELETE /user/:id — delete a user. Port of UserController.remove.
+// Only self-deletion is allowed.
 export async function deleteUserController(req: AuthRequest, res: Response) {
   const { id } = validateOrThrow(userIdParamSchema, req.params);
+  if (req.user?.id !== id) throw new AppError("Cannot delete other users", 403);
   await removeUser(id);
   return responseSuccess(res, null, "User deleted");
 }

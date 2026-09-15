@@ -10,11 +10,12 @@ import {
 // Port of FriendshipService.create — PENDING request between two existing
 // users. Self-add → 400, unknown user → 404, any existing row in either
 // direction → 409 (already friends / blocked / pending).
-export async function createFriendship(input: unknown) {
-  const { requesterId, addresseeId } = validateOrThrow(
-    createFriendshipSchema,
-    input,
-  );
+// requesterId comes from the authenticated user (never trusted from the client).
+export async function createFriendship(
+  requesterId: string,
+  input: unknown,
+) {
+  const { addresseeId } = validateOrThrow(createFriendshipSchema, input);
 
   if (requesterId === addresseeId) {
     throw new AppError("Cannot add yourself as friend", 400);

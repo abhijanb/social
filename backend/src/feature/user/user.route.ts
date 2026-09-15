@@ -11,5 +11,5 @@ export const userRouter = Router();
 
 userRouter.get("/", attachUser, listUsersController);
 userRouter.patch("/me", requireAuth, updateMeController);
-userRouter.get("/:id", getUserController);
-userRouter.delete("/:id", deleteUserController);
+userRouter.get("/:id", requireAuth, getUserController);
+userRouter.delete("/:id", requireAuth, deleteUserController);

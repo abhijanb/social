@@ -144,15 +144,15 @@ social/
 | POST | /user/logout | cookie | clears cookie |
 | GET | /user?search= | cookie (optional) | search, excludes self if JWT present |
 | GET | /user/me | cookie | current user from JWT |
-| GET | /user/:id | - | findOne |
+| GET | /user/:id | cookie | findOne |
 | PATCH | /user/me | cookie | update own profile |
-| DELETE | /user/:id | - | remove |
-| POST | /friendship | - | create request |
-| GET | /friendship?userId= | - | friends list |
-| GET | /friendship/pending?userId= | - | pending both directions |
-| PATCH | /friendship/:id | - | update status |
+| DELETE | /user/:id | cookie | remove (self only) |
+| POST | /friendship | cookie | create request (requester from JWT) |
+| GET | /friendship?userId= | cookie | friends list |
+| GET | /friendship/pending?userId= | cookie | pending both directions |
+| PATCH | /friendship/:id | cookie | update status |
 | PATCH | /friendship/:id/accept | body `userId` | accept |
-| DELETE | /friendship/:id | - | remove |
+| DELETE | /friendship/:id | cookie | remove |
 | GET | /presence?ids= | cookie | online status for friends |
 | WS | /presence | cookie | `presence:update`, `presence:heartbeat` – instant online/offline |
 | GET | /chat/history?friendId= | cookie | last 50 messages with friend |

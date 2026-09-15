@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 // Used by POST /friendship. Port of back/src/friendship/dto/
-// create-friendship.dto.ts — both parties are cuids (see the Prisma schema).
+// create-friendship.dto.ts — requesterId comes from the JWT
+// (set in the controller), only addresseeId is client-supplied.
 export const createFriendshipSchema = z.object({
-  requesterId: z.string().cuid(),
   addresseeId: z.string().cuid(),
 });
 
