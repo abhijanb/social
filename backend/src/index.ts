@@ -8,6 +8,7 @@ import { authRouter } from "./feature/auth/auth.route.js";
 import { chatRouter } from "./feature/chat/chat.route.js";
 import { registerChatHandlers } from "./feature/chat/chat.socket.js";
 import { friendshipRouter } from "./feature/friendship/friendship.route.js";
+import { registerLivestreamHandlers } from "./feature/livestream/livestream.socket.js";
 import { livestreamRouter } from "./feature/livestream/livestream.route.js";
 import { postRouter } from "./feature/post/post.route.js";
 import { presenceRouter } from "./feature/presence/presence.route.js";
@@ -16,6 +17,7 @@ import { userRouter } from "./feature/user/user.route.js";
 import { errorMiddleware } from "./middleware/error.js";
 import {
   getChatNamespace,
+  getLivestreamNamespace,
   getPresenceNamespace,
   initSocket,
 } from "./socket/socket.js";
@@ -60,9 +62,11 @@ export const io = initSocket(httpServer);
 // ported from back/src/presence/presence.gateway.ts and back/src/chat/chat.gateway.ts.
 export const presenceNamespace = getPresenceNamespace();
 export const chatNamespace = getChatNamespace();
+export const livestreamNamespace = getLivestreamNamespace();
 
 registerPresenceHandlers();
 registerChatHandlers();
+registerLivestreamHandlers();
 
 const rawPort = (process.env.PORT ?? "").trim();
 const parsedPort = rawPort.length > 0 ? Number(rawPort) : Number.NaN;

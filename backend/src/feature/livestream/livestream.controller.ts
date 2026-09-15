@@ -11,6 +11,7 @@ import {
   startStream,
 } from "./livestream.service.js";
 import { streamCommentsQuerySchema, streamIdParamSchema } from "./livestream.schema.js";
+import { emitStreamEnded } from "./livestream.socket.js";
 
 // POST /livestream/start — go live (one LIVE stream per user).
 export async function startStreamController(req: AuthRequest, res: Response) {
@@ -18,11 +19,14 @@ export async function startStreamController(req: AuthRequest, res: Response) {
   return responseCreated(res, await startStream(req.user.id, req.body), "Went live");
 }
 
-// POST /livestream/:id/end — host ends their stream.
+// POST /livestream/:id/end — host ends their stream. Peers in the
+// socket room are notified so they tear down WebRTC connections.
 export async function endStreamController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(streamIdParamSchema, req.params);
-  return responseSuccess(res, await endStream(req.user.id, id), "Stream ended");
+  const stream = await endStream(req.user.id, id);
+  emitStreamEnded(id);
+  return responseSuccess(res, stream, "Stream ended");
 }
 
 // GET /livestream/live — own + friends' LIVE streams, newest first.

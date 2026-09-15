@@ -61,3 +61,10 @@ export function getTokenFromSocket(socket: Socket): string | null {
 export function getChatNamespace(): Namespace {
   return getIo().of("/chat");
 }
+
+// Returns the `/livestream` namespace (WebRTC signaling for live video
+// rooms). Handlers relay offers/answers/ICE between peers in
+// `stream:<id>` rooms; media itself is peer-to-peer.
+export function getLivestreamNamespace(): Namespace {
+  return getIo().of("/livestream");
+}

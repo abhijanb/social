@@ -74,7 +74,7 @@ export default function LivestreamPage() {
 
           <div className="flex min-h-[50vh] min-w-0 flex-1 flex-col">
             {activeStream ? (
-              <LivestreamRoom key={activeStream.id} stream={activeStream} />
+              <LivestreamRoom key={activeStream.id} stream={activeStream} username={me?.username ?? '?'} />
             ) : (
               <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-zinc-600">
                 <div>

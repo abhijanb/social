@@ -89,12 +89,14 @@ Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144
 - Friends-only visibility: feed shows own posts + `ACCEPTED` friends' posts; strangers' posts are hidden and `GET /post?authorId=` returns `403` for non-friends
 - REST only (no socket): RTK Query with `Post` tag invalidation on create, server-owned page pagination (`FEED_PAGE_SIZE=20`, `{ posts, nextPage }` envelope, clients cannot set page size)
 
-### 9. Livestream Rooms — Friends-only Live Comments, REST Polling (1.5s)
+### 9. Livestream Rooms — Friends-only Live Video (WebRTC) + Comments (1.5s poll)
 - Live page at `/live` for authenticated users – go live with a title on top, live list beside the active room
 - One `LIVE` stream per user; host ends explicitly, then can go live again
+- Live video: full-mesh WebRTC (camera + mic per participant, peer-to-peer media, server relays signaling only on the `/livestream` socket namespace with cookie-JWT auth). Camera denied/absent → audio-only or watch-only join; camera/mic toggle anytime (`track.enabled`, no renegotiation); host video-off keeps audio with avatar placeholder
+- Signaling events: `livestream:join` (friends-only, returns existing peers) → `livestream:peer-joined`, `livestream:signal` (`offer`/`answer`/`ice`, same-room relay only, polite-offer glare handling), `livestream:peer-media`, `livestream:peer-left`, `livestream:ended` (also emitted by `POST /:id/end`)
 - Live comments up to 500 chars; viewers poll only the delta (`GET /livestream/:id/comments?sinceId=`) every 1.5s (`pollingInterval: 1500`, paused when tab unfocused), own sends append instantly
-- Friends-only visibility: live list shows own + `ACCEPTED` friends' streams; strangers get empty list / `403`; polling an ended stream returns `404` and the room shows "Stream ended"
-- REST polling only (no socket): cheap indexed delta queries on `(streamId, createdAt)` with timestamp+id cursor (cuids aren't chronological)
+- Friends-only visibility: live list shows own + `ACCEPTED` friends' streams; strangers get empty list / `403` (REST and socket join alike); polling an ended stream returns `404` and the room shows "Stream ended"
+- Limits: mesh scales with friend-size rooms (SFU is the follow-up); STUN only, no TURN; `getUserMedia` needs localhost or HTTPS
 
 ## Project Structure
 
@@ -111,7 +113,7 @@ social/
 │   ├── src/feature/presence/   # REST + /presence namespace (online/offline)
 │   ├── src/feature/chat/       # REST + /chat namespace (friends-only text messages)
 │   ├── src/feature/post/       # multer upload + friends-only feed (2200 chars)
-│   ├── src/feature/livestream/ # friends-only live rooms + 1.5s comment polling (no video)
+│   ├── src/feature/livestream/ # friends-only live rooms: REST comments (1.5s poll) + /livestream WebRTC signaling
 │   ├── prisma/schema.prisma
 │   └── package.json
 └── front/                # Vite React app
@@ -123,7 +125,7 @@ social/
     ├── src/features/presence # socket, presenceApi, usePresence
     ├── src/features/chat # chatApi, socket, useChat, types, ChatSidebar, ChatWindow, MessageBubble
     ├── src/features/posts # postsApi, PostComposer, PostCard, PostFeed
-    ├── src/features/livestream # livestreamApi, useLivestreamComments (1.5s poll), LivestreamList, StartLivestream, LivestreamRoom
+    ├── src/features/livestream # livestreamApi, useLivestreamComments (1.5s poll), useLivestreamVideo (WebRTC mesh), socket, LivestreamList, StartLivestream, LivestreamRoom, LivestreamVideoGrid
     └── src/pages/        # Login, Register, UserSearchPage, UsersPage, FriendRequestsPage, ChatPage, FeedPage, LivestreamPage
 ```
 
@@ -162,6 +164,7 @@ social/
 | POST | /livestream/:id/end | cookie | host ends stream |
 | GET | /livestream/:id/comments?sinceId=&limit= | cookie | latest page, or only newer than cursor (friends-only; ended → 404) |
 | POST | /livestream/:id/comments | cookie | post live comment (max 500, friends-only) |
+| WS | /livestream | cookie | WebRTC signaling: `livestream:join` → `peer-joined`, `signal` (offer/answer/ice), `peer-media`, `peer-left`, `ended` |
 
 All success responses use the `{ status: 'success', message, data }` envelope; errors use `{ status: 'error', message, error }`.
 
