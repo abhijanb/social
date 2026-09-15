@@ -14,8 +14,10 @@ const ALLOWED_IMAGE_TYPES = new Set([
 
 // Multer setup for POST /post image uploads. Port of the Nest
 // FileInterceptor config: disk storage under backend/uploads/, uuid
-// filenames, JPEG/PNG/WebP/GIF only, 5MB max. Multer errors are mapped
-// to AppError so the shared errorMiddleware formats them.
+// filenames, JPEG/PNG/WebP/GIF only, 5MB max per file, up to
+// MAX_IMAGES files per post (Instagram-style carousel). Multer errors
+// are mapped to AppError so the shared errorMiddleware formats them.
+export const MAX_IMAGES = 10;
 const upload = multer({
   storage: multer.diskStorage({
     destination: join(process.cwd(), "uploads"),
@@ -33,16 +35,20 @@ const upload = multer({
   limits: { fileSize: MAX_IMAGE_BYTES },
 });
 
-// Single-file ('image') upload wrapper with MulterError mapping.
+// Multi-file ('images', up to MAX_IMAGES) upload wrapper with MulterError mapping.
 export function uploadImage(
   req: Request,
   res: Response,
   next: NextFunction,
 ): void {
-  upload.single("image")(req, res, (err: unknown) => {
+  upload.array("images", MAX_IMAGES)(req, res, (err: unknown) => {
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
-        next(new AppError("Image too large (max 5MB)", 400));
+        next(new AppError("Image too large (max 5MB per image)", 400));
+        return;
+      }
+      if (err.code === "LIMIT_UNEXPECTED_FILE") {
+        next(new AppError(`Max ${MAX_IMAGES} images per post`, 400));
         return;
       }
       next(new AppError(err.message, 400));

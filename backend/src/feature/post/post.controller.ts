@@ -10,14 +10,16 @@ import {
   feedQuerySchema,
 } from "./post.schema.js";
 
-// POST /post — multipart text + optional single image (uploadImage runs
+// POST /post — multipart text + optional images (up to 10, uploadImage runs
 // first). Port of PostController.create (behind requireAuth).
 export async function createPostController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const dto = validateOrThrow(createPostSchema, req.body);
-  const file = (req as AuthRequest & { file?: Express.Multer.File }).file;
-  const imageUrl = file ? `/uploads/${file.filename}` : undefined;
-  const post = await createPost(req.user.id, dto.text, imageUrl);
+  const files = (req as AuthRequest & { files?: Express.Multer.File[] }).files;
+  const imageUrls = Array.isArray(files)
+    ? files.map((f) => `/uploads/${f.filename}`)
+    : [];
+  const post = await createPost(req.user.id, dto.text, imageUrls);
   return responseCreated(res, post, "Post created");
 }
 

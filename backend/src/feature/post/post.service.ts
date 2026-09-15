@@ -2,17 +2,31 @@ import { AppError } from "../../lib/errorHandler.js";
 import { prisma } from "../../lib/prisma.js";
 
 const authorSelect = { id: true, username: true } as const;
+const imagesOrderBy = { order: "asc" } as const;
+const postInclude = {
+  author: { select: authorSelect },
+  images: { orderBy: imagesOrderBy },
+} as const;
+
+/** Max images per post — mirrors multer MAX_IMAGES in post.upload.ts. */
+export const MAX_POST_IMAGES = 10;
 
 /** Server-owned page size – clients cannot dictate it via query params. */
 export const FEED_PAGE_SIZE = 20;
+
+export type PostImageDto = {
+  id: string;
+  url: string;
+  order: number;
+};
 
 export type PostWithAuthor = {
   id: string;
   authorId: string;
   text: string;
-  imageUrl: string | null;
   createdAt: Date;
   author: { id: string; username: string };
+  images: PostImageDto[];
 };
 
 export type FeedPage = {
@@ -51,20 +65,29 @@ async function ensureCanView(
   if (!friendship) throw new AppError("Not friends", 403);
 }
 
-// Port of PostService.create — text, image, or both required.
+// Port of PostService.create — text, images, or both required.
+// Accepts up to MAX_POST_IMAGES image URLs (Instagram-style carousel).
 export async function createPost(
   authorId: string,
   text: string,
-  imageUrl?: string,
+  imageUrls: string[] = [],
 ) {
   const trimmed = text.trim();
   if (trimmed.length > 2200)
     throw new AppError("Post too long (max 2200 characters)", 400);
-  if (!trimmed && !imageUrl)
-    throw new AppError("Post needs text or an image", 400);
+  if (imageUrls.length > MAX_POST_IMAGES)
+    throw new AppError(`Max ${MAX_POST_IMAGES} images per post`, 400);
+  if (!trimmed && imageUrls.length === 0)
+    throw new AppError("Post needs text or at least one image", 400);
   return prisma.post.create({
-    data: { authorId, text: trimmed, imageUrl: imageUrl ?? null },
-    include: { author: { select: authorSelect } },
+    data: {
+      authorId,
+      text: trimmed,
+      images: {
+        create: imageUrls.map((url, i) => ({ url, order: i })),
+      },
+    },
+    include: postInclude,
   });
 }
 
@@ -94,7 +117,7 @@ async function findPage(
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     skip: (p - 1) * FEED_PAGE_SIZE,
     take: FEED_PAGE_SIZE + 1,
-    include: { author: { select: authorSelect } },
+    include: postInclude,
   });
   const hasMore = rows.length > FEED_PAGE_SIZE;
   const posts = hasMore ? rows.slice(0, FEED_PAGE_SIZE) : rows;

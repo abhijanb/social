@@ -5,14 +5,22 @@ export type PostAuthor = {
   username: string
 }
 
+export type PostImage = {
+  id: string
+  url: string
+  order: number
+}
+
 export type Post = {
   id: string
   authorId: string
   text: string
-  imageUrl: string | null
+  images: PostImage[]
   createdAt: string
   author: PostAuthor
 }
+
+export const MAX_POST_IMAGES = 10
 
 export type FeedPage = {
   posts: Post[]
@@ -39,11 +47,11 @@ export const postsApi = baseApi.injectEndpoints({
       },
       providesTags: ['Post'],
     }),
-    createPost: build.mutation<Post, { text: string; image?: File | null }>({
-      query: ({ text, image }) => {
+    createPost: build.mutation<Post, { text: string; images?: File[] | null }>({
+      query: ({ text, images }) => {
         const form = new FormData()
         form.set('text', text)
-        if (image) form.set('image', image)
+        for (const file of (images ?? []).slice(0, MAX_POST_IMAGES)) form.append('images', file)
         return { url: 'post', method: 'POST', body: form }
       },
       invalidatesTags: ['Post'],

@@ -1,5 +1,6 @@
 import type { Post } from '../postsApi'
-import { resolvePostImage } from '../resolvePostImage'
+import { resolveImageUrl } from '../resolvePostImage'
+import PostCarousel from './PostCarousel'
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -13,9 +14,13 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString()
 }
 
-// PostCard – renders a single post: author avatar/username, time-ago, optional image, and text body.
+// PostCard – renders a single post: author avatar/username, time-ago, optional
+// image carousel (up to 10), and text body.
 export default function PostCard({ post }: { post: Post }) {
-  const imageSrc = resolvePostImage(post.imageUrl)
+  const imageSrcs = [...(post.images ?? [])]
+    .sort((a, b) => a.order - b.order)
+    .map((img) => resolveImageUrl(img.url))
+    .filter((src): src is string => src != null)
   return (
     <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
       <div className="flex items-center gap-3">
@@ -27,8 +32,8 @@ export default function PostCard({ post }: { post: Post }) {
           <p className="text-xs text-gray-500 dark:text-zinc-400">{timeAgo(post.createdAt)}</p>
         </div>
       </div>
-      {imageSrc && (
-        <img src={imageSrc} alt={`Post by ${post.author.username}`} loading="lazy" className="mt-3 max-h-96 w-full rounded-lg object-cover" />
+      {imageSrcs.length > 0 && (
+        <PostCarousel key={post.id} images={imageSrcs} alt={`Post by ${post.author.username}`} />
       )}
       {post.text && (
         <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-900 dark:text-zinc-100">
