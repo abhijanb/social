@@ -1,5 +1,6 @@
 import type { Post } from '../postsApi'
 import { resolveImageUrl } from '../resolvePostImage'
+import LikeButton from './LikeButton'
 import PostCarousel from './PostCarousel'
 
 function timeAgo(iso: string): string {
@@ -15,8 +16,17 @@ function timeAgo(iso: string): string {
 }
 
 // PostCard – Instagram-style post: header with ring avatar, username and
-// time on one line; media full-bleed edge-to-edge; text body below.
-export default function PostCard({ post }: { post: Post }) {
+// time on one line; media full-bleed edge-to-edge; like unit and text
+// body below.
+export default function PostCard({
+  post,
+  onToggleLike,
+  likePending = false,
+}: {
+  post: Post
+  onToggleLike?: (postId: string) => void
+  likePending?: boolean
+}) {
   const items = [...(post.images ?? [])]
     .sort((a, b) => a.order - b.order)
     .map((img) => ({ src: resolveImageUrl(img.url), kind: img.kind }))
@@ -53,12 +63,21 @@ export default function PostCard({ post }: { post: Post }) {
       {items.length > 0 && (
         <PostCarousel key={post.id} items={items} alt={`Post by ${post.author.username}`} />
       )}
+      <LikeButton
+        postId={post.id}
+        likedByMe={post.likedByMe}
+        likesCount={post.likesCount}
+        hasCaption={!!post.text}
+        onToggleLike={onToggleLike}
+        likePending={likePending}
+      />
       {post.text && (
-        <p className="whitespace-pre-wrap break-words px-4 py-3 text-sm leading-relaxed text-gray-900 dark:text-zinc-100">
+        <p className="whitespace-pre-wrap break-words px-4 pb-3 pt-1 text-sm leading-relaxed text-gray-900 dark:text-zinc-100">
           <span className="mr-2 font-semibold">{post.author.username}</span>
           {post.text}
         </p>
       )}
+      {!post.text && post.likesCount === 0 && <div className="pb-3" />}
     </article>
   )
 }

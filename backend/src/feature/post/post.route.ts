@@ -4,6 +4,7 @@ import {
   createPostController,
   getByAuthorController,
   getFeedController,
+  toggleLikeController,
 } from "./post.controller.js";
 import { uploadImage } from "./post.upload.js";
 
@@ -13,4 +14,5 @@ export const postRouter = Router();
 // author timeline (mirrors the Nest controller order).
 postRouter.post("/", requireAuth, uploadImage, createPostController);
 postRouter.get("/feed", requireAuth, getFeedController);
+postRouter.post("/:id/like", requireAuth, toggleLikeController);
 postRouter.get("/", requireAuth, getByAuthorController);

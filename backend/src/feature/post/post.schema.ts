@@ -25,3 +25,11 @@ export const authorPostsQuerySchema = z.object({
 });
 
 export type AuthorPostsQueryDto = z.infer<typeof authorPostsQuerySchema>;
+
+// Used by POST /post/:id/like. Rejecting non-cuids here turns a Prisma
+// throw into a clean 400 (mirrors the friendship id param schema).
+export const postIdParamSchema = z.object({
+  id: z.string().cuid(),
+});
+
+export type PostIdParamDto = z.infer<typeof postIdParamSchema>;

@@ -19,6 +19,8 @@ export type Post = {
   authorId: string
   text: string
   images: PostImage[]
+  likesCount: number
+  likedByMe: boolean
   createdAt: string
   author: PostAuthor
 }
@@ -66,7 +68,12 @@ export const postsApi = baseApi.injectEndpoints({
       },
       invalidatesTags: ['Post'],
     }),
+    // Toggle like — no tag invalidation: FeedPage patches its collected
+    // chunks directly (its page guard would swallow refetch updates).
+    toggleLike: build.mutation<{ liked: boolean; likesCount: number }, { postId: string }>({
+      query: ({ postId }) => ({ url: `post/${postId}/like`, method: 'POST' }),
+    }),
   }),
 })
 
-export const { useGetFeedQuery, useGetUserPostsQuery, useCreatePostMutation } = postsApi
+export const { useGetFeedQuery, useGetUserPostsQuery, useCreatePostMutation, useToggleLikeMutation } = postsApi

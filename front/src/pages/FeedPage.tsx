@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useAppDispatch } from '../app/hooks'
 import { baseApi } from '../app/baseApi'
 import { useAuth } from '../features/auth/hooks/useAuth'
-import { useGetFeedQuery, type Post } from '../features/posts/postsApi'
+import { useGetFeedQuery, useToggleLikeMutation, type Post } from '../features/posts/postsApi'
 import { useGetMeQuery } from '../features/users/usersApi'
 import PostComposer from '../features/posts/components/PostComposer'
 import PostFeed from '../features/posts/components/PostFeed'
@@ -18,6 +18,8 @@ export default function FeedPage() {
   const dispatch = useAppDispatch()
   const [page, setPage] = useState(FIRST_PAGE)
   const [chunks, setChunks] = useState<PageChunk[]>([])
+  const [likePending, setLikePending] = useState<Set<string>>(new Set())
+  const [toggleLike] = useToggleLikeMutation()
   const { data, isLoading, isFetching, error } = useGetFeedQuery(page === FIRST_PAGE ? undefined : { page }, {
     skip: !isAuthenticated,
   })
@@ -36,6 +38,44 @@ export default function FeedPage() {
   const handleLoadMore = useCallback(() => {
     if (nextPage) setPage(nextPage)
   }, [nextPage])
+
+  const patchPost = useCallback((postId: string, patch: (post: Post) => Post) => {
+    setChunks((prev) =>
+      prev.map((chunk) => ({
+        ...chunk,
+        posts: chunk.posts.map((post) => (post.id === postId ? patch(post) : post)),
+      })),
+    )
+  }, [])
+
+  // Optimistic like toggle: flip instantly, reconcile with the
+  // authoritative server response, revert on failure.
+  const handleToggleLike = useCallback(
+    async (postId: string) => {
+      const current = chunks.flatMap((c) => c.posts).find((p) => p.id === postId)
+      if (!current || likePending.has(postId)) return
+      const flipped: Post = {
+        ...current,
+        likedByMe: !current.likedByMe,
+        likesCount: current.likesCount + (current.likedByMe ? -1 : 1),
+      }
+      patchPost(postId, () => flipped)
+      setLikePending((prev) => new Set(prev).add(postId))
+      try {
+        const res = await toggleLike({ postId }).unwrap()
+        patchPost(postId, (post) => ({ ...post, likedByMe: res.liked, likesCount: res.likesCount }))
+      } catch {
+        patchPost(postId, () => current)
+      } finally {
+        setLikePending((prev) => {
+          const next = new Set(prev)
+          next.delete(postId)
+          return next
+        })
+      }
+    },
+    [chunks, likePending, patchPost, toggleLike],
+  )
 
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
@@ -63,6 +103,8 @@ export default function FeedPage() {
           isLoading={isLoading || isFetching}
           hasMore={nextPage !== null}
           onLoadMore={handleLoadMore}
+          onToggleLike={handleToggleLike}
+          likePendingIds={likePending}
         />
       </div>
     </div>

@@ -5,12 +5,13 @@ import { AppError } from "../../lib/errorHandler.js";
 import { responseCreated, responseSuccess } from "../../lib/response.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import type { AuthRequest } from "../../middleware/auth.js";
-import { createPost, getByAuthor, getFeed } from "./post.service.js";
+import { createPost, getByAuthor, getFeed, toggleLike } from "./post.service.js";
 import type { PostMediaInput } from "./post.service.js";
 import {
   authorPostsQuerySchema,
   createPostSchema,
   feedQuerySchema,
+  postIdParamSchema,
 } from "./post.schema.js";
 import { MAX_IMAGE_BYTES } from "./post.upload.js";
 
@@ -47,6 +48,14 @@ export async function getFeedController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { page } = validateOrThrow(feedQuerySchema, req.query);
   return responseSuccess(res, await getFeed(req.user.id, Number(page)));
+}
+
+// POST /post/:id/like — toggle the viewer's like (friends-only, same
+// guard as viewing; self-likes allowed). Returns { liked, likesCount }.
+export async function toggleLikeController(req: AuthRequest, res: Response) {
+  if (!req.user) throw new AppError("Not authenticated", 401);
+  const { id } = validateOrThrow(postIdParamSchema, req.params);
+  return responseSuccess(res, await toggleLike(req.user.id, id));
 }
 
 // GET /post?authorId=&page= — friends-only author timeline.

@@ -21,6 +21,7 @@ model Friendship { id String @id @default(cuid()); requesterId, addresseeId Stri
 model Message { id String @id @default(cuid()); senderId, receiverId String; text String; createdAt DateTime @default(now()); @@index([senderId, receiverId, createdAt]) }
 model Post { id String @id @default(cuid()); authorId String; text String (max 2200); images PostImage[]; createdAt DateTime @default(now()); @@index([authorId, createdAt]) }
 model PostImage { id String @id @default(cuid()); postId String; url String; kind PostMediaKind @default(IMAGE); order Int @default(0); createdAt DateTime @default(now()); @@index([postId, order]) }
+model PostLike { id String @id @default(cuid()); postId String; userId String; createdAt DateTime @default(now()); @@unique([postId, userId]); @@index([postId]) }
 model Livestream { id String @id @default(cuid()); hostId String; title String (max 100); status LivestreamStatus @default(LIVE); startedAt DateTime; endedAt DateTime?; @@index([status, startedAt]) }
 model LivestreamComment { id String @id @default(cuid()); streamId String; authorId String; text String (max 500); createdAt DateTime @default(now()); @@index([streamId, createdAt]) }
 enum PostMediaKind { IMAGE VIDEO }
@@ -28,7 +29,7 @@ enum LivestreamStatus { LIVE ENDED }
 enum FriendshipStatus { PENDING ACCEPTED BLOCKED }
 ```
 
-Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144227_add_message`, `20260914152018_add_is_public`, `20260915091629_add_post`, `20260915095417_add_post_image`, `20260915175930_add_post_images`, `20260915182342_add_post_media_kind`, `20260915184618_add_livestream`. Seed: `backend/prisma/seed.ts` (alice/bob/charlie).
+Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144227_add_message`, `20260914152018_add_is_public`, `20260915091629_add_post`, `20260915095417_add_post_image`, `20260915175930_add_post_images`, `20260915182342_add_post_media_kind`, `20260915184618_add_livestream`, `20260915200344_add_post_like`. Seed: `backend/prisma/seed.ts` (alice/bob/charlie).
 
 ## Features Built
 
@@ -88,6 +89,7 @@ Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144
 - Uploads stored in `backend/uploads/` (gitignored) and served at `/uploads/*`; DB keeps only the path
 - Friends-only visibility: feed shows own posts + `ACCEPTED` friends' posts; strangers' posts are hidden and `GET /post?authorId=` returns `403` for non-friends
 - REST only (no socket): RTK Query with `Post` tag invalidation on create, server-owned page pagination (`FEED_PAGE_SIZE=20`, `{ posts, nextPage }` envelope, clients cannot set page size)
+- Likes: heart button with optimistic toggle (`POST /post/:id/like` → `{ liked, likesCount }`), count + `likedByMe` in feed payload, friends-only (strangers → `403`), self-likes allowed
 
 ### 9. Livestream Rooms — Friends-only Live Video (WebRTC) + Comments (1.5s poll)
 - Live page at `/live` for authenticated users – go live with a title on top, live list beside the active room
@@ -124,7 +126,7 @@ social/
     ├── src/features/friendship
     ├── src/features/presence # socket, presenceApi, usePresence
     ├── src/features/chat # chatApi, socket, useChat, types, ChatSidebar, ChatWindow, MessageBubble
-    ├── src/features/posts # postsApi, PostComposer, PostCard, PostFeed
+    ├── src/features/posts # postsApi (likes), PostComposer, PostCard, LikeButton, PostFeed, PostSkeleton
     ├── src/features/livestream # livestreamApi, useLivestreamComments (1.5s poll), useLivestreamVideo (WebRTC mesh), socket, LivestreamList, StartLivestream, LivestreamRoom, LivestreamVideoGrid
     └── src/pages/        # Login, Register, UserSearchPage, UsersPage, FriendRequestsPage, ChatPage, FeedPage, LivestreamPage
 ```
@@ -159,6 +161,7 @@ social/
 | POST | /post | cookie | create post, multipart `text` + optional `images` files (up to 10 mixed: images JPEG/PNG/WebP/GIF ≤5MB each, videos MP4/WebM ≤50MB each); needs text or ≥1 attachment |
 | GET | /post/feed?page= | cookie | friends + self feed, server-fixed 20/page, `{ posts, nextPage }` |
 | GET | /post?authorId=&page= | cookie | posts by author (friends-only, else 403), same envelope |
+| POST | /post/:id/like | cookie | toggle like (friends-only; self-likes ok) → `{ liked, likesCount }` |
 | POST | /livestream/start | cookie | go live with `title` (max 100); one LIVE stream per user |
 | GET | /livestream/live | cookie | own + friends' LIVE streams, newest first |
 | POST | /livestream/:id/end | cookie | host ends stream |
