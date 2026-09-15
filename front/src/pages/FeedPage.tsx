@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAppDispatch } from '../app/hooks'
 import { baseApi } from '../app/baseApi'
@@ -27,13 +27,18 @@ export default function FeedPage() {
     setChunks([...chunks, { page, posts: data.posts, nextPage: data.nextPage }])
   }
 
+  const posts = chunks.flatMap((c) => c.posts)
+  const nextPage = chunks.length > 0 ? chunks[chunks.length - 1].nextPage : null
+
+  // Stable identity so PostFeed's observer effect only re-subscribes when the target page changes.
+  const handleLoadMore = useCallback(() => {
+    if (nextPage) setPage(nextPage)
+  }, [nextPage])
+
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
     return <Navigate to="/login" replace />
   }
-
-  const posts = chunks.flatMap((c) => c.posts)
-  const nextPage = chunks.length > 0 ? chunks[chunks.length - 1].nextPage : null
 
   const handleCreated = () => {
     // New post belongs on top of page 1 – drop collected pages and reload fresh.
@@ -56,7 +61,7 @@ export default function FeedPage() {
           posts={posts}
           isLoading={isLoading || isFetching}
           hasMore={nextPage !== null}
-          onLoadMore={() => nextPage && setPage(nextPage)}
+          onLoadMore={handleLoadMore}
         />
       </div>
     </div>

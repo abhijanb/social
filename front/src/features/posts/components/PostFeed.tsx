@@ -1,4 +1,5 @@
 import type { Post } from '../postsApi'
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll'
 import PostCard from './PostCard'
 
 type Props = {
@@ -8,8 +9,12 @@ type Props = {
   onLoadMore: () => void
 }
 
-// PostFeed – renders the list of posts with loading/empty states and a "Load more" button.
+// PostFeed – renders the list of posts with loading/empty states;
+// next pages load automatically via infinite scroll (sentinel observed with IntersectionObserver).
 export default function PostFeed({ posts, isLoading, hasMore, onLoadMore }: Props) {
+  // Infinite scroll – sentinel triggers the next page load when scrolled into view.
+  const sentinelRef = useInfiniteScroll({ hasMore, isLoading, onLoadMore })
+
   if (isLoading && posts.length === 0) {
     return <p className="mt-6 text-center text-sm text-gray-500 dark:text-zinc-400">Loading feed...</p>
   }
@@ -30,14 +35,12 @@ export default function PostFeed({ posts, isLoading, hasMore, onLoadMore }: Prop
       {posts.map((post) => (
         <PostCard key={post.id} post={post} />
       ))}
-      {hasMore && (
-        <button
-          onClick={onLoadMore}
-          disabled={isLoading}
-          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
-        >
-          {isLoading ? 'Loading...' : 'Load more'}
-        </button>
+      {hasMore && <div ref={sentinelRef} aria-hidden="true" className="h-1" />}
+      {isLoading && (
+        <p className="py-2 text-center text-sm text-gray-500 dark:text-zinc-400">Loading more...</p>
+      )}
+      {!hasMore && (
+        <p className="py-2 text-center text-sm text-gray-400 dark:text-zinc-500">You&apos;re all caught up</p>
       )}
     </div>
   )
