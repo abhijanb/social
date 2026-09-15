@@ -42,13 +42,25 @@ model Post {
   id        String   @id @default(cuid())
   authorId  String
   text      String   @default("")
-  imageUrl  String?
   createdAt DateTime @default(now())
 
-  author User @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  author User        @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  images PostImage[]
 
   @@index([authorId, createdAt])
   @@index([createdAt])
+}
+
+model PostImage {
+  id        String   @id @default(cuid())
+  postId    String
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, order])
 }
 
 model Friendship {
