@@ -20,6 +20,7 @@ model User {
   receivedRequests Friendship[] @relation("ReceivedRequests")
   sentMessages     Message[]    @relation("SentMessages")
   receivedMessages Message[]    @relation("ReceivedMessages")
+  posts            Post[]       @relation("UserPosts")
 }
 
 model Message {
@@ -34,6 +35,18 @@ model Message {
 
   @@index([senderId, receiverId, createdAt])
   @@index([receiverId])
+  @@index([createdAt])
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  authorId  String
+  text      String
+  createdAt DateTime @default(now())
+
+  author User @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId, createdAt])
   @@index([createdAt])
 }
 
