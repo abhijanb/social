@@ -21,6 +21,7 @@ model User {
   sentMessages     Message[]    @relation("SentMessages")
   receivedMessages Message[]    @relation("ReceivedMessages")
   posts            Post[]       @relation("UserPosts")
+  postLikes        PostLike[]
   hostedStreams    Livestream[] @relation("HostedStreams")
   streamComments   LivestreamComment[]
 }
@@ -48,9 +49,23 @@ model Post {
 
   author User        @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
   images PostImage[]
+  likes  PostLike[]
 
   @@index([authorId, createdAt])
   @@index([createdAt])
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
 }
 
 model PostImage {
