@@ -41,7 +41,8 @@ model Message {
 model Post {
   id        String   @id @default(cuid())
   authorId  String
-  text      String
+  text      String   @default("")
+  imageUrl  String?
   createdAt DateTime @default(now())
 
   author User @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
