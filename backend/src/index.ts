@@ -8,6 +8,7 @@ import { authRouter } from "./feature/auth/auth.route.js";
 import { chatRouter } from "./feature/chat/chat.route.js";
 import { registerChatHandlers } from "./feature/chat/chat.socket.js";
 import { friendshipRouter } from "./feature/friendship/friendship.route.js";
+import { livestreamRouter } from "./feature/livestream/livestream.route.js";
 import { postRouter } from "./feature/post/post.route.js";
 import { presenceRouter } from "./feature/presence/presence.route.js";
 import { registerPresenceHandlers } from "./feature/presence/presence.socket.js";
@@ -45,6 +46,8 @@ app.use("/chat", chatRouter);
 app.use("/presence", presenceRouter);
 
 app.use("/post", postRouter);
+
+app.use("/livestream", livestreamRouter);
 
 // Final error middleware — must stay last, after all routers.
 app.use(errorMiddleware);

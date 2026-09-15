@@ -6,11 +6,13 @@ import UsersPage from '../pages/UsersPage'
 import FriendRequestsPage from '../pages/FriendRequestsPage'
 import ChatPage from '../pages/ChatPage'
 import FeedPage from '../pages/FeedPage'
+import LivestreamPage from '../pages/LivestreamPage'
 import SettingsPage from '../pages/SettingsPage'
 
 export const routes: RouteObject[] = [
   { path: '/', element: <UserSearchPage /> },
   { path: 'feed', element: <FeedPage /> },
+  { path: 'live', element: <LivestreamPage /> },
   { path: 'login', element: <Login /> },
   { path: 'register', element: <Register /> },
   { path: 'users', element: <UsersPage /> },

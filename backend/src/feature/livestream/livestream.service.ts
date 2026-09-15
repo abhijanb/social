@@ -1,0 +1,169 @@
+import { AppError } from "../../lib/errorHandler.js";
+import { prisma } from "../../lib/prisma.js";
+import { validateOrThrow } from "../../lib/validate.js";
+import {
+  sendStreamCommentSchema,
+  startStreamSchema,
+} from "./livestream.schema.js";
+
+const hostSelect = { id: true, username: true } as const;
+const commentAuthorSelect = { id: true, username: true } as const;
+
+const streamInclude = {
+  host: { select: hostSelect },
+} as const;
+
+const commentInclude = {
+  author: { select: commentAuthorSelect },
+} as const;
+
+/** Max comments returned per comments request (delta or initial page). */
+export const STREAM_COMMENTS_PAGE_SIZE = 100;
+
+async function getFriendIds(userId: string): Promise<string[]> {
+  const friendships = await prisma.friendship.findMany({
+    where: {
+      status: "ACCEPTED",
+      OR: [{ requesterId: userId }, { addresseeId: userId }],
+    },
+    select: { requesterId: true, addresseeId: true },
+  });
+  return friendships.map((f) =>
+    f.requesterId === userId ? f.addresseeId : f.requesterId,
+  );
+}
+
+// Friends-only guard for watching/commenting. The host always passes;
+// anyone else needs an ACCEPTED friendship with the host.
+async function ensureCanWatch(viewerId: string, hostId: string): Promise<void> {
+  if (viewerId === hostId) return;
+  const friendship = await prisma.friendship.findFirst({
+    where: {
+      status: "ACCEPTED",
+      OR: [
+        { requesterId: viewerId, addresseeId: hostId },
+        { requesterId: hostId, addresseeId: viewerId },
+      ],
+    },
+  });
+  if (!friendship) throw new AppError("Not friends with the host", 403);
+}
+
+async function getLiveStreamOrThrow(streamId: string) {
+  const stream = await prisma.livestream.findUnique({
+    where: { id: streamId },
+    include: streamInclude,
+  });
+  if (!stream || stream.status !== "LIVE")
+    throw new AppError("Stream ended or not found", 404);
+  return stream;
+}
+
+// Start a livestream — one LIVE stream per user.
+export async function startStream(hostId: string, input: unknown) {
+  const dto = validateOrThrow(startStreamSchema, input);
+  const existing = await prisma.livestream.findFirst({
+    where: { hostId, status: "LIVE" },
+    select: { id: true },
+  });
+  if (existing) throw new AppError("You are already live", 400);
+  return prisma.livestream.create({
+    data: { hostId, title: dto.title },
+    include: streamInclude,
+  });
+}
+
+// End a livestream — host only.
+export async function endStream(hostId: string, streamId: string) {
+  const stream = await prisma.livestream.findUnique({
+    where: { id: streamId },
+  });
+  if (!stream || stream.status !== "LIVE")
+    throw new AppError("Stream ended or not found", 404);
+  if (stream.hostId !== hostId)
+    throw new AppError("Only the host can end the stream", 403);
+  return prisma.livestream.update({
+    where: { id: streamId },
+    data: { status: "ENDED", endedAt: new Date() },
+    include: streamInclude,
+  });
+}
+
+// List LIVE streams of self + ACCEPTED friends, newest first.
+export async function listLive(meId: string) {
+  const friendIds = await getFriendIds(meId);
+  return prisma.livestream.findMany({
+    where: { status: "LIVE", hostId: { in: [meId, ...friendIds] } },
+    orderBy: [{ startedAt: "desc" }, { id: "desc" }],
+    include: streamInclude,
+  });
+}
+
+// Get comments for a LIVE stream. Without sinceId returns the latest page
+// (oldest first); with sinceId returns only strictly newer comments for
+// cheap 1.5s incremental polling. cuids are not chronological, so the
+// cursor resolves to its timestamp with id as tiebreak.
+export async function getComments(
+  viewerId: string,
+  streamId: string,
+  sinceId?: string,
+  limit = 50,
+) {
+  const stream = await getLiveStreamOrThrow(streamId);
+  await ensureCanWatch(viewerId, stream.hostId);
+  const n = Math.min(
+    STREAM_COMMENTS_PAGE_SIZE,
+    Math.max(1, Math.floor(limit) || 50),
+  );
+  if (!sinceId) {
+    const latest = await prisma.livestreamComment.findMany({
+      where: { streamId },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: n,
+      include: commentInclude,
+    });
+    return latest.reverse();
+  }
+  const cursor = await prisma.livestreamComment.findUnique({
+    where: { id: sinceId },
+    select: { createdAt: true, streamId: true },
+  });
+  // Unknown cursor (or one from another stream) → fall back to latest page
+  // so the poller self-heals instead of stalling.
+  if (!cursor || cursor.streamId !== streamId) {
+    const latest = await prisma.livestreamComment.findMany({
+      where: { streamId },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: n,
+      include: commentInclude,
+    });
+    return latest.reverse();
+  }
+  return prisma.livestreamComment.findMany({
+    where: {
+      streamId,
+      OR: [
+        { createdAt: { gt: cursor.createdAt } },
+        { createdAt: cursor.createdAt, id: { gt: sinceId } },
+      ],
+    },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    take: n,
+    include: commentInclude,
+  });
+}
+
+// Post a comment to a LIVE stream (friends-only visibility).
+export async function sendComment(
+  authorId: string,
+  streamId: string,
+  input: unknown,
+) {
+  const dto = validateOrThrow(sendStreamCommentSchema, input);
+  const stream = await getLiveStreamOrThrow(streamId);
+  await ensureCanWatch(authorId, stream.hostId);
+  return prisma.livestreamComment.create({
+    data: { streamId, authorId, text: dto.text },
+    include: commentInclude,
+  });
+}

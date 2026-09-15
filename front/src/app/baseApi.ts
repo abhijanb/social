@@ -35,7 +35,7 @@ const baseQueryWithUnwrap: BaseQueryFn<
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithUnwrap,
-  tagTypes: ['User', 'Friendship', 'Presence', 'Chat', 'Post'],
+  tagTypes: ['User', 'Friendship', 'Presence', 'Chat', 'Post', 'Livestream'],
   endpoints: () => ({}),
 })
 
