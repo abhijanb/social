@@ -15,8 +15,15 @@ export function useRegister() {
     resolver: zodResolver(registerSchema),
   })
 
-  const errorData = error && 'data' in error ? (error.data as { message?: string; suggestions?: string[] }) : null
-  const suggestions: string[] = errorData?.suggestions ?? []
+  // Express error envelope: { status: 'error', message, error: { suggestions } }
+  const errorData =
+    error && 'data' in error
+      ? (error.data as {
+          message?: string
+          error?: { suggestions?: string[] }
+        })
+      : null
+  const suggestions: string[] = errorData?.error?.suggestions ?? []
   const errorMessage = errorData?.message ?? (error ? 'Registration failed' : null)
 
   const onSubmit = async (data: RegisterFormData) => {

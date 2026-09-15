@@ -1,17 +1,17 @@
 # Social – Full-Stack Social Network
 
-Monorepo with two independent apps: `back/` (NestJS + Prisma) and `front/` (React + Vite). No root package – run each app separately.
+Monorepo with two independent apps: `backend/` (Express + Prisma) and `front/` (React + Vite). No root package – run each app separately.
 
 ## Stack
 
-**Backend** `back/` – Node `bun@1.3.14`, `typescript@6.0.3`
-- NestJS `11.x`, `prisma@7.8.0` with `@prisma/adapter-pg` (PostgreSQL), `zod@4.6.4` validation, `bcrypt@6.0.0`, `jsonwebtoken@9.0.3`, `cookie-parser@1.4.7`, `socket.io@4.8.3` via `@nestjs/websockets` + `@nestjs/platform-socket.io`
-- Prisma Client generated to `back/src/generated/prisma` (`runtime = bun`)
+**Backend** `backend/` – Node `bun@1.3.14`, `typescript@6.0.3`
+- Express `5.x`, `prisma@7.8.0` with `@prisma/adapter-pg` (PostgreSQL), `zod@4.6.4` validation, `bcrypt@6.0.0`, `jsonwebtoken@9.0.3`, `cookie-parser@1.4.7`, `cors@2.8.5`, `multer@2.x` uploads, `socket.io@4.8.3` (`/presence` + `/chat` namespaces)
+- Prisma Client generated to `backend/src/generated/prisma` (`runtime = bun`)
 
 **Frontend** `front/` – `vite@8.3.0`, `react@19.2.8`, `react-router-dom@7.18.3`
 - Redux Toolkit `2.12.0` + RTK Query, `react-hook-form@7.88.0` + `zod`, `tailwindcss@4.3.3`, `socket.io-client@4.8.3`, `typescript~6.0.2`
 
-**DB** PostgreSQL (see `back/.env` `DATABASE_URL`)
+**DB** PostgreSQL (see `backend/.env` `DATABASE_URL`)
 
 ## Database Schema
 
@@ -19,11 +19,11 @@ Monorepo with two independent apps: `back/` (NestJS + Prisma) and `front/` (Reac
 model User { id String @id @default(cuid()); username String @unique; password String; sentRequests/receivedRequests Friendship[] + sentMessages/receivedMessages Message[] }
 model Friendship { id String @id @default(cuid()); requesterId, addresseeId String; status FriendshipStatus @default(PENDING); @@unique([requesterId, addresseeId]) }
 model Message { id String @id @default(cuid()); senderId, receiverId String; text String; createdAt DateTime @default(now()); @@index([senderId, receiverId, createdAt]) }
-model Post { id String @id @default(cuid()); authorId String; text String (max 2200); createdAt DateTime @default(now()); @@index([authorId, createdAt]) }
+model Post { id String @id @default(cuid()); authorId String; text String (max 2200); imageUrl String?; createdAt DateTime @default(now()); @@index([authorId, createdAt]) }
 enum FriendshipStatus { PENDING ACCEPTED BLOCKED }
 ```
 
-Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144227_add_message`, `20260915091629_add_post`. Seed: `back/prisma/seed.ts` (alice/bob/charlie).
+Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144227_add_message`, `20260914152018_add_is_public`, `20260915091629_add_post`, `20260915095417_add_post_image`. Seed: `backend/prisma/seed.ts` (alice/bob/charlie).
 
 ## Features Built
 
@@ -76,9 +76,11 @@ Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144
 - New messages appear instantly on both sides without refresh – no polling needed
 - **Why socket:** REST alone would need polling or manual refresh to see new messages; socket lets the server push each message the moment it is saved, so both sender (multi-tab echo) and receiver see it instantly, with REST as fallback when socket is offline
 
-### 8. Posts Feed — Text-only, Friends-only, REST
-- Feed page at `/feed` for authenticated users – composer on top, newest-first feed below
-- Text posts up to 2200 characters (Instagram limit), empty posts blocked
+### 8. Posts Feed — Text + Image, Friends-only, REST
+- Feed page at `/feed` for authenticated users – composer on top, newest-first feed below, infinite scroll
+- Text posts up to 2200 characters (Instagram limit), optional single image (JPEG/PNG/WebP/GIF, max 5MB)
+- Either-or rule: a post needs text, an image, or both – image-only posts allowed
+- Uploads stored in `backend/uploads/` (gitignored) and served at `/uploads/*`; DB keeps only the path
 - Friends-only visibility: feed shows own posts + `ACCEPTED` friends' posts; strangers' posts are hidden and `GET /post?authorId=` returns `403` for non-friends
 - REST only (no socket): RTK Query with `Post` tag invalidation on create, server-owned page pagination (`FEED_PAGE_SIZE=20`, `{ posts, nextPage }` envelope, clients cannot set page size)
 
@@ -86,16 +88,17 @@ Migrations: `20260913051655_init`, `20260914100000_add_friendship`, `20260914144
 
 ```
 social/
-├── back/                 # Nest app
-│   ├── src/main.ts       # cookieParser, CORS
-│   ├── src/app.module.ts # UserModule, FriendshipModule, PresenceModule, ChatModule
-│   ├── src/lib/jwt.ts    # sign/verify
-│   ├── src/lib/prisma.ts
-│   ├── src/user/         # controller/service/dto
-│   ├── src/friendship/
-│   ├── src/presence/     # presence.gateway, presence.service, presence.controller (online/offline)
-│   ├── src/chat/         # chat.gateway, chat.service, chat.controller (friends-only text messages)
-│   ├── src/post/         # post.service, post.controller (friends-only text posts, 2200 chars)
+├── backend/              # Express app
+│   ├── src/index.ts      # cookieParser, CORS, routers, sockets
+│   ├── src/lib/          # prisma singleton, jwt, validate, errorHandler, response envelope, stripPassword
+│   ├── src/middleware/   # attachUser/requireAuth, errorMiddleware
+│   ├── src/socket/       # shared socket.io setup + token helper
+│   ├── src/feature/auth/       # register/login/logout/me (schema/service/controller/route)
+│   ├── src/feature/user/       # search/list/profile/update/delete
+│   ├── src/feature/friendship/ # requests/accept/friends
+│   ├── src/feature/presence/   # REST + /presence namespace (online/offline)
+│   ├── src/feature/chat/       # REST + /chat namespace (friends-only text messages)
+│   ├── src/feature/post/       # multer upload + friends-only feed (2200 chars)
 │   ├── prisma/schema.prisma
 │   └── package.json
 └── front/                # Vite React app
@@ -124,7 +127,7 @@ social/
 | GET | /user?search= | cookie (optional) | search, excludes self if JWT present |
 | GET | /user/me | cookie | current user from JWT |
 | GET | /user/:id | - | findOne |
-| PATCH | /user/:id | - | update |
+| PATCH | /user/me | cookie | update own profile |
 | DELETE | /user/:id | - | remove |
 | POST | /friendship | - | create request |
 | GET | /friendship?userId= | - | friends list |
@@ -137,22 +140,24 @@ social/
 | GET | /chat/history?friendId= | cookie | last 50 messages with friend |
 | POST | /chat/send | cookie | send text to friend (friends-only) |
 | WS | /chat | cookie | `chat:send` → `chat:receive` – instant delivery, REST fallback |
-| POST | /post | cookie | create text post (max 2200 chars) |
+| POST | /post | cookie | create post, multipart `text` + optional `image` file (JPEG/PNG/WebP/GIF ≤5MB); needs text or image |
 | GET | /post/feed?page= | cookie | friends + self feed, server-fixed 20/page, `{ posts, nextPage }` |
 | GET | /post?authorId=&page= | cookie | posts by author (friends-only, else 403), same envelope |
+
+All success responses use the `{ status: 'success', message, data }` envelope; errors use `{ status: 'error', message, error }`.
 
 ## Setup
 
 **Prereqs:** `bun@1.3.14`, PostgreSQL.
 
-**Backend** `back/.env`:
+**Backend** `backend/.env`:
 ```
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/social?schema=public"
 JWT_SECRET="dev-secret-change-me-please-set-strong-secret"
 JWT_EXPIRES_IN="7d"
 ```
 ```bash
-cd back
+cd backend
 bun install
 bun run db:generate
 bun run db:migrate   # or db:push

@@ -1,4 +1,5 @@
 import type { Post } from '../postsApi'
+import { resolvePostImage } from '../resolvePostImage'
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -12,8 +13,9 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString()
 }
 
-// PostCard – renders a single post: author avatar/username, time-ago, and text body.
+// PostCard – renders a single post: author avatar/username, time-ago, optional image, and text body.
 export default function PostCard({ post }: { post: Post }) {
+  const imageSrc = resolvePostImage(post.imageUrl)
   return (
     <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
       <div className="flex items-center gap-3">
@@ -25,9 +27,14 @@ export default function PostCard({ post }: { post: Post }) {
           <p className="text-xs text-gray-500 dark:text-zinc-400">{timeAgo(post.createdAt)}</p>
         </div>
       </div>
-      <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-900 dark:text-zinc-100">
-        {post.text}
-      </p>
+      {imageSrc && (
+        <img src={imageSrc} alt={`Post by ${post.author.username}`} loading="lazy" className="mt-3 max-h-96 w-full rounded-lg object-cover" />
+      )}
+      {post.text && (
+        <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-900 dark:text-zinc-100">
+          {post.text}
+        </p>
+      )}
     </article>
   )
 }

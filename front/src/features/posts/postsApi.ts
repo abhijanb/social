@@ -9,6 +9,7 @@ export type Post = {
   id: string
   authorId: string
   text: string
+  imageUrl: string | null
   createdAt: string
   author: PostAuthor
 }
@@ -38,8 +39,13 @@ export const postsApi = baseApi.injectEndpoints({
       },
       providesTags: ['Post'],
     }),
-    createPost: build.mutation<Post, { text: string }>({
-      query: (body) => ({ url: 'post', method: 'POST', body }),
+    createPost: build.mutation<Post, { text: string; image?: File | null }>({
+      query: ({ text, image }) => {
+        const form = new FormData()
+        form.set('text', text)
+        if (image) form.set('image', image)
+        return { url: 'post', method: 'POST', body: form }
+      },
       invalidatesTags: ['Post'],
     }),
   }),
