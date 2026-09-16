@@ -1,29 +1,16 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Avatar from '../../../components/Avatar'
-import { useOwnProfile } from '../../users/hooks/useOwnProfile'
 import type { Post } from '../postsApi'
-import { resolveImageUrl } from '../resolvePostImage'
+import { usePostCard } from '../hooks/usePostCard'
 import CommentSection from './CommentSection'
 import HashtagText from './HashtagText'
 import LikeButton from './LikeButton'
 import PostCarousel from './PostCarousel'
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}d ago`
-  return new Date(iso).toLocaleDateString()
-}
+import PostMenu from './PostMenu'
 
 // PostCard – Instagram-style post: header with ring avatar, username and
 // time on one line; media full-bleed edge-to-edge; like unit and text
-// body below.
+// body below. Display data + menu live in usePostCard.
 export default function PostCard({
   post,
   onToggleLike,
@@ -39,24 +26,10 @@ export default function PostCard({
   onCommentDeleted?: (postId: string) => void
   onPostDeleted?: (postId: string) => void
 }) {
-  const { me } = useOwnProfile()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const isOwn = me?.id != null && me.id === post.authorId
-  const items = [...(post.images ?? [])]
-    .sort((a, b) => a.order - b.order)
-    .map((img) => ({ src: resolveImageUrl(img.url), kind: img.kind }))
-    .filter(
-      (item): item is { src: string; kind: (typeof item)['kind'] } =>
-        item.src != null,
-    )
-  const albumLabel =
-    items.length > 1
-      ? items.every((i) => i.kind === 'VIDEO')
-        ? `${items.length} videos`
-        : items.every((i) => i.kind === 'IMAGE')
-          ? `${items.length} photos`
-          : `${items.length} items`
-      : null
+  const { items, albumLabel, timeLabel, canShowMenu, menuOpen, setMenuOpen, handleDelete } = usePostCard(
+    post,
+    onPostDeleted,
+  )
   return (
     <article className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700/80 dark:bg-zinc-900 dark:shadow-black/20 dark:hover:shadow-black/40">
       <div className="flex items-center gap-3 px-4 py-3">
@@ -72,49 +45,20 @@ export default function PostCard({
           >
             {post.author.username}
           </Link>
-          <p className="text-xs text-gray-500 dark:text-zinc-400">{timeAgo(post.createdAt)}</p>
+          <p className="text-xs text-gray-500 dark:text-zinc-400">{timeLabel}</p>
         </div>
         {albumLabel && (
           <span className="shrink-0 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold text-gray-500 dark:bg-zinc-800 dark:text-zinc-400">
             {albumLabel}
           </span>
         )}
-        {isOwn && onPostDeleted && (
-          <div className="relative shrink-0">
-            <button
-              onClick={() => setMenuOpen((v) => !v)}
-              aria-label="Post options"
-              className="rounded-full p-1.5 text-gray-500 transition hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-            >
-              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="5" cy="12" r="1.8" />
-                <circle cx="12" cy="12" r="1.8" />
-                <circle cx="19" cy="12" r="1.8" />
-              </svg>
-            </button>
-            {menuOpen && (
-              <>
-                <button
-                  aria-label="Close menu"
-                  onClick={() => setMenuOpen(false)}
-                  className="fixed inset-0 z-10 cursor-default"
-                />
-                <div className="absolute right-0 z-20 w-36 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false)
-                      if (window.confirm('Delete this post? This cannot be undone.')) {
-                        onPostDeleted(post.id)
-                      }
-                    }}
-                    className="block w-full px-4 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+        {canShowMenu && (
+          <PostMenu
+            menuOpen={menuOpen}
+            onToggle={() => setMenuOpen((v) => !v)}
+            onClose={() => setMenuOpen(false)}
+            onDelete={handleDelete}
+          />
         )}
       </div>
       {items.length > 0 && (
