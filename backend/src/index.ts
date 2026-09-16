@@ -13,6 +13,8 @@ import { livestreamRouter } from "./feature/livestream/livestream.route.js";
 import { postRouter } from "./feature/post/post.route.js";
 import { presenceRouter } from "./feature/presence/presence.route.js";
 import { registerPresenceHandlers } from "./feature/presence/presence.socket.js";
+import { storyRouter } from "./feature/story/story.route.js";
+import { cleanupExpired } from "./feature/story/story.service.js";
 import { userRouter } from "./feature/user/user.route.js";
 import { errorMiddleware } from "./middleware/error.js";
 import {
@@ -49,6 +51,8 @@ app.use("/presence", presenceRouter);
 
 app.use("/post", postRouter);
 
+app.use("/story", storyRouter);
+
 app.use("/livestream", livestreamRouter);
 
 // Final error middleware — must stay last, after all routers.
@@ -67,6 +71,14 @@ export const livestreamNamespace = getLivestreamNamespace();
 registerPresenceHandlers();
 registerChatHandlers();
 registerLivestreamHandlers();
+
+// Hourly cleanup of expired stories (24h TTL). Failures only log.
+setInterval(
+  () => {
+    cleanupExpired().catch((err) => console.error("story cleanup failed", err));
+  },
+  60 * 60 * 1000,
+).unref?.();
 
 const rawPort = (process.env.PORT ?? "").trim();
 const parsedPort = rawPort.length > 0 ? Number(rawPort) : Number.NaN;

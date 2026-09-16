@@ -5,6 +5,8 @@ import { baseApi } from '../app/baseApi'
 import { useAuth } from '../features/auth/hooks/useAuth'
 import { useGetFeedQuery, useToggleLikeMutation, type Post } from '../features/posts/postsApi'
 import { useGetMeQuery } from '../features/users/usersApi'
+import { useGetStoryFeedQuery } from '../features/stories/storiesApi'
+import StoriesBar from '../features/stories/components/StoriesBar'
 import PostComposer from '../features/posts/components/PostComposer'
 import PostFeed from '../features/posts/components/PostFeed'
 
@@ -24,6 +26,9 @@ export default function FeedPage() {
     skip: !isAuthenticated,
   })
   const { data: me } = useGetMeQuery(undefined, { skip: !isAuthenticated })
+  const { data: storyGroups, isLoading: storiesLoading } = useGetStoryFeedQuery(undefined, {
+    skip: !isAuthenticated,
+  })
 
   // Each page is cached separately by RTK Query; collect fetched pages here.
   // Guarded so each page is added once (render-time adjustment, not an effect).
@@ -109,6 +114,7 @@ export default function FeedPage() {
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-6 dark:bg-[#16171d]">
       <div className="mx-auto max-w-xl">
+        <StoriesBar groups={storyGroups} meId={me?.id} meUsername={me?.username} isLoading={storiesLoading} />
         {/* PostComposer – avatar + input row for writing a new post. */}
         <PostComposer onCreated={handleCreated} username={me?.username} />
         {error && !(typeof error === 'object' && 'status' in error && error.status === 401) && (
