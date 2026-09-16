@@ -9,7 +9,9 @@ const imagesOrderBy = { order: "asc" } as const;
 const postInclude = {
   author: { select: authorSelect },
   images: { orderBy: imagesOrderBy },
-  _count: { select: { likes: true, comments: true } },
+  _count: {
+    select: { likes: true, comments: { where: { deletedAt: null } } },
+  },
 } as const;
 const commentInclude = {
   author: { select: commentAuthorSelect },
@@ -235,7 +237,7 @@ export async function listPostComments(
   );
   if (!sinceId) {
     const latest = await prisma.postComment.findMany({
-      where: { postId },
+      where: { postId, deletedAt: null },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: n,
       include: commentInclude,
@@ -248,7 +250,7 @@ export async function listPostComments(
   });
   if (!cursor || cursor.postId !== postId) {
     const latest = await prisma.postComment.findMany({
-      where: { postId },
+      where: { postId, deletedAt: null },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: n,
       include: commentInclude,
@@ -258,6 +260,7 @@ export async function listPostComments(
   return prisma.postComment.findMany({
     where: {
       postId,
+      deletedAt: null,
       OR: [
         { createdAt: { gt: cursor.createdAt } },
         { createdAt: cursor.createdAt, id: { gt: sinceId } },
@@ -269,7 +272,8 @@ export async function listPostComments(
   });
 }
 
-// Delete a comment — allowed for the comment author or the post author.
+// Soft-delete a comment — allowed for the comment author or the post
+// author. Already-deleted reads as 404; lists/counts exclude deleted.
 export async function deletePostComment(
   userId: string,
   postId: string,
@@ -277,13 +281,16 @@ export async function deletePostComment(
 ) {
   const comment = await prisma.postComment.findUnique({
     where: { id: commentId },
-    select: { id: true, postId: true, authorId: true },
+    select: { id: true, postId: true, authorId: true, deletedAt: true },
   });
-  if (!comment || comment.postId !== postId)
+  if (!comment || comment.postId !== postId || comment.deletedAt)
     throw new AppError("Comment not found", 404);
   const post = await getPostOrThrow(postId);
   if (comment.authorId !== userId && post.authorId !== userId)
     throw new AppError("Not allowed to delete this comment", 403);
-  await prisma.postComment.delete({ where: { id: commentId } });
+  await prisma.postComment.update({
+    where: { id: commentId },
+    data: { deletedAt: new Date() },
+  });
   return { id: commentId };
 }
