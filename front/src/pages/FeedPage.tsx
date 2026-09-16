@@ -3,6 +3,7 @@ import StoriesBar from '../features/stories/components/StoriesBar'
 import PostComposer from '../features/posts/components/PostComposer'
 import PostFeed from '../features/posts/components/PostFeed'
 import { useFeed } from '../features/posts/hooks/useFeed'
+import { isUnauthorizedError } from '../app/apiError'
 
 // FeedPage – friends-only posts feed: composer on top, page-based post list below (auth required).
 // Data + interactions live in useFeed; this file is guards + JSX shell only.
@@ -29,7 +30,7 @@ export default function FeedPage() {
   } = useFeed()
 
   if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+  if (isUnauthorizedError(error)) {
     return <Navigate to="/login" replace />
   }
 
@@ -39,7 +40,7 @@ export default function FeedPage() {
         <StoriesBar groups={storyGroups} meId={me?.id} meUsername={ownUsername} meAvatarUrl={ownAvatarUrl} isLoading={storiesLoading} />
         {/* PostComposer – avatar + input row for writing a new post. */}
         <PostComposer onCreated={handleCreated} username={ownUsername} avatarUrl={ownAvatarUrl} />
-        {error && !(typeof error === 'object' && 'status' in error && error.status === 401) && (
+        {error && !isUnauthorizedError(error) && (
           <p className="mt-6 text-center text-sm text-red-600 dark:text-red-400">Failed to load feed</p>
         )}
         {/* PostFeed – the list of posts with loading/empty states and "Load more". */}

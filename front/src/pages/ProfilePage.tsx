@@ -3,7 +3,8 @@ import EditProfileModal from '../features/users/components/EditProfileModal'
 import ProfileHeader from '../features/users/components/ProfileHeader'
 import ProfilePostsGrid from '../features/users/components/ProfilePostsGrid'
 import { ProfileHeaderSkeleton, ProfileNotFound } from '../features/users/components/ProfilePlaceholders'
-import { isUnauthorizedError, useProfilePage } from '../features/users/hooks/useProfilePage'
+import { useProfilePage } from '../features/users/hooks/useProfilePage'
+import { isUnauthorizedError } from '../app/apiError'
 
 // ProfilePage – thin shell for /u/:username: guards + header + posts grid.
 // Data + pagination live in useProfilePage, JSX in features/users/components.

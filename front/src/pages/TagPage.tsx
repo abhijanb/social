@@ -1,6 +1,7 @@
 import { Navigate, useParams } from 'react-router-dom'
 import PostFeed from '../features/posts/components/PostFeed'
 import { useTagFeed } from '../features/posts/hooks/useTagFeed'
+import { isUnauthorizedError } from '../app/apiError'
 
 // TagPage – thin shell for /tag/:tag: guards + header + PostFeed.
 // Data + interactions live in useTagFeed (same pattern as useFeed).
@@ -23,7 +24,7 @@ export default function TagPage() {
   } = useTagFeed(rawTag)
 
   if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+  if (isUnauthorizedError(error)) {
     return <Navigate to="/login" replace />
   }
 

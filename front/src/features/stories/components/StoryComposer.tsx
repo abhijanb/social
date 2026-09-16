@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isUnauthorizedError } from '../../../app/apiError'
 import { ACCEPT_STORY_MEDIA, isStoryVideoFile, MAX_STORY_BYTES_IMAGE, MAX_STORY_BYTES_VIDEO, useCreateStoryMutation } from '../storiesApi'
 
 function fileTooBig(file: File): boolean {
@@ -117,7 +118,7 @@ export default function StoryComposer({ onClose, onCreated }: { onClose: () => v
         {pickError && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{pickError}</p>}
         {error && (
           <p className="mt-2 text-xs text-red-600 dark:text-red-400">
-            {'status' in error && error.status === 401 ? 'Session expired, please login again' : 'Failed to share story'}
+            {isUnauthorizedError(error) ? 'Session expired, please login again' : 'Failed to share story'}
           </p>
         )}
       </div>

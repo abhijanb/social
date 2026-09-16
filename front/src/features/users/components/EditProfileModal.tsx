@@ -1,4 +1,5 @@
 import Avatar from '../../../components/Avatar'
+import { isUnauthorizedError } from '../../../app/apiError'
 import { ACCEPT_AVATAR, useEditProfile } from '../../users/hooks/useEditProfile'
 
 // EditProfileModal – edit bio + display name + avatar (username stays stable
@@ -139,7 +140,7 @@ export default function EditProfileModal({
 
         {error && (
           <p className="mt-2 text-xs text-red-600 dark:text-red-400">
-            {'status' in error && error.status === 401 ? 'Session expired, please login again' : 'Failed to save profile'}
+            {isUnauthorizedError(error) ? 'Session expired, please login again' : 'Failed to save profile'}
           </p>
         )}
 

@@ -3,10 +3,7 @@ import { useAppDispatch } from '../../../app/hooks'
 import { logout } from '../../auth/authSlice'
 import { useGetMeQuery } from '../../users/usersApi'
 import { useCreateCommentMutation, useDeleteCommentMutation, useGetCommentsQuery } from '../postsApi'
-
-export function isUnauthorizedError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
-}
+import { isUnauthorizedError } from '../../../app/apiError'
 
 export function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()

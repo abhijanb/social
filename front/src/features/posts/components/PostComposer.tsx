@@ -1,4 +1,5 @@
 import Avatar from '../../../components/Avatar'
+import { isUnauthorizedError } from '../../../app/apiError'
 import { ACCEPT_MEDIA, MAX_POST_IMAGES, isVideoFile } from '../postsApi'
 import { MAX_LENGTH, usePostComposer } from '../hooks/usePostComposer'
 
@@ -112,7 +113,7 @@ export default function PostComposer({ onCreated, username, avatarUrl }: { onCre
       </div>
       {error && (
         <p className="mt-2 pl-12 text-sm text-red-600 dark:text-red-400">
-          {'status' in error && error.status === 401 ? 'Session expired, please login again' : 'Failed to post'}
+          {isUnauthorizedError(error) ? 'Session expired, please login again' : 'Failed to post'}
         </p>
       )}
     </div>

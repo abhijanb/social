@@ -5,18 +5,7 @@ import { useAuth } from '../../auth/hooks/useAuth'
 import { useDeletePostMutation, useGetUserPostsQuery, type Post } from '../../posts/postsApi'
 import { useGetProfileQuery } from '../usersApi'
 import { useOwnProfile } from './useOwnProfile'
-
-export function isUnauthorizedError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
-}
-
-export function isNotFoundError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 404
-}
-
-export function isForbiddenError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 403
-}
+import { isUnauthorizedError } from '../../../app/apiError'
 
 // useProfilePage – all data + pagination logic for /u/:username, no JSX:
 // auth + 401 handling, profile query, own-page fast-path header (instant

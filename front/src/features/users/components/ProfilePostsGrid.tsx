@@ -1,6 +1,6 @@
 import type { Post } from '../../posts/postsApi'
 import { resolveImageUrl } from '../../posts/resolvePostImage'
-import { isForbiddenError } from '../hooks/useProfilePage'
+import { isForbiddenError } from '../../../app/apiError'
 
 function FirstTile({ post }: { post: Post }) {
   const first = [...(post.images ?? [])].sort((a, b) => a.order - b.order)[0]

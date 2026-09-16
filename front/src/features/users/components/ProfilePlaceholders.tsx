@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { isNotFoundError } from '../hooks/useProfilePage'
+import { isNotFoundError } from '../../../app/apiError'
 
 // ProfilePlaceholders – dumb loading / not-found states for /u/:username header.
 export function ProfileHeaderSkeleton() {
