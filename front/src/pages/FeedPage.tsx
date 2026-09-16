@@ -77,6 +77,15 @@ export default function FeedPage() {
     [chunks, likePending, patchPost, toggleLike],
   )
 
+  // Comment created: bump the cached count so the toggle label stays in
+  // sync (same local-patch pattern as likes — no 'Post' invalidation).
+  const handleCommentAdded = useCallback(
+    (postId: string) => {
+      patchPost(postId, (post) => ({ ...post, commentsCount: (post.commentsCount ?? 0) + 1 }))
+    },
+    [patchPost],
+  )
+
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
     return <Navigate to="/login" replace />
@@ -105,6 +114,7 @@ export default function FeedPage() {
           onLoadMore={handleLoadMore}
           onToggleLike={handleToggleLike}
           likePendingIds={likePending}
+          onCommentAdded={handleCommentAdded}
         />
       </div>
     </div>

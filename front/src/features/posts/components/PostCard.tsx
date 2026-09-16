@@ -1,5 +1,6 @@
 import type { Post } from '../postsApi'
 import { resolveImageUrl } from '../resolvePostImage'
+import CommentSection from './CommentSection'
 import LikeButton from './LikeButton'
 import PostCarousel from './PostCarousel'
 
@@ -22,10 +23,12 @@ export default function PostCard({
   post,
   onToggleLike,
   likePending = false,
+  onCommentAdded,
 }: {
   post: Post
   onToggleLike?: (postId: string) => void
   likePending?: boolean
+  onCommentAdded?: (postId: string) => void
 }) {
   const items = [...(post.images ?? [])]
     .sort((a, b) => a.order - b.order)
@@ -78,6 +81,7 @@ export default function PostCard({
         </p>
       )}
       {!post.text && post.likesCount === 0 && <div className="pb-3" />}
+      <CommentSection postId={post.id} commentsCount={post.commentsCount ?? 0} onCommentAdded={onCommentAdded} />
     </article>
   )
 }
