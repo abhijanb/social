@@ -24,11 +24,13 @@ export default function PostCard({
   onToggleLike,
   likePending = false,
   onCommentAdded,
+  onCommentDeleted,
 }: {
   post: Post
   onToggleLike?: (postId: string) => void
   likePending?: boolean
   onCommentAdded?: (postId: string) => void
+  onCommentDeleted?: (postId: string) => void
 }) {
   const items = [...(post.images ?? [])]
     .sort((a, b) => a.order - b.order)
@@ -81,7 +83,7 @@ export default function PostCard({
         </p>
       )}
       {!post.text && post.likesCount === 0 && <div className="pb-3" />}
-      <CommentSection postId={post.id} commentsCount={post.commentsCount ?? 0} onCommentAdded={onCommentAdded} />
+      <CommentSection postId={post.id} postAuthorId={post.authorId} commentsCount={post.commentsCount ?? 0} onCommentAdded={onCommentAdded} onCommentDeleted={onCommentDeleted} />
     </article>
   )
 }

@@ -86,6 +86,14 @@ export default function FeedPage() {
     [patchPost],
   )
 
+  // Comment deleted: decrement the cached count, floored at 0.
+  const handleCommentDeleted = useCallback(
+    (postId: string) => {
+      patchPost(postId, (post) => ({ ...post, commentsCount: Math.max(0, (post.commentsCount ?? 1) - 1) }))
+    },
+    [patchPost],
+  )
+
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
     return <Navigate to="/login" replace />
@@ -115,6 +123,7 @@ export default function FeedPage() {
           onToggleLike={handleToggleLike}
           likePendingIds={likePending}
           onCommentAdded={handleCommentAdded}
+          onCommentDeleted={handleCommentDeleted}
         />
       </div>
     </div>

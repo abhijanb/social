@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAppDispatch } from '../../../app/hooks'
 import { logout } from '../../auth/authSlice'
-import { useCreateCommentMutation, useGetCommentsQuery } from '../postsApi'
+import { useGetMeQuery } from '../../users/usersApi'
+import { useCreateCommentMutation, useDeleteCommentMutation, useGetCommentsQuery } from '../postsApi'
 
 function isUnauthorizedError(error: unknown): boolean {
   return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
@@ -21,19 +22,25 @@ function timeAgo(iso: string): string {
 
 type Props = {
   postId: string
+  postAuthorId: string
   commentsCount: number
   onCommentAdded?: (postId: string) => void
+  onCommentDeleted?: (postId: string) => void
 }
 
 // CommentSection – fetch-on-open comments for one post: toggle button with
-// count, list loaded once on expand, composer with instant refetch via tag
-// invalidation. Create + list only (no delete, no polling).
-export default function CommentSection({ postId, commentsCount, onCommentAdded }: Props) {
+// count, list loaded once on expand, composer + delete with instant refetch
+// via tag invalidation (no polling).
+export default function CommentSection({ postId, postAuthorId, commentsCount, onCommentAdded, onCommentDeleted }: Props) {
   const dispatch = useAppDispatch()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
   const { data: comments, isLoading, isFetching, error } = useGetCommentsQuery({ postId }, { skip: !open })
   const [createComment, { isLoading: isSending }] = useCreateCommentMutation()
+  const [deleteComment] = useDeleteCommentMutation()
+  const { data: me } = useGetMeQuery(undefined, { skip: !open })
+  const meId = me?.id
 
   const sessionExpired = isUnauthorizedError(error)
   useEffect(() => {
@@ -49,6 +56,23 @@ export default function CommentSection({ postId, commentsCount, onCommentAdded }
       onCommentAdded?.(postId)
     } catch {
       // RTK Query surfaces field errors via the list query; keep draft so retry is easy.
+    }
+  }
+
+  const handleDelete = async (commentId: string) => {
+    if (deletingIds.has(commentId)) return
+    setDeletingIds((prev) => new Set(prev).add(commentId))
+    try {
+      await deleteComment({ postId, commentId }).unwrap()
+      onCommentDeleted?.(postId)
+    } catch {
+      // 403/404 stays silent — list refetch on next open shows truth.
+    } finally {
+      setDeletingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(commentId)
+        return next
+      })
     }
   }
 
@@ -83,13 +107,29 @@ export default function CommentSection({ postId, commentsCount, onCommentAdded }
           {comments && comments.length === 0 && !isLoading && (
             <p className="text-sm text-gray-500 dark:text-zinc-400">No comments yet</p>
           )}
-          {comments?.map((c) => (
-            <p key={c.id} className="break-words text-sm leading-relaxed text-gray-900 dark:text-zinc-100">
-              <span className="mr-2 font-semibold">{c.author.username}</span>
-              {c.text}
-              <span className="ml-2 text-xs text-gray-500 dark:text-zinc-400">{timeAgo(c.createdAt)}</span>
-            </p>
-          ))}
+          {comments?.map((c) => {
+            const canDelete = meId != null && (c.authorId === meId || postAuthorId === meId)
+            return (
+              <div key={c.id} className="flex items-start justify-between gap-2">
+                <p className="min-w-0 flex-1 break-words text-sm leading-relaxed text-gray-900 dark:text-zinc-100">
+                  <span className="mr-2 font-semibold">{c.author.username}</span>
+                  {c.text}
+                  <span className="ml-2 text-xs text-gray-500 dark:text-zinc-400">{timeAgo(c.createdAt)}</span>
+                </p>
+                {canDelete && (
+                  <button
+                    type="button"
+                    onClick={() => void handleDelete(c.id)}
+                    disabled={deletingIds.has(c.id)}
+                    aria-label={`Delete comment by ${c.author.username}`}
+                    className="shrink-0 text-xs font-medium text-gray-400 hover:text-red-600 disabled:cursor-wait disabled:opacity-50 dark:text-zinc-500 dark:hover:text-red-400"
+                  >
+                    {deletingIds.has(c.id) ? '…' : 'Delete'}
+                  </button>
+                )}
+              </div>
+            )
+          })}
 
           <div className="flex items-center gap-2 pt-1">
             <input

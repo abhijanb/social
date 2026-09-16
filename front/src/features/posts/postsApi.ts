@@ -94,7 +94,11 @@ export const postsApi = baseApi.injectEndpoints({
       query: ({ postId, text }) => ({ url: `post/${postId}/comments`, method: 'POST', body: { text } }),
       invalidatesTags: (_result, _error, arg) => [{ type: 'Post', id: `comments-${arg.postId}` }],
     }),
+    deleteComment: build.mutation<{ id: string }, { postId: string; commentId: string }>({
+      query: ({ postId, commentId }) => ({ url: `post/${postId}/comments/${commentId}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, arg) => [{ type: 'Post', id: `comments-${arg.postId}` }],
+    }),
   }),
 })
 
-export const { useGetFeedQuery, useGetUserPostsQuery, useCreatePostMutation, useToggleLikeMutation, useGetCommentsQuery, useCreateCommentMutation } = postsApi
+export const { useGetFeedQuery, useGetUserPostsQuery, useCreatePostMutation, useToggleLikeMutation, useGetCommentsQuery, useCreateCommentMutation, useDeleteCommentMutation } = postsApi
