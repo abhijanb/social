@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { Post } from '../postsApi'
 import { resolveImageUrl } from '../resolvePostImage'
 import CommentSection from './CommentSection'
@@ -56,7 +57,12 @@ export default function PostCard({
           </div>
         </div>
         <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">{post.author.username}</p>
+          <Link
+            to={`/u/${encodeURIComponent(post.author.username)}`}
+            className="truncate text-sm font-semibold text-gray-900 hover:underline dark:text-white"
+          >
+            {post.author.username}
+          </Link>
           <p className="text-xs text-gray-500 dark:text-zinc-400">{timeAgo(post.createdAt)}</p>
         </div>
         {albumLabel && (
@@ -78,7 +84,9 @@ export default function PostCard({
       />
       {post.text && (
         <p className="whitespace-pre-wrap break-words px-4 pb-3 pt-1 text-sm leading-relaxed text-gray-900 dark:text-zinc-100">
-          <span className="mr-2 font-semibold">{post.author.username}</span>
+          <Link to={`/u/${encodeURIComponent(post.author.username)}`} className="mr-2 font-semibold hover:underline">
+            {post.author.username}
+          </Link>
           {post.text}
         </p>
       )}

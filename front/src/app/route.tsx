@@ -7,10 +7,12 @@ import FriendRequestsPage from '../pages/FriendRequestsPage'
 import ChatPage from '../pages/ChatPage'
 import FeedPage from '../pages/FeedPage'
 import LivestreamPage from '../pages/LivestreamPage'
+import ProfilePage from '../pages/ProfilePage'
 import SettingsPage from '../pages/SettingsPage'
 
 export const routes: RouteObject[] = [
   { path: '/', element: <FeedPage /> },
+  { path: 'u/:username', element: <ProfilePage /> },
   { path: 'search', element: <UserSearchPage /> },
   { path: 'live', element: <LivestreamPage /> },
   { path: 'login', element: <Login /> },

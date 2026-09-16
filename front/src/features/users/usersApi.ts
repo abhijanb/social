@@ -3,11 +3,26 @@ import { baseApi } from "../../app/baseApi"
 export interface User {
   id: string
   username: string
+  bio: string
+  displayName: string | null
   isPublic: boolean
   email?: string | null
   name?: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface ProfileRelation {
+  isSelf: boolean
+  isFriend: boolean
+  pending: boolean
+  canViewPosts: boolean
+}
+
+export interface Profile {
+  user: User
+  stats: { posts: number; friends: number; storiesActive: number }
+  relation: ProfileRelation
 }
 
 export const usersApi = baseApi.injectEndpoints({
@@ -23,6 +38,12 @@ export const usersApi = baseApi.injectEndpoints({
     getMe: build.query<User, void>({
       query: () => 'user/me',
       providesTags: ['User'],
+    }),
+    getProfile: build.query<Profile, string>({
+      query: (username) => `user/by-username/${encodeURIComponent(username)}`,
+      providesTags: (_result, _error, username) => [
+        { type: 'User', id: `profile-${username.toLowerCase()}` },
+      ],
     }),
     registerUser: build.mutation<User, { username: string; password: string }>({
       query: (body) => ({ url: 'user', method: 'POST', body }),
@@ -43,6 +64,7 @@ export const {
   useGetUsersQuery,
   useGetUserByIdQuery,
   useGetMeQuery,
+  useGetProfileQuery,
   useRegisterUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,

@@ -55,11 +55,76 @@ export async function findUserById(id: string) {
   return stripPassword(user);
 }
 
+// Case-insensitive lookup by username — backing GET /user/by-username/:username.
+export async function findUserByUsername(username: string) {
+  const user = await prisma.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } },
+  });
+  if (!user) return null;
+  return stripPassword(user);
+}
+
+export type ProfileRelation = {
+  isSelf: boolean;
+  isFriend: boolean;
+  pending: boolean;
+  canViewPosts: boolean;
+};
+
+// Profile payload for /u/:username: user + counts + viewer relation.
+// Private (isPublic=false) users hide counts from strangers; posts grid
+// itself stays guarded by GET /post?authorId= (403).
+export async function getProfile(viewerId: string, username: string) {
+  const target = await prisma.user.findFirst({
+    where: { username: { equals: username.trim(), mode: "insensitive" } },
+  });
+  if (!target) throw new AppError("User not found", 404);
+  const user = stripPassword(target);
+  const isSelf = target.id === viewerId;
+
+  let isFriend = false;
+  let pending = false;
+  if (!isSelf) {
+    const friendship = await prisma.friendship.findFirst({
+      where: {
+        OR: [
+          { requesterId: viewerId, addresseeId: target.id },
+          { requesterId: target.id, addresseeId: viewerId },
+        ],
+      },
+      select: { status: true },
+    });
+    isFriend = friendship?.status === "ACCEPTED";
+    pending = friendship?.status === "PENDING";
+  }
+
+  const canViewPosts = isSelf || target.isPublic || isFriend;
+  const [posts, friends, storiesActive] = canViewPosts || isSelf
+    ? await Promise.all([
+        prisma.post.count({ where: { authorId: target.id } }),
+        prisma.friendship.count({
+          where: {
+            status: "ACCEPTED",
+            OR: [{ requesterId: target.id }, { addresseeId: target.id }],
+          },
+        }),
+        prisma.story.count({
+          where: { authorId: target.id, expiresAt: { gt: new Date() } },
+        }),
+      ])
+    : [0, 0, 0];
+
+  const relation: ProfileRelation = { isSelf, isFriend, pending, canViewPosts };
+  return { user, stats: { posts, friends, storiesActive }, relation };
+}
+
 // Port of UserService.update — validates input, re-hashes a new password,
 // 404 when the user does not exist.
 export async function updateUser(id: string, input: unknown) {
   const dto = validateOrThrow(updateUserSchema, input);
   const data: Record<string, unknown> = { ...dto };
+  // Empty displayName clears it to null (keeps column nullable).
+  if (data.displayName === "") data.displayName = null;
   if (typeof data.password === "string") {
     data.password = await bcrypt.hash(data.password, 10);
   }

@@ -6,6 +6,8 @@ import { z } from "zod";
 export const updateUserSchema = z.object({
   username: z.string().min(3).max(20).optional(),
   password: z.string().min(6).optional(),
+  bio: z.string().trim().max(150).optional(),
+  displayName: z.string().trim().min(1).max(50).optional().or(z.literal("")),
   isPublic: z.boolean().optional(),
 });
 
@@ -27,3 +29,11 @@ export const userIdParamSchema = z.object({
 });
 
 export type UserIdParamDto = z.infer<typeof userIdParamSchema>;
+
+// Used by GET /user/by-username/:username. Usernames are 3-20 chars
+// (same limits as register); trimmed, case-insensitive lookup.
+export const usernameParamSchema = z.object({
+  username: z.string().trim().min(3).max(20),
+});
+
+export type UsernameParamDto = z.infer<typeof usernameParamSchema>;

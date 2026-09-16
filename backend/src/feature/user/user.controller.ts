@@ -6,10 +6,15 @@ import type { AuthRequest } from "../../middleware/auth.js";
 import {
   findAll,
   findUserById,
+  getProfile,
   removeUser,
   updateUser,
 } from "./user.service.js";
-import { userIdParamSchema, userSearchSchema } from "./user.schema.js";
+import {
+  userIdParamSchema,
+  userSearchSchema,
+  usernameParamSchema,
+} from "./user.schema.js";
 
 // GET /user?search= — live search (auth required when searching) or
 // recent-users list. Port of UserController.findAll. Errors bubble to
@@ -29,6 +34,16 @@ export async function getUserController(req: AuthRequest, res: Response) {
   const user = await findUserById(id);
   if (!user) throw new AppError("User not found", 404);
   return responseSuccess(res, user);
+}
+
+// GET /user/by-username/:username — Instagram-style canonical lookup.
+export async function getUserByUsernameController(
+  req: AuthRequest,
+  res: Response,
+) {
+  if (!req.user) throw new AppError("Not authenticated", 401);
+  const { username } = validateOrThrow(usernameParamSchema, req.params);
+  return responseSuccess(res, await getProfile(req.user.id, username));
 }
 
 // PATCH /user/me — update own profile (behind requireAuth).
