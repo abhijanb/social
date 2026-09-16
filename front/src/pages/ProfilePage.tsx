@@ -1,26 +1,14 @@
-import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { useAppDispatch } from '../app/hooks'
-import { useAuth } from '../features/auth/hooks/useAuth'
-import { logout } from '../features/auth/authSlice'
-import { useGetProfileQuery } from '../features/users/usersApi'
-import { useOwnProfile } from '../features/users/hooks/useOwnProfile'
-import { useGetUserPostsQuery, type Post } from '../features/posts/postsApi'
+import type { Post } from '../features/posts/postsApi'
 import { resolveImageUrl } from '../features/posts/resolvePostImage'
 import Avatar from '../components/Avatar'
 import EditProfileModal from '../features/users/components/EditProfileModal'
-
-function isUnauthorizedError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
-}
-
-function isNotFoundError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 404
-}
-
-function isForbiddenError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 403
-}
+import {
+  isForbiddenError,
+  isNotFoundError,
+  isUnauthorizedError,
+  useProfilePage,
+} from '../features/users/hooks/useProfilePage'
 
 function FirstTile({ post }: { post: Post }) {
   const first = [...(post.images ?? [])].sort((a, b) => a.order - b.order)[0]
@@ -50,60 +38,32 @@ function FirstTile({ post }: { post: Post }) {
 
 // ProfilePage – Instagram-style /u/:username: header (avatar, display name,
 // bio, stats), relation-aware actions, friends-only posts grid.
+// Data + pagination live in useProfilePage; this file is JSX only.
 export default function ProfilePage() {
   const { username = '' } = useParams<{ username: string }>()
-  const { isAuthenticated } = useAuth()
-  const dispatch = useAppDispatch()
-  const [editing, setEditing] = useState(false)
-  const [page, setPage] = useState(1)
-  const [chunks, setChunks] = useState<{ page: number; posts: Post[] }[]>([])
-  const [prevUsername, setPrevUsername] = useState(username)
-
-  // Reset pagination when switching profiles (render-time guard, same as FeedPage).
-  if (prevUsername !== username) {
-    setPrevUsername(username)
-    setPage(1)
-    setChunks([])
-  }
-
   const {
-    data: profile,
-    error: profileError,
-    isLoading: profileLoading,
-  } = useGetProfileQuery(username, { skip: !isAuthenticated || !username })
-
-  // Own-page fast path: header paints instantly from the localStorage-backed
-  // own identity while getProfile (stats/relation) still loads.
-  const { me: ownUser, username: ownUsername } = useOwnProfile()
-  const isOwnPage = ownUsername !== '' && ownUsername.toLowerCase() === username.toLowerCase()
-  const headerUser = profile?.user ?? (isOwnPage ? (ownUser ?? null) : null)
-  const relation = profile?.relation ?? (isOwnPage ? { isSelf: true, isFriend: false, pending: false, canViewPosts: true } : null)
-
-  const authorId = profile?.user.id ?? (isOwnPage ? ownUser?.id : undefined)
-  const canView = profile ? profile.relation.canViewPosts : isOwnPage
-  const {
-    data: postsData,
-    error: postsError,
-    isLoading: postsLoading,
-    isFetching: postsFetching,
-  } = useGetUserPostsQuery(authorId ? { authorId, page } : { authorId: '', page }, {
-    skip: !isAuthenticated || !authorId || !canView,
-  })
+    isAuthenticated,
+    profile,
+    profileError,
+    profileLoading,
+    headerUser,
+    relation,
+    canView,
+    posts,
+    visiblePosts,
+    nextPage,
+    postsError,
+    postsLoading,
+    postsFetching,
+    editing,
+    setEditing,
+    setPage,
+  } = useProfilePage(username)
 
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (isUnauthorizedError(profileError)) {
-    dispatch(logout())
     return <Navigate to="/login" replace />
   }
-
-  // Each page cached separately by RTK Query; collect here (same pattern as FeedPage).
-  if (postsData && !chunks.some((c) => c.page === page)) {
-    setChunks([...chunks, { page, posts: postsData.posts }])
-  }
-  const posts = chunks.flatMap((c) => c.posts)
-  // Show current page data immediately while chunks catch up.
-  const visiblePosts = posts.length > 0 ? posts : (postsData?.posts ?? [])
-  const nextPage = postsData?.nextPage ?? null
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-6 dark:bg-[#16171d]">
