@@ -3,6 +3,7 @@ import { baseApi } from '../../app/baseApi'
 export type StoryAuthor = {
   id: string
   username: string
+  avatarUrl: string | null
 }
 
 export type StoryMediaKind = 'IMAGE' | 'VIDEO'

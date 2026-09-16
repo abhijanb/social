@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Avatar from '../../../components/Avatar'
 import type { StoryFeedGroup } from '../storiesApi'
 import StoryComposer from './StoryComposer'
 import StoryViewer from './StoryViewer'
@@ -10,11 +11,13 @@ export default function StoriesBar({
   groups,
   meId,
   meUsername,
+  meAvatarUrl,
   isLoading,
 }: {
   groups: StoryFeedGroup[] | undefined
   meId: string | undefined
   meUsername: string | undefined
+  meAvatarUrl?: string | null
   isLoading: boolean
 }) {
   const [composerOpen, setComposerOpen] = useState(false)
@@ -49,8 +52,8 @@ export default function StoriesBar({
             className="flex w-16 shrink-0 flex-col items-center gap-1.5"
           >
             <span className={`rounded-full p-0.5 ${mine && mine.stories.length > 0 ? (mine.hasUnseen ? 'bg-gradient-to-tr from-[#aa3bff] via-fuchsia-500 to-amber-400' : 'bg-gray-300 dark:bg-zinc-600') : 'bg-gray-200 dark:bg-zinc-700'}`}>
-              <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-white text-base font-bold text-gray-900 dark:bg-zinc-900 dark:text-white">
-                {(meUsername ?? '?').charAt(0).toUpperCase()}
+              <span className="relative flex rounded-full bg-white p-0.5 dark:bg-zinc-900">
+                <Avatar username={meUsername ?? '?'} avatarUrl={meAvatarUrl ?? mine?.author.avatarUrl} size="lg" />
                 <span
                   role="button"
                   aria-label="Add story"
@@ -74,8 +77,8 @@ export default function StoriesBar({
               className="flex w-16 shrink-0 flex-col items-center gap-1.5"
             >
               <span className={`rounded-full p-0.5 ${g.hasUnseen ? 'bg-gradient-to-tr from-[#aa3bff] via-fuchsia-500 to-amber-400' : 'bg-gray-300 dark:bg-zinc-600'}`}>
-                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-base font-bold text-gray-900 dark:bg-zinc-900 dark:text-white">
-                  {g.author.username.charAt(0).toUpperCase()}
+                <span className="flex rounded-full bg-white p-0.5 dark:bg-zinc-900">
+                  <Avatar username={g.author.username} avatarUrl={g.author.avatarUrl} size="lg" />
                 </span>
               </span>
               <span className="w-full truncate text-center text-[11px] text-gray-600 dark:text-zinc-400">{g.author.username}</span>

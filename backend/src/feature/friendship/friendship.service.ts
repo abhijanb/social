@@ -84,8 +84,8 @@ export async function findFriends(userId: string) {
       OR: [{ requesterId: userId }, { addresseeId: userId }],
     },
     include: {
-      requester: { select: { id: true, username: true, createdAt: true } },
-      addressee: { select: { id: true, username: true, createdAt: true } },
+      requester: { select: { id: true, username: true, avatarUrl: true, createdAt: true } },
+      addressee: { select: { id: true, username: true, avatarUrl: true, createdAt: true } },
     },
   });
 
@@ -109,8 +109,8 @@ export async function findPending(userId: string) {
       OR: [{ requesterId: userId }, { addresseeId: userId }],
     },
     include: {
-      requester: { select: { id: true, username: true } },
-      addressee: { select: { id: true, username: true } },
+      requester: { select: { id: true, username: true, avatarUrl: true } },
+      addressee: { select: { id: true, username: true, avatarUrl: true } },
     },
     orderBy: { createdAt: "desc" },
   });

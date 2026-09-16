@@ -6,6 +6,7 @@ import { logout } from '../features/auth/authSlice'
 import { useGetProfileQuery } from '../features/users/usersApi'
 import { useGetUserPostsQuery, type Post } from '../features/posts/postsApi'
 import { resolveImageUrl } from '../features/posts/resolvePostImage'
+import Avatar from '../components/Avatar'
 import EditProfileModal from '../features/users/components/EditProfileModal'
 
 function isUnauthorizedError(error: unknown): boolean {
@@ -133,8 +134,8 @@ export default function ProfilePage() {
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900">
               <div className="flex items-start gap-5">
                 <div className="rounded-full bg-gradient-to-tr from-[#aa3bff] via-fuchsia-500 to-amber-400 p-0.5">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white text-2xl font-bold text-gray-900 dark:bg-zinc-900 dark:text-white">
-                    {profile.user.username.charAt(0).toUpperCase()}
+                  <div className="rounded-full bg-white p-0.5 dark:bg-zinc-900">
+                    <Avatar username={profile.user.username} avatarUrl={profile.user.avatarUrl} size="xl" />
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
@@ -250,8 +251,10 @@ export default function ProfilePage() {
 
             {editing && (
               <EditProfileModal
+                username={profile.user.username}
                 initialBio={profile.user.bio ?? ''}
                 initialDisplayName={profile.user.displayName ?? null}
+                initialAvatarUrl={profile.user.avatarUrl ?? null}
                 onClose={() => setEditing(false)}
               />
             )}

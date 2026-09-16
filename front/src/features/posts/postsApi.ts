@@ -3,6 +3,7 @@ import { baseApi } from '../../app/baseApi'
 export type PostAuthor = {
   id: string
   username: string
+  avatarUrl: string | null
 }
 
 export type PostMediaKind = 'IMAGE' | 'VIDEO'

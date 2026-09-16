@@ -3,7 +3,7 @@ import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import { createStorySchema } from "./story.schema.js";
 
-const authorSelect = { id: true, username: true } as const;
+const authorSelect = { id: true, username: true, avatarUrl: true } as const;
 const storyInclude = {
   author: { select: authorSelect },
   _count: { select: { views: true } },
@@ -19,13 +19,13 @@ export type StoryWithAuthor = {
   text: string;
   expiresAt: Date;
   createdAt: Date;
-  author: { id: string; username: string };
+  author: { id: string; username: string; avatarUrl: string | null };
   viewsCount: number;
   viewedByMe: boolean;
 };
 
 export type StoryFeedGroup = {
-  author: { id: string; username: string };
+  author: { id: string; username: string; avatarUrl: string | null };
   stories: StoryWithAuthor[];
   hasUnseen: boolean;
 };
@@ -73,7 +73,7 @@ type StoryRow = {
   text: string;
   expiresAt: Date;
   createdAt: Date;
-  author: { id: string; username: string };
+  author: { id: string; username: string; avatarUrl: string | null };
   _count: { views: number };
 };
 

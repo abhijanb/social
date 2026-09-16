@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Avatar from '../../../components/Avatar'
 import { useAppDispatch } from '../../../app/hooks'
 import { logout } from '../../auth/authSlice'
 import { useGetMeQuery } from '../../users/usersApi'
@@ -115,6 +116,7 @@ export default function CommentSection({ postId, postAuthorId, commentsCount, on
             const canDelete = meId != null && (c.authorId === meId || postAuthorId === meId)
             return (
               <div key={c.id} className="flex items-start justify-between gap-2">
+                <Avatar username={c.author.username} avatarUrl={c.author.avatarUrl} size="xs" className="mt-0.5" />
                 <p className="min-w-0 flex-1 break-words text-sm leading-relaxed text-gray-900 dark:text-zinc-100">
                   <span className="mr-2 font-semibold">{c.author.username}</span>
                   {c.text}

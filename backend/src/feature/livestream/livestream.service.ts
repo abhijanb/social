@@ -6,8 +6,8 @@ import {
   startStreamSchema,
 } from "./livestream.schema.js";
 
-const hostSelect = { id: true, username: true } as const;
-const commentAuthorSelect = { id: true, username: true } as const;
+const hostSelect = { id: true, username: true, avatarUrl: true } as const;
+const commentAuthorSelect = { id: true, username: true, avatarUrl: true } as const;
 
 const streamInclude = {
   host: { select: hostSelect },

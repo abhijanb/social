@@ -5,6 +5,7 @@ export interface User {
   username: string
   bio: string
   displayName: string | null
+  avatarUrl: string | null
   isPublic: boolean
   email?: string | null
   name?: string | null
@@ -49,9 +50,15 @@ export const usersApi = baseApi.injectEndpoints({
       query: (body) => ({ url: 'user', method: 'POST', body }),
       invalidatesTags: ['User'],
     }),
-    updateUser: build.mutation<User, { patch: Partial<User> }>({
-      query: ({ patch }) => ({ url: `user/me`, method: 'PATCH', body: patch }),
-      invalidatesTags: ['User'],
+    updateUser: build.mutation<User, { patch: Partial<User> } | { form: FormData; hasAvatarChange: boolean }>({
+      query: (arg) => {
+        if ('form' in arg) return { url: `user/me`, method: 'PATCH', body: arg.form }
+        return { url: `user/me`, method: 'PATCH', body: arg.patch }
+      },
+      // Avatar changes affect denormalized author copies in feeds —
+      // refetch those too. Bio-only edits stay cheap ('User' only).
+      invalidatesTags: (_result, _error, arg) =>
+        'form' in arg && arg.hasAvatarChange ? ['User', 'Post', 'Story', 'Livestream', 'Friendship'] : ['User'],
     }),
     deleteUser: build.mutation<void, string>({
       query: (id) => ({ url: `user/${id}`, method: 'DELETE' }),

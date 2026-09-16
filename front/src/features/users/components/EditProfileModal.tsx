@@ -1,34 +1,88 @@
 import { useState } from 'react'
+import Avatar from '../../../components/Avatar'
+import { resolveImageUrl } from '../../posts/resolvePostImage'
 import { useUpdateUserMutation } from '../../users/usersApi'
 
-// EditProfileModal – edit own bio + display name only (username stays stable
-// so /u/:username links never break mid-session).
+const ACCEPT_AVATAR = 'image/jpeg,image/png,image/webp,image/gif'
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024
+
+// EditProfileModal – edit bio + display name + avatar (username stays stable
+// so /u/:username links never break mid-session). Avatar changes go as
+// multipart FormData (file under "avatar" or removeAvatar=true); bio-only
+// edits stay JSON.
 export default function EditProfileModal({
+  username,
   initialBio,
   initialDisplayName,
+  initialAvatarUrl,
   onClose,
 }: {
+  username: string
   initialBio: string
   initialDisplayName: string | null
+  initialAvatarUrl: string | null
   onClose: () => void
 }) {
   const [bio, setBio] = useState(initialBio ?? '')
   const [displayName, setDisplayName] = useState(initialDisplayName ?? '')
+  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [removeAvatar, setRemoveAvatar] = useState(false)
+  const [pickError, setPickError] = useState<string | null>(null)
   const [updateUser, { isLoading, error }] = useUpdateUserMutation()
 
   const bioOver = bio.trim().length > 150
   const nameOver = displayName.trim().length > 50
   const canSave = !bioOver && !nameOver && !isLoading
+  const avatarTouched = file !== null || removeAvatar
+  const previewSrc = preview ?? resolveImageUrl(initialAvatarUrl)
+
+  const handlePick = (files: FileList | undefined) => {
+    if (!files || files.length === 0) return
+    const picked = files[0]
+    if (!picked.type.startsWith('image/')) {
+      setPickError('Only JPEG, PNG, WebP, GIF images are allowed')
+      return
+    }
+    if (picked.size > MAX_AVATAR_BYTES) {
+      setPickError('Avatar too large (max 5MB)')
+      return
+    }
+    setPickError(null)
+    if (preview) URL.revokeObjectURL(preview)
+    setFile(picked)
+    setPreview(URL.createObjectURL(picked))
+    setRemoveAvatar(false)
+  }
+
+  const handleRemove = () => {
+    if (preview) URL.revokeObjectURL(preview)
+    setFile(null)
+    setPreview(null)
+    setRemoveAvatar(true)
+  }
+
+  const handleUndoRemove = () => setRemoveAvatar(false)
 
   const handleSave = async () => {
     if (!canSave) return
     try {
-      await updateUser({
-        patch: {
-          bio: bio.trim(),
-          displayName: displayName.trim() ? displayName.trim() : null,
-        },
-      }).unwrap()
+      if (!avatarTouched) {
+        await updateUser({
+          patch: {
+            bio: bio.trim(),
+            displayName: displayName.trim() ? displayName.trim() : null,
+          },
+        }).unwrap()
+      } else {
+        const form = new FormData()
+        form.set('bio', bio.trim())
+        form.set('displayName', displayName.trim())
+        if (file) form.set('avatar', file)
+        else if (removeAvatar) form.set('removeAvatar', 'true')
+        await updateUser({ form, hasAvatarChange: true }).unwrap()
+      }
+      if (preview) URL.revokeObjectURL(preview)
       onClose()
     } catch {
       // surfaces via `error` below
@@ -53,6 +107,58 @@ export default function EditProfileModal({
             </svg>
           </button>
         </div>
+
+        <div className="mb-3 flex items-center gap-3">
+          {preview ? (
+            <img
+              src={preview}
+              alt="New avatar preview"
+              className="h-16 w-16 shrink-0 rounded-full bg-gray-100 object-cover dark:bg-zinc-800"
+            />
+          ) : removeAvatar || !previewSrc ? (
+            <Avatar username={username} avatarUrl={null} size="xl" className="!h-16 !w-16" />
+          ) : (
+            <img
+              src={previewSrc}
+              alt={`${username}'s avatar`}
+              className="h-16 w-16 shrink-0 rounded-full bg-gray-100 object-cover dark:bg-zinc-800"
+            />
+          )}
+          <div className="flex flex-col gap-1.5">
+            <label className="cursor-pointer rounded-full bg-violet-600 px-4 py-1.5 text-center text-xs font-semibold text-white transition hover:bg-violet-700">
+              {previewSrc || preview ? 'Change photo' : 'Upload photo'}
+              <input
+                type="file"
+                accept={ACCEPT_AVATAR}
+                className="hidden"
+                onChange={(e) => {
+                  handlePick(e.target.files ?? undefined)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+            {(preview || (!removeAvatar && previewSrc)) && (
+              <button
+                onClick={handleRemove}
+                className="rounded-full border border-gray-300 px-4 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                Remove
+              </button>
+            )}
+            {removeAvatar && !preview && (
+              <button
+                onClick={handleUndoRemove}
+                className="text-xs font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400"
+              >
+                Undo remove
+              </button>
+            )}
+          </div>
+        </div>
+        {removeAvatar && !preview && (
+          <p className="mb-2 text-xs text-gray-500 dark:text-zinc-400">Avatar will be removed (back to initials).</p>
+        )}
+        {pickError && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{pickError}</p>}
 
         <label className="block text-xs font-medium text-gray-600 dark:text-zinc-300">
           Display name

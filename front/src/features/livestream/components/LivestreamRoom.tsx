@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Avatar from '../../../components/Avatar'
 import { useLivestreamComments } from '../hooks/useLivestreamComments'
 import { useLivestreamVideo } from '../hooks/useLivestreamVideo'
 import type { Livestream } from '../livestreamApi'
@@ -108,9 +109,12 @@ export default function LivestreamRoom({ stream, username }: { stream: Livestrea
         ) : (
           <ul className="space-y-2">
             {comments.map((c) => (
-              <li key={c.id} className="text-sm leading-relaxed">
-                <span className="font-medium text-gray-900 dark:text-white">{c.author.username}</span>{' '}
-                <span className="break-words text-gray-700 dark:text-zinc-200">{c.text}</span>
+              <li key={c.id} className="flex items-start gap-2 text-sm leading-relaxed">
+                <Avatar username={c.author.username} avatarUrl={c.author.avatarUrl} size="xs" className="mt-0.5" />
+                <p className="min-w-0 flex-1">
+                  <span className="mr-2 font-medium text-gray-900 dark:text-white">{c.author.username}</span>
+                  <span className="break-words text-gray-700 dark:text-zinc-200">{c.text}</span>
+                </p>
               </li>
             ))}
           </ul>

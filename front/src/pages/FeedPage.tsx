@@ -114,9 +114,9 @@ export default function FeedPage() {
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-6 dark:bg-[#16171d]">
       <div className="mx-auto max-w-xl">
-        <StoriesBar groups={storyGroups} meId={me?.id} meUsername={me?.username} isLoading={storiesLoading} />
+        <StoriesBar groups={storyGroups} meId={me?.id} meUsername={me?.username} meAvatarUrl={me?.avatarUrl} isLoading={storiesLoading} />
         {/* PostComposer – avatar + input row for writing a new post. */}
-        <PostComposer onCreated={handleCreated} username={me?.username} />
+        <PostComposer onCreated={handleCreated} username={me?.username} avatarUrl={me?.avatarUrl} />
         {error && !(typeof error === 'object' && 'status' in error && error.status === 401) && (
           <p className="mt-6 text-center text-sm text-red-600 dark:text-red-400">Failed to load feed</p>
         )}

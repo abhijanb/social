@@ -1,4 +1,6 @@
 import * as bcrypt from "bcrypt";
+import { unlink } from "node:fs/promises";
+import { join } from "node:path";
 import { AppError } from "../../lib/errorHandler.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import { prisma } from "../../lib/prisma.js";
@@ -119,12 +121,22 @@ export async function getProfile(viewerId: string, username: string) {
 }
 
 // Port of UserService.update — validates input, re-hashes a new password,
-// 404 when the user does not exist.
-export async function updateUser(id: string, input: unknown) {
+// 404 when the user does not exist. Avatar changes arrive via opts (never
+// via client-settable body fields): { avatarUrl: string } sets,
+// { avatarUrl: null } clears. Uploaded file wins over removeAvatar.
+export async function updateUser(
+  id: string,
+  input: unknown,
+  opts?: { avatarUrl?: string | null },
+) {
   const dto = validateOrThrow(updateUserSchema, input);
-  const data: Record<string, unknown> = { ...dto };
+  const { removeAvatar: _removeAvatar, ...rest } = dto;
+  void _removeAvatar;
+  const data: Record<string, unknown> = { ...rest };
   // Empty displayName clears it to null (keeps column nullable).
   if (data.displayName === "") data.displayName = null;
+  if (opts && "avatarUrl" in opts) data.avatarUrl = opts.avatarUrl;
+  else if (dto.removeAvatar) data.avatarUrl = null;
   if (typeof data.password === "string") {
     data.password = await bcrypt.hash(data.password, 10);
   }
@@ -142,7 +154,12 @@ export async function updateUser(id: string, input: unknown) {
 }
 
 // Port of UserService.remove — 404 when the user does not exist.
+// Unlinks a local avatar file so deleted users leave no orphans.
 export async function removeUser(id: string) {
+  const existing = await prisma.user.findUnique({
+    where: { id },
+    select: { avatarUrl: true },
+  });
   try {
     await prisma.user.delete({ where: { id } });
   } catch (error) {
@@ -152,5 +169,9 @@ export async function removeUser(id: string) {
     )
       throw new AppError("User not found", 404);
     throw error;
+  }
+  const oldUrl = existing?.avatarUrl;
+  if (oldUrl && oldUrl.startsWith("/uploads/")) {
+    await unlink(join(process.cwd(), oldUrl.slice(1))).catch(() => {});
   }
 }

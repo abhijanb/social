@@ -1,3 +1,4 @@
+import Avatar from '../../../components/Avatar'
 import type { Conversation } from '../types'
 
 type Props = {
@@ -46,9 +47,7 @@ export default function ChatSidebar({ conversations, activeId, onSelect, filter,
                   className={`flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-gray-50 dark:hover:bg-zinc-800 ${activeId === c.id ? 'bg-violet-50 dark:bg-zinc-800' : ''}`}
                 >
                   <div className="relative">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-[#aa3bff] text-sm font-semibold text-white">
-                      {c.avatar}
-                    </div>
+                    <Avatar username={c.username} avatarUrl={c.avatarUrl} size="md" />
                     {isOnline && (
                       <span
                         className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white dark:border-zinc-900 ${isOnline(c.id) ? 'bg-green-500' : 'bg-gray-300 dark:bg-zinc-600'}`}

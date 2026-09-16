@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Avatar from '../../../components/Avatar'
 import {
   ACCEPT_MEDIA,
   MAX_IMAGE_BYTES,
@@ -17,7 +18,7 @@ function fileTooBig(file: File): boolean {
 // PostComposer – avatar + input row for writing a new post (max 2200 chars),
 // optional media attach (up to MAX_POST_IMAGES images/videos mixed) + previews,
 // and a pill Post button. Needs text, at least one attachment, or both.
-export default function PostComposer({ onCreated, username }: { onCreated?: () => void; username?: string }) {
+export default function PostComposer({ onCreated, username, avatarUrl }: { onCreated?: () => void; username?: string; avatarUrl?: string | null }) {
   const [text, setText] = useState('')
   const [images, setImages] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
@@ -81,8 +82,8 @@ export default function PostComposer({ onCreated, username }: { onCreated?: () =
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900 dark:shadow-black/20">
       <div className="flex gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-[#aa3bff] text-sm font-semibold text-white">
-          {(username ?? '?').charAt(0).toUpperCase()}
+        <div className="shrink-0">
+          <Avatar username={username ?? '?'} avatarUrl={avatarUrl} size="md" className="!h-10 !w-10" />
         </div>
         <textarea
           value={text}

@@ -1,3 +1,4 @@
+import Avatar from '../../../components/Avatar'
 import type { Livestream } from '../livestreamApi'
 
 type Props = {
@@ -41,8 +42,8 @@ export default function LivestreamList({ streams, currentUserId, activeId, onSel
                   : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800'
               }`}
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-[#aa3bff] text-sm font-semibold text-white">
-                {stream.host.username.charAt(0).toUpperCase()}
+              <div className="shrink-0">
+                <Avatar username={stream.host.username} avatarUrl={stream.host.avatarUrl} size="md" className="!h-10 !w-10" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-gray-900 dark:text-white">

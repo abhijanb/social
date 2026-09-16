@@ -5,6 +5,7 @@ export type FriendshipStatus = 'PENDING' | 'ACCEPTED' | 'BLOCKED'
 export interface FriendshipUser {
   id: string
   username: string
+  avatarUrl: string | null
 }
 
 export interface FriendshipPending {

@@ -7,11 +7,12 @@ import {
   listUsersController,
   updateMeController,
 } from "./user.controller.js";
+import { uploadAvatar } from "./user.upload.js";
 
 export const userRouter = Router();
 
 userRouter.get("/", attachUser, listUsersController);
-userRouter.patch("/me", requireAuth, updateMeController);
+userRouter.patch("/me", requireAuth, uploadAvatar, updateMeController);
 // NOTE: by-username before /:id so "by-username" is never parsed as an id
 // (mirrors the post /feed and story /feed ordering).
 userRouter.get("/by-username/:username", requireAuth, getUserByUsernameController);

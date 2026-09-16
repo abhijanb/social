@@ -36,6 +36,7 @@ export function useChatConversations(isAuthenticated: boolean) {
       id: f.friend.id,
       username: f.friend.username,
       avatar: f.friend.username.charAt(0).toUpperCase(),
+      avatarUrl: f.friend.avatarUrl ?? null,
       lastMessage: '',
     }))
   }, [friends])

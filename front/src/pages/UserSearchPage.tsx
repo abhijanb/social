@@ -1,4 +1,5 @@
 import { Link, Navigate } from 'react-router-dom'
+import Avatar from '../components/Avatar'
 import { useUserSearch } from '../features/search/hooks/useUserSearch'
 import SearchBar from '../features/search/components/SearchBar'
 import { useFriendRequests } from '../features/friendship/hooks/useFriendRequests'
@@ -55,12 +56,15 @@ export default function UserSearchPage() {
                       key={u.id}
                       className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800"
                     >
-                      <Link
-                        to={`/u/${encodeURIComponent(u.username)}`}
-                        className="font-medium text-gray-900 hover:underline dark:text-white"
-                      >
-                        {u.username}
-                      </Link>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Avatar username={u.username} avatarUrl={u.avatarUrl} size="sm" />
+                        <Link
+                          to={`/u/${encodeURIComponent(u.username)}`}
+                          className="truncate font-medium text-gray-900 hover:underline dark:text-white"
+                        >
+                          {u.username}
+                        </Link>
+                      </div>
                       <div className="flex items-center gap-2">
                         {sent ? (
                           <>

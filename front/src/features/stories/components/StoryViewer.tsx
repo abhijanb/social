@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Avatar from '../../../components/Avatar'
 import { resolveImageUrl } from '../../posts/resolvePostImage'
 import { useDeleteStoryMutation, useMarkStoryViewedMutation, type StoryFeedGroup } from '../storiesApi'
 
@@ -118,9 +119,7 @@ export default function StoryViewer({
 
         {/* Header */}
         <div className="absolute inset-x-0 top-5 z-10 flex items-center gap-2 bg-gradient-to-b from-black/70 to-transparent px-3 pb-6 pt-1">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-[#aa3bff] text-xs font-bold text-white">
-            {group.author.username.charAt(0).toUpperCase()}
-          </div>
+          <Avatar username={group.author.username} avatarUrl={group.author.avatarUrl} size="sm" />
           <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate text-sm font-semibold text-white">{group.author.username}</p>
             <p className="text-xs text-white/70">

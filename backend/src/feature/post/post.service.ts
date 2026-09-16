@@ -3,8 +3,8 @@ import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import { createPostCommentSchema } from "./post.schema.js";
 
-const authorSelect = { id: true, username: true } as const;
-const commentAuthorSelect = { id: true, username: true } as const;
+const authorSelect = { id: true, username: true, avatarUrl: true } as const;
+const commentAuthorSelect = { id: true, username: true, avatarUrl: true } as const;
 const imagesOrderBy = { order: "asc" } as const;
 const postInclude = {
   author: { select: authorSelect },
@@ -42,7 +42,7 @@ export type PostWithAuthor = {
   authorId: string;
   text: string;
   createdAt: Date;
-  author: { id: string; username: string };
+  author: { id: string; username: string; avatarUrl: string | null };
   images: PostImageDto[];
   likesCount: number;
   likedByMe: boolean;

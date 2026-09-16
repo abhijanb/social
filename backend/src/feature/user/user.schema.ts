@@ -2,12 +2,16 @@ import { z } from "zod";
 
 // Used by PATCH /user/me. Port of back/src/user/dto/update-user.dto.ts —
 // every field optional. Same limits as register/login (username 3-20,
-// password min 6), kept in sync by convention.
+// password min 6), kept in sync by convention. removeAvatar clears
+// avatarUrl back to null (uploaded file wins if both are sent).
+// NOTE: avatarUrl is never client-settable (only via "avatar" file upload
+// or removeAvatar) so arbitrary URLs cannot be injected.
 export const updateUserSchema = z.object({
   username: z.string().min(3).max(20).optional(),
   password: z.string().min(6).optional(),
   bio: z.string().trim().max(150).optional(),
   displayName: z.string().trim().min(1).max(50).optional().or(z.literal("")),
+  removeAvatar: z.boolean().optional(),
   isPublic: z.boolean().optional(),
 });
 

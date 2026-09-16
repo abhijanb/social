@@ -1,9 +1,11 @@
 import type { ComponentType } from 'react'
 import { Link, NavLink } from 'react-router-dom'
+import Avatar from './Avatar'
 import { useAppDispatch, useAppSelector } from '../app/hooks'
 import { logout } from '../features/auth/authSlice'
 import { useFriendRequests } from '../features/friendship/hooks/useFriendRequests'
 import { useGetLiveStreamsQuery } from '../features/livestream/livestreamApi'
+import { useGetMeQuery } from '../features/users/usersApi'
 
 // --- Icons (heroicons outline style, matching the settings gear) ---
 
@@ -131,6 +133,7 @@ export default function Navbar() {
 
   // Badges reuse cached RTK queries (skipped when logged out).
   const { received } = useFriendRequests()
+  const { data: me } = useGetMeQuery(undefined, { skip: !isAuthenticated })
   const { data: liveStreams } = useGetLiveStreamsQuery(undefined, {
     skip: !isAuthenticated,
     pollingInterval: 30000,
@@ -173,9 +176,7 @@ export default function Navbar() {
                   to={`/u/${encodeURIComponent(username)}`}
                   className="hidden items-center gap-2 rounded-full bg-gray-100 py-1 pl-1 pr-3 transition hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 md:flex"
                 >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-[#aa3bff] text-[11px] font-semibold text-white">
-                    {username.charAt(0).toUpperCase()}
-                  </span>
+                  <Avatar username={username} avatarUrl={me?.avatarUrl} size="xs" />
                   <span className="max-w-28 truncate text-xs font-medium text-gray-700 dark:text-zinc-200">
                     {username}
                   </span>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Avatar from '../../../components/Avatar'
 import type { Conversation, Message } from '../types'
 import MessageBubble from './MessageBubble'
 
@@ -44,9 +45,7 @@ export default function ChatWindow({ conversation, messages, onSend, isOnline, l
   return (
     <div className="flex flex-1 flex-col bg-gray-50 dark:bg-[#16171d]">
       <div className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-[#aa3bff] text-xs font-semibold text-white">
-          {conversation.avatar}
-        </div>
+        <Avatar username={conversation.username} avatarUrl={conversation.avatarUrl} size="sm" />
         <div>
           <p className="text-sm font-medium text-gray-900 dark:text-white">{conversation.username}</p>
           {isOnline ? (

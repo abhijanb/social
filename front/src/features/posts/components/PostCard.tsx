@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import Avatar from '../../../components/Avatar'
 import type { Post } from '../postsApi'
 import { resolveImageUrl } from '../resolvePostImage'
 import CommentSection from './CommentSection'
@@ -52,8 +53,8 @@ export default function PostCard({
     <article className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700/80 dark:bg-zinc-900 dark:shadow-black/20 dark:hover:shadow-black/40">
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="rounded-full bg-gradient-to-tr from-[#aa3bff] via-fuchsia-500 to-amber-400 p-0.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-semibold text-gray-900 dark:bg-zinc-900 dark:text-white">
-            {post.author.username.charAt(0).toUpperCase()}
+          <div className="rounded-full bg-white p-0.5 dark:bg-zinc-900">
+            <Avatar username={post.author.username} avatarUrl={post.author.avatarUrl} size="md" />
           </div>
         </div>
         <div className="min-w-0 flex-1 leading-tight">

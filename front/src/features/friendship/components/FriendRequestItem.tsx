@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+import Avatar from '../../../components/Avatar'
 import type { FriendshipPending } from '../friendshipApi'
 
 type Props = {
@@ -15,11 +17,19 @@ export default function FriendRequestItem({ item, type, onAccept, onCancel, onDe
 
   return (
     <li className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
-      <div>
-        <p className="font-medium text-gray-900 dark:text-white">{otherUser.username}</p>
-        <p className="text-xs text-gray-500 dark:text-zinc-400">
-          {new Date(item.createdAt).toLocaleString()}
-        </p>
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar username={otherUser.username} avatarUrl={otherUser.avatarUrl} size="sm" />
+        <div className="min-w-0">
+          <Link
+            to={`/u/${encodeURIComponent(otherUser.username)}`}
+            className="block truncate font-medium text-gray-900 hover:underline dark:text-white"
+          >
+            {otherUser.username}
+          </Link>
+          <p className="text-xs text-gray-500 dark:text-zinc-400">
+            {new Date(item.createdAt).toLocaleString()}
+          </p>
+        </div>
       </div>
       <div className="flex items-center gap-2">
         {type === 'received' ? (
