@@ -6,11 +6,18 @@ import { responseCreated, responseSuccess } from "../../lib/response.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import type { AuthRequest } from "../../middleware/auth.js";
 import { createPost, getByAuthor, getFeed, toggleLike } from "./post.service.js";
+import {
+  createPostComment,
+  deletePostComment,
+  listPostComments,
+} from "./post.service.js";
 import type { PostMediaInput } from "./post.service.js";
 import {
   authorPostsQuerySchema,
   createPostSchema,
   feedQuerySchema,
+  postCommentParamSchema,
+  postCommentsQuerySchema,
   postIdParamSchema,
 } from "./post.schema.js";
 import { MAX_IMAGE_BYTES } from "./post.upload.js";
@@ -69,5 +76,50 @@ export async function getByAuthorController(req: AuthRequest, res: Response) {
   return responseSuccess(
     res,
     await getByAuthor(req.user.id, authorId.trim(), Number(page)),
+  );
+}
+
+// POST /post/:id/comments — comment on a post (friends-only).
+export async function createPostCommentController(
+  req: AuthRequest,
+  res: Response,
+) {
+  if (!req.user) throw new AppError("Not authenticated", 401);
+  const { id } = validateOrThrow(postIdParamSchema, req.params);
+  return responseCreated(
+    res,
+    await createPostComment(req.user.id, id, req.body),
+    "Comment created",
+  );
+}
+
+// GET /post/:id/comments?sinceId=&limit= — latest page or delta.
+export async function listPostCommentsController(
+  req: AuthRequest,
+  res: Response,
+) {
+  if (!req.user) throw new AppError("Not authenticated", 401);
+  const { id } = validateOrThrow(postIdParamSchema, req.params);
+  const { sinceId, limit } = validateOrThrow(
+    postCommentsQuerySchema,
+    req.query,
+  );
+  return responseSuccess(
+    res,
+    await listPostComments(req.user.id, id, sinceId, Number(limit)),
+  );
+}
+
+// DELETE /post/:id/comments/:commentId — comment author or post author.
+export async function deletePostCommentController(
+  req: AuthRequest,
+  res: Response,
+) {
+  if (!req.user) throw new AppError("Not authenticated", 401);
+  const { id, commentId } = validateOrThrow(postCommentParamSchema, req.params);
+  return responseSuccess(
+    res,
+    await deletePostComment(req.user.id, id, commentId),
+    "Comment deleted",
   );
 }

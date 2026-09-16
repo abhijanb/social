@@ -1,12 +1,18 @@
 import { AppError } from "../../lib/errorHandler.js";
 import { prisma } from "../../lib/prisma.js";
+import { validateOrThrow } from "../../lib/validate.js";
+import { createPostCommentSchema } from "./post.schema.js";
 
 const authorSelect = { id: true, username: true } as const;
+const commentAuthorSelect = { id: true, username: true } as const;
 const imagesOrderBy = { order: "asc" } as const;
 const postInclude = {
   author: { select: authorSelect },
   images: { orderBy: imagesOrderBy },
-  _count: { select: { likes: true } },
+  _count: { select: { likes: true, comments: true } },
+} as const;
+const commentInclude = {
+  author: { select: commentAuthorSelect },
 } as const;
 
 /** Max attachments per post — mirrors multer MAX_IMAGES in post.upload.ts. */
@@ -38,6 +44,7 @@ export type PostWithAuthor = {
   images: PostImageDto[];
   likesCount: number;
   likedByMe: boolean;
+  commentsCount: number;
 };
 
 export type FeedPage = {
@@ -45,6 +52,9 @@ export type FeedPage = {
   /** Next page number, or null when there are no more pages. */
   nextPage: number | null;
 };
+
+/** Max comments returned per comments request (delta or initial page). */
+export const POST_COMMENTS_PAGE_SIZE = 100;
 
 async function getFriendIds(userId: string): Promise<string[]> {
   const friendships = await prisma.friendship.findMany({
@@ -144,10 +154,10 @@ export async function getByAuthor(
   return findPage(meId, [authorId], page);
 }
 
-// Maps Prisma rows (with _count.likes) to PostWithAuthor, resolving
-// likedByMe with a single batched query per page.
+// Maps Prisma rows (with _count.likes + _count.comments) to PostWithAuthor,
+// resolving likedByMe with a single batched query per page.
 async function withLikeState<
-  T extends { id: string; _count: { likes: number } },
+  T extends { id: string; _count: { likes: number; comments: number } },
 >(rows: T[], meId: string) {
   const liked =
     rows.length > 0
@@ -160,6 +170,7 @@ async function withLikeState<
   return rows.map(({ _count, ...rest }) => ({
     ...rest,
     likesCount: _count.likes,
+    commentsCount: _count.comments,
     likedByMe: likedIds.has(rest.id),
   }));
 }
@@ -181,4 +192,98 @@ async function findPage(
   const pageRows = hasMore ? rows.slice(0, FEED_PAGE_SIZE) : rows;
   const posts = await withLikeState(pageRows, meId);
   return { posts, nextPage: hasMore ? p + 1 : null };
+}
+
+async function getPostOrThrow(postId: string) {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { id: true, authorId: true },
+  });
+  if (!post) throw new AppError("Post not found", 404);
+  return post;
+}
+
+// Create a comment on a post — friends-only (same guard as viewing;
+// commenting on your own posts is allowed).
+export async function createPostComment(
+  authorId: string,
+  postId: string,
+  input: unknown,
+) {
+  const dto = validateOrThrow(createPostCommentSchema, input);
+  const post = await getPostOrThrow(postId);
+  await ensureCanView(authorId, post.authorId);
+  return prisma.postComment.create({
+    data: { postId, authorId, text: dto.text },
+    include: commentInclude,
+  });
+}
+
+// List comments on a post — friends-only. Without sinceId returns the
+// latest page (oldest first); with sinceId only strictly newer comments.
+export async function listPostComments(
+  viewerId: string,
+  postId: string,
+  sinceId?: string,
+  limit = 50,
+) {
+  const post = await getPostOrThrow(postId);
+  await ensureCanView(viewerId, post.authorId);
+  const n = Math.min(
+    POST_COMMENTS_PAGE_SIZE,
+    Math.max(1, Math.floor(limit) || 50),
+  );
+  if (!sinceId) {
+    const latest = await prisma.postComment.findMany({
+      where: { postId },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: n,
+      include: commentInclude,
+    });
+    return latest.reverse();
+  }
+  const cursor = await prisma.postComment.findUnique({
+    where: { id: sinceId },
+    select: { createdAt: true, postId: true },
+  });
+  if (!cursor || cursor.postId !== postId) {
+    const latest = await prisma.postComment.findMany({
+      where: { postId },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: n,
+      include: commentInclude,
+    });
+    return latest.reverse();
+  }
+  return prisma.postComment.findMany({
+    where: {
+      postId,
+      OR: [
+        { createdAt: { gt: cursor.createdAt } },
+        { createdAt: cursor.createdAt, id: { gt: sinceId } },
+      ],
+    },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    take: n,
+    include: commentInclude,
+  });
+}
+
+// Delete a comment — allowed for the comment author or the post author.
+export async function deletePostComment(
+  userId: string,
+  postId: string,
+  commentId: string,
+) {
+  const comment = await prisma.postComment.findUnique({
+    where: { id: commentId },
+    select: { id: true, postId: true, authorId: true },
+  });
+  if (!comment || comment.postId !== postId)
+    throw new AppError("Comment not found", 404);
+  const post = await getPostOrThrow(postId);
+  if (comment.authorId !== userId && post.authorId !== userId)
+    throw new AppError("Not allowed to delete this comment", 403);
+  await prisma.postComment.delete({ where: { id: commentId } });
+  return { id: commentId };
 }

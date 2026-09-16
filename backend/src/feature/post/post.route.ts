@@ -1,9 +1,12 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
 import {
+  createPostCommentController,
   createPostController,
+  deletePostCommentController,
   getByAuthorController,
   getFeedController,
+  listPostCommentsController,
   toggleLikeController,
 } from "./post.controller.js";
 import { uploadImage } from "./post.upload.js";
@@ -15,4 +18,11 @@ export const postRouter = Router();
 postRouter.post("/", requireAuth, uploadImage, createPostController);
 postRouter.get("/feed", requireAuth, getFeedController);
 postRouter.post("/:id/like", requireAuth, toggleLikeController);
+postRouter.get("/:id/comments", requireAuth, listPostCommentsController);
+postRouter.post("/:id/comments", requireAuth, createPostCommentController);
+postRouter.delete(
+  "/:id/comments/:commentId",
+  requireAuth,
+  deletePostCommentController,
+);
 postRouter.get("/", requireAuth, getByAuthorController);
