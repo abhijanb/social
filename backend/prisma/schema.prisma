@@ -22,6 +22,7 @@ model User {
   receivedMessages Message[]    @relation("ReceivedMessages")
   posts            Post[]       @relation("UserPosts")
   postLikes        PostLike[]
+  postComments     PostComment[]
   hostedStreams    Livestream[] @relation("HostedStreams")
   streamComments   LivestreamComment[]
 }
@@ -50,6 +51,7 @@ model Post {
   author User        @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
   images PostImage[]
   likes  PostLike[]
+  comments PostComment[]
 
   @@index([authorId, createdAt])
   @@index([createdAt])
@@ -79,6 +81,20 @@ model PostImage {
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId, order])
+}
+
+model PostComment {
+  id        String   @id @default(cuid())
+  postId    String
+  authorId  String
+  text      String
+  createdAt DateTime @default(now())
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([postId, id])
 }
 
 enum PostMediaKind {
