@@ -294,3 +294,21 @@ export async function deletePostComment(
   });
   return { id: commentId };
 }
+
+// Delete a post — author only. PostImage/PostLike/PostComment rows cascade
+// in the DB; returns file urls so the controller can unlink them from disk.
+export async function deletePost(userId: string, postId: string) {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: {
+      id: true,
+      authorId: true,
+      images: { select: { url: true } },
+    },
+  });
+  if (!post) throw new AppError("Post not found", 404);
+  if (post.authorId !== userId)
+    throw new AppError("Not allowed to delete this post", 403);
+  await prisma.post.delete({ where: { id: postId } });
+  return { id: postId, urls: post.images.map((i) => i.url) };
+}

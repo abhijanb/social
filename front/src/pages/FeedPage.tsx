@@ -25,6 +25,7 @@ export default function FeedPage() {
     handleCommentAdded,
     handleCommentDeleted,
     handleCreated,
+    handleDeleted,
   } = useFeed()
 
   if (!isAuthenticated) return <Navigate to="/login" replace />
@@ -51,6 +52,7 @@ export default function FeedPage() {
           likePendingIds={likePending}
           onCommentAdded={handleCommentAdded}
           onCommentDeleted={handleCommentDeleted}
+          onPostDeleted={handleDeleted}
         />
       </div>
     </div>

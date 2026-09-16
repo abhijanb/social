@@ -5,7 +5,7 @@ import { AppError } from "../../lib/errorHandler.js";
 import { responseCreated, responseSuccess } from "../../lib/response.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import type { AuthRequest } from "../../middleware/auth.js";
-import { createPost, getByAuthor, getFeed, toggleLike } from "./post.service.js";
+import { createPost, deletePost, getByAuthor, getFeed, toggleLike } from "./post.service.js";
 import {
   createPostComment,
   deletePostComment,
@@ -122,4 +122,17 @@ export async function deletePostCommentController(
     await deletePostComment(req.user.id, id, commentId),
     "Comment deleted",
   );
+}
+
+// DELETE /post/:id — author only, unlinks media files from disk.
+export async function deletePostController(req: AuthRequest, res: Response) {
+  if (!req.user) throw new AppError("Not authenticated", 401);
+  const { id } = validateOrThrow(postIdParamSchema, req.params);
+  const { urls } = await deletePost(req.user.id, id);
+  await Promise.allSettled(
+    urls
+      .filter((url) => url.startsWith("/uploads/"))
+      .map((url) => unlink(join(process.cwd(), url.slice(1)))),
+  );
+  return responseSuccess(res, { id }, "Post deleted");
 }

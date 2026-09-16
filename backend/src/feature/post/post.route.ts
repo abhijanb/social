@@ -4,6 +4,7 @@ import {
   createPostCommentController,
   createPostController,
   deletePostCommentController,
+  deletePostController,
   getByAuthorController,
   getFeedController,
   listPostCommentsController,
@@ -25,4 +26,5 @@ postRouter.delete(
   requireAuth,
   deletePostCommentController,
 );
+postRouter.delete("/:id", requireAuth, deletePostController);
 postRouter.get("/", requireAuth, getByAuthorController);

@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Avatar from '../../../components/Avatar'
+import { useOwnProfile } from '../../users/hooks/useOwnProfile'
 import type { Post } from '../postsApi'
 import { resolveImageUrl } from '../resolvePostImage'
 import CommentSection from './CommentSection'
@@ -27,13 +29,18 @@ export default function PostCard({
   likePending = false,
   onCommentAdded,
   onCommentDeleted,
+  onPostDeleted,
 }: {
   post: Post
   onToggleLike?: (postId: string) => void
   likePending?: boolean
   onCommentAdded?: (postId: string) => void
   onCommentDeleted?: (postId: string) => void
+  onPostDeleted?: (postId: string) => void
 }) {
+  const { me } = useOwnProfile()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const isOwn = me?.id != null && me.id === post.authorId
   const items = [...(post.images ?? [])]
     .sort((a, b) => a.order - b.order)
     .map((img) => ({ src: resolveImageUrl(img.url), kind: img.kind }))
@@ -70,6 +77,43 @@ export default function PostCard({
           <span className="shrink-0 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold text-gray-500 dark:bg-zinc-800 dark:text-zinc-400">
             {albumLabel}
           </span>
+        )}
+        {isOwn && onPostDeleted && (
+          <div className="relative shrink-0">
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Post options"
+              className="rounded-full p-1.5 text-gray-500 transition hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            >
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="5" cy="12" r="1.8" />
+                <circle cx="12" cy="12" r="1.8" />
+                <circle cx="19" cy="12" r="1.8" />
+              </svg>
+            </button>
+            {menuOpen && (
+              <>
+                <button
+                  aria-label="Close menu"
+                  onClick={() => setMenuOpen(false)}
+                  className="fixed inset-0 z-10 cursor-default"
+                />
+                <div className="absolute right-0 z-20 w-36 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false)
+                      if (window.confirm('Delete this post? This cannot be undone.')) {
+                        onPostDeleted(post.id)
+                      }
+                    }}
+                    className="block w-full px-4 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
       {items.length > 0 && (

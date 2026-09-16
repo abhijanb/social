@@ -12,11 +12,12 @@ type Props = {
   likePendingIds?: Set<string>
   onCommentAdded?: (postId: string) => void
   onCommentDeleted?: (postId: string) => void
+  onPostDeleted?: (postId: string) => void
 }
 
 // PostFeed – renders the list of posts with loading/empty states;
 // next pages load automatically via infinite scroll (sentinel observed with IntersectionObserver).
-export default function PostFeed({ posts, isLoading, hasMore, onLoadMore, onToggleLike, likePendingIds, onCommentAdded, onCommentDeleted }: Props) {
+export default function PostFeed({ posts, isLoading, hasMore, onLoadMore, onToggleLike, likePendingIds, onCommentAdded, onCommentDeleted, onPostDeleted }: Props) {
   // Infinite scroll – sentinel triggers the next page load when scrolled into view.
   const sentinelRef = useInfiniteScroll({ hasMore, isLoading, onLoadMore })
 
@@ -56,6 +57,7 @@ export default function PostFeed({ posts, isLoading, hasMore, onLoadMore, onTogg
           likePending={likePendingIds?.has(post.id) ?? false}
           onCommentAdded={onCommentAdded}
           onCommentDeleted={onCommentDeleted}
+          onPostDeleted={onPostDeleted}
         />
       ))}
       {hasMore && <div ref={sentinelRef} aria-hidden="true" className="h-1" />}

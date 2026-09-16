@@ -112,7 +112,12 @@ export const postsApi = baseApi.injectEndpoints({
         }
       },
     }),
+    // Delete post — no tag invalidation: useFeed/useProfilePage drop the
+    // post from their collected chunks directly (same page-guard reason).
+    deletePost: build.mutation<{ id: string }, { postId: string }>({
+      query: ({ postId }) => ({ url: `post/${postId}`, method: 'DELETE' }),
+    }),
   }),
 })
 
-export const { useGetFeedQuery, useGetUserPostsQuery, useCreatePostMutation, useToggleLikeMutation, useGetCommentsQuery, useCreateCommentMutation, useDeleteCommentMutation } = postsApi
+export const { useGetFeedQuery, useGetUserPostsQuery, useCreatePostMutation, useToggleLikeMutation, useGetCommentsQuery, useCreateCommentMutation, useDeleteCommentMutation, useDeletePostMutation } = postsApi

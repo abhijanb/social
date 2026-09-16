@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { useAppDispatch } from '../../../app/hooks'
 import { baseApi } from '../../../app/baseApi'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { useGetFeedQuery, useToggleLikeMutation, type Post } from '../postsApi'
+import { useGetFeedQuery, useDeletePostMutation, useToggleLikeMutation, type Post } from '../postsApi'
 import { useOwnProfile } from '../../users/hooks/useOwnProfile'
 import { useGetStoryFeedQuery } from '../../stories/storiesApi'
 
@@ -20,6 +20,7 @@ export function useFeed() {
   const [chunks, setChunks] = useState<PageChunk[]>([])
   const [likePending, setLikePending] = useState<Set<string>>(new Set())
   const [toggleLike] = useToggleLikeMutation()
+  const [deletePost] = useDeletePostMutation()
   const { data, isLoading, isFetching, error } = useGetFeedQuery(page === FIRST_PAGE ? undefined : { page }, {
     skip: !isAuthenticated,
   })
@@ -105,6 +106,25 @@ export function useFeed() {
     dispatch(baseApi.util.resetApiState())
   }, [dispatch])
 
+  // Post deleted: drop it from collected chunks optimistically, revert on failure.
+  const handleDeleted = useCallback(
+    async (postId: string) => {
+      const prev = chunks
+      setChunks((prevChunks) =>
+        prevChunks.map((chunk) => ({
+          ...chunk,
+          posts: chunk.posts.filter((post) => post.id !== postId),
+        })),
+      )
+      try {
+        await deletePost({ postId }).unwrap()
+      } catch {
+        setChunks(prev)
+      }
+    },
+    [chunks, deletePost],
+  )
+
   return {
     isAuthenticated,
     posts,
@@ -123,5 +143,6 @@ export function useFeed() {
     handleCommentAdded,
     handleCommentDeleted,
     handleCreated,
+    handleDeleted,
   }
 }
