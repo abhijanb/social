@@ -1,8 +1,10 @@
 import { useCallback, useRef, useState } from 'react'
 import { disconnectLivestreamSocket, getLivestreamSocket } from '../socket'
 import { acquireMedia } from '../media'
-import { ICE_SERVERS, emitJoin, waitForConnect } from '../signaling'
+import { emitJoin, waitForConnect } from '../signaling'
 import type { JoinPeers, SignalPayload } from '../signaling'
+import { usePeerMesh } from './webrtc/usePeerMesh'
+import { useLocalMedia } from './webrtc/useLocalMedia'
 
 export type PeerTile = {
   socketId: string
@@ -15,179 +17,39 @@ export type PeerTile = {
 
 export type JoinMode = 'camera' | 'watch'
 
-type PeerConn = {
-  pc: RTCPeerConnection
-  makingOffer: boolean
-  pendingIce: RTCIceCandidateInit[]
-}
-
-// useLivestreamVideo – full-mesh WebRTC video for one livestream.
-// Every peer connects to every other peer (fine for friend-size rooms).
-// Camera/mic are optional: denial falls back to audio-only or watch-only,
-// and tracks toggle via .enabled (no renegotiation) except when a brand
-// new track is acquired mid-call (retryCamera/unmute), which re-offers.
+// useLivestreamVideo – full-mesh WebRTC session for one livestream.
+// Thin orchestrator: peer mesh + local media live in webrtc/ hooks,
+// shared cleanup in webrtc/peerCleanup. Return shape unchanged for callers.
 export function useLivestreamVideo() {
   const [joined, setJoined] = useState(false)
   const [joining, setJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
-  const [peers, setPeers] = useState<PeerTile[]>([])
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null)
-  const [cameraOn, setCameraOn] = useState(false)
-  const [micOn, setMicOn] = useState(false)
-  const [cameraBlocked, setCameraBlocked] = useState(false)
   const [videoEnded, setVideoEnded] = useState(false)
 
-  const pcs = useRef(new Map<string, PeerConn>())
+  // Single local-stream ref shared by the mesh (attaches current tracks to
+  // new peers) and the media hook (toggles/acquires tracks).
   const localRef = useRef<MediaStream | null>(null)
-  const selfId = useRef('')
-  const streamIdRef = useRef('')
 
   const emitMedia = useCallback((audio: boolean, video: boolean) => {
     getLivestreamSocket().emit('livestream:media-update', { audio, video })
   }, [])
 
-  const addPeer = useCallback((peer: JoinPeers) => {
-    setPeers((prev) => {
-      if (prev.some((p) => p.socketId === peer.socketId)) return prev
-      return [...prev, { ...peer, stream: null }]
-    })
-  }, [])
+  const mesh = usePeerMesh(localRef)
+  const media = useLocalMedia({
+    localRef,
+    pcs: mesh.pcs,
+    emitMedia,
+    renegotiateAll: mesh.renegotiateAll,
+  })
 
-  const removePeer = useCallback((socketId: string) => {
-    const entry = pcs.current.get(socketId)
-    entry?.pc.close()
-    pcs.current.delete(socketId)
-    setPeers((prev) => prev.filter((p) => p.socketId !== socketId))
-  }, [])
-
-  const setPeerStream = useCallback((socketId: string, stream: MediaStream) => {
-    setPeers((prev) => prev.map((p) => (p.socketId === socketId ? { ...p, stream } : p)))
-  }, [])
-
-  const setPeerMedia = useCallback((socketId: string, audio: boolean, video: boolean) => {
-    setPeers((prev) => prev.map((p) => (p.socketId === socketId ? { ...p, audio, video } : p)))
-  }, [])
-
-  const sendSignal = useCallback((to: string, kind: 'offer' | 'answer' | 'ice', payload: unknown) => {
-    getLivestreamSocket().emit('livestream:signal', { to, kind, payload })
-  }, [])
-
-  const flushIce = useCallback(async (socketId: string) => {
-    const entry = pcs.current.get(socketId)
-    if (!entry) return
-    const queued = entry.pendingIce.splice(0)
-    for (const candidate of queued) {
-      try {
-        await entry.pc.addIceCandidate(candidate)
-      } catch {
-        // stale candidate — safe to drop
-      }
-    }
-  }, [])
-
-  const createPeer = useCallback(
-    (socketId: string) => {
-      const existing = pcs.current.get(socketId)
-      if (existing) return existing
-      const pc = new RTCPeerConnection(ICE_SERVERS)
-      const entry: PeerConn = { pc, makingOffer: false, pendingIce: [] }
-      pcs.current.set(socketId, entry)
-      const local = localRef.current
-      if (local) {
-        for (const track of local.getTracks()) pc.addTrack(track, local)
-      }
-      pc.onicecandidate = (e) => {
-        if (e.candidate) sendSignal(socketId, 'ice', e.candidate.toJSON())
-      }
-      pc.ontrack = (e) => {
-        const remote = e.streams[0] ?? new MediaStream([e.track])
-        setPeerStream(socketId, remote)
-      }
-      return entry
-    },
-    [sendSignal, setPeerStream],
-  )
-
-  const makeOffer = useCallback(
-    async (socketId: string) => {
-      const entry = pcs.current.get(socketId)
-      if (!entry) return
-      entry.makingOffer = true
-      try {
-        const offer = await entry.pc.createOffer()
-        await entry.pc.setLocalDescription(offer)
-        sendSignal(socketId, 'offer', offer)
-      } finally {
-        entry.makingOffer = false
-      }
-    },
-    [sendSignal],
-  )
-
-  const renegotiateAll = useCallback(async () => {
-    for (const socketId of pcs.current.keys()) {
-      try {
-        await makeOffer(socketId)
-      } catch {
-        // one failed renegotiation must not break the others
-      }
-    }
-  }, [makeOffer])
-
-  const handleSignal = useCallback(
-    async (msg: SignalPayload) => {
-      const { from, kind, payload } = msg
-      if (kind === 'ice') {
-        const entry = pcs.current.get(from)
-        if (!entry) return
-        if (entry.pc.remoteDescription) {
-          try {
-            await entry.pc.addIceCandidate(payload)
-          } catch {
-            // stale candidate — safe to drop
-          }
-        } else {
-          entry.pendingIce.push(payload)
-        }
-        return
-      }
-      const entry = createPeer(from)
-      const pc = entry.pc
-      if (kind === 'offer') {
-        // Perfect-negotiation-lite: the lexicographically greater socket id
-        // is polite (rolls back and answers); the other side's offer wins.
-        const polite = selfId.current > from
-        if (pc.signalingState !== 'stable') {
-          if (!polite) return
-          await pc.setLocalDescription({ type: 'rollback' })
-        }
-        await pc.setRemoteDescription(payload)
-        await flushIce(from)
-        const answer = await pc.createAnswer()
-        await pc.setLocalDescription(answer)
-        sendSignal(from, 'answer', answer)
-        return
-      }
-      await pc.setRemoteDescription(payload)
-      await flushIce(from)
-    },
-    [createPeer, flushIce, sendSignal],
-  )
+  const { clearPeers } = mesh
+  const { stopLocal } = media
+  const { addPeer, createPeer, makeOffer, handleSignal, removePeer, setPeerMedia, setSelfId } = mesh
+  const { setLocalStream, setCameraOn, setMicOn, setCameraBlocked } = media
 
   const leave = useCallback(() => {
-    for (const [, entry] of pcs.current) {
-      try {
-        entry.pc.close()
-      } catch {
-        // already closed
-      }
-    }
-    pcs.current.clear()
-    const local = localRef.current
-    localRef.current = null
-    if (local) {
-      for (const track of local.getTracks()) track.stop()
-    }
+    clearPeers()
+    stopLocal()
     const socket = getLivestreamSocket()
     socket.off('livestream:peer-joined')
     socket.off('livestream:signal')
@@ -195,14 +57,10 @@ export function useLivestreamVideo() {
     socket.off('livestream:peer-left')
     socket.off('livestream:ended')
     disconnectLivestreamSocket()
-    setPeers([])
-    setLocalStream(null)
-    setCameraOn(false)
-    setMicOn(false)
     setJoined(false)
     setJoining(false)
     setVideoEnded(false)
-  }, [])
+  }, [clearPeers, stopLocal])
 
   const join = useCallback(
     async (streamId: string, mode: JoinMode) => {
@@ -210,27 +68,26 @@ export function useLivestreamVideo() {
       setJoinError(null)
       setVideoEnded(false)
       try {
-        let media: MediaStream | null = null
+        let stream: MediaStream | null = null
         let cam = false
         let mic = false
         let blocked = false
         if (mode === 'camera') {
           const got = await acquireMedia()
-          media = got.stream
+          stream = got.stream
           cam = got.cam
           mic = got.mic
           blocked = got.blocked
         }
-        localRef.current = media
-        streamIdRef.current = streamId
-        setLocalStream(media)
+        localRef.current = stream
+        setLocalStream(stream)
         setCameraOn(cam)
         setMicOn(mic)
         setCameraBlocked(blocked)
 
         const socket = getLivestreamSocket()
         await waitForConnect(socket, 10000)
-        selfId.current = socket.id ?? ''
+        setSelfId(socket.id ?? '')
 
         socket.on('livestream:peer-joined', (peer: JoinPeers) => {
           addPeer(peer)
@@ -250,15 +107,7 @@ export function useLivestreamVideo() {
           removePeer(msg.socketId)
         })
         socket.on('livestream:ended', () => {
-          for (const [, entry] of pcs.current) {
-            try {
-              entry.pc.close()
-            } catch {
-              // already closed
-            }
-          }
-          pcs.current.clear()
-          setPeers([])
+          clearPeers()
           setVideoEnded(true)
         })
 
@@ -277,98 +126,36 @@ export function useLivestreamVideo() {
         setJoining(false)
       }
     },
-    [addPeer, createPeer, handleSignal, leave, makeOffer, removePeer, setPeerMedia],
+    [
+      leave,
+      addPeer,
+      createPeer,
+      makeOffer,
+      handleSignal,
+      removePeer,
+      setPeerMedia,
+      clearPeers,
+      setSelfId,
+      setLocalStream,
+      setCameraOn,
+      setMicOn,
+      setCameraBlocked,
+    ],
   )
-
-  const toggleCamera = useCallback(async () => {
-    const track = localRef.current?.getVideoTracks()[0]
-    if (track) {
-      track.enabled = !track.enabled
-      setCameraOn(track.enabled)
-      const mic = localRef.current?.getAudioTracks()[0]
-      emitMedia(mic ? mic.enabled : false, track.enabled)
-      return
-    }
-    // No camera track yet (joined without one) — try acquiring now.
-    if (!navigator.mediaDevices?.getUserMedia) return
-    try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: true })
-      const [videoTrack] = s.getVideoTracks()
-      if (!videoTrack) return
-      let local = localRef.current
-      if (!local) {
-        local = new MediaStream()
-        localRef.current = local
-      }
-      local.addTrack(videoTrack)
-      setLocalStream(new MediaStream(local.getTracks()))
-      setCameraOn(true)
-      setCameraBlocked(false)
-      for (const [, entry] of pcs.current) {
-        try {
-          entry.pc.addTrack(videoTrack, local)
-        } catch {
-          // track already added
-        }
-      }
-      const mic = local.getAudioTracks()[0]
-      emitMedia(mic ? mic.enabled : false, true)
-      await renegotiateAll()
-    } catch {
-      setCameraBlocked(true)
-    }
-  }, [emitMedia, renegotiateAll])
-
-  const toggleMic = useCallback(async () => {
-    const track = localRef.current?.getAudioTracks()[0]
-    if (track) {
-      track.enabled = !track.enabled
-      setMicOn(track.enabled)
-      const cam = localRef.current?.getVideoTracks()[0]
-      emitMedia(track.enabled, cam ? cam.enabled : false)
-      return
-    }
-    if (!navigator.mediaDevices?.getUserMedia) return
-    try {
-      const s = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const [audioTrack] = s.getAudioTracks()
-      if (!audioTrack) return
-      let local = localRef.current
-      if (!local) {
-        local = new MediaStream()
-        localRef.current = local
-      }
-      local.addTrack(audioTrack)
-      setLocalStream(new MediaStream(local.getTracks()))
-      setMicOn(true)
-      for (const [, entry] of pcs.current) {
-        try {
-          entry.pc.addTrack(audioTrack, local)
-        } catch {
-          // track already added
-        }
-      }
-      const cam = local.getVideoTracks()[0]
-      emitMedia(true, cam ? cam.enabled : false)
-      await renegotiateAll()
-    } catch {
-      // mic denied — stay muted
-    }
-  }, [emitMedia, renegotiateAll])
 
   return {
     joined,
     joining,
     joinError,
-    peers,
-    localStream,
-    cameraOn,
-    micOn,
-    cameraBlocked,
+    peers: mesh.peers,
+    localStream: media.localStream,
+    cameraOn: media.cameraOn,
+    micOn: media.micOn,
+    cameraBlocked: media.cameraBlocked,
     videoEnded,
     join,
     leave,
-    toggleCamera,
-    toggleMic,
+    toggleCamera: media.toggleCamera,
+    toggleMic: media.toggleMic,
   }
 }
