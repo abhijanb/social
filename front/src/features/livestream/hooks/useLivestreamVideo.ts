@@ -1,5 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
 import { disconnectLivestreamSocket, getLivestreamSocket } from '../socket'
+import { acquireMedia } from '../media'
+import { ICE_SERVERS, emitJoin, waitForConnect } from '../signaling'
+import type { JoinPeers, SignalPayload } from '../signaling'
 
 export type PeerTile = {
   socketId: string
@@ -12,82 +15,10 @@ export type PeerTile = {
 
 export type JoinMode = 'camera' | 'watch'
 
-type JoinPeers = { socketId: string; userId: string; username: string; audio: boolean; video: boolean }
-type JoinResult = { ok: true; peers: JoinPeers[] } | { ok: false; error: string }
-type SignalPayload =
-  | { from: string; kind: 'offer' | 'answer'; payload: RTCSessionDescriptionInit }
-  | { from: string; kind: 'ice'; payload: RTCIceCandidateInit }
-
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-}
-
 type PeerConn = {
   pc: RTCPeerConnection
   makingOffer: boolean
   pendingIce: RTCIceCandidateInit[]
-}
-
-// Camera fallback chain: full media → audio-only → receive-only.
-// Denied/absent camera still joins (video off), never blocks entry.
-async function acquireMedia(): Promise<{ stream: MediaStream | null; cam: boolean; mic: boolean; blocked: boolean }> {
-  if (!navigator.mediaDevices?.getUserMedia) {
-    return { stream: null, cam: false, mic: false, blocked: true }
-  }
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: { echoCancellation: true },
-    })
-    return { stream, cam: true, mic: stream.getAudioTracks().length > 0, blocked: false }
-  } catch {
-    // Camera denied or missing — fall back to mic-only.
-  }
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    return { stream, cam: false, mic: true, blocked: true }
-  } catch {
-    return { stream: null, cam: false, mic: false, blocked: true }
-  }
-}
-
-function waitForConnect(socket: ReturnType<typeof getLivestreamSocket>, ms: number): Promise<void> {
-  if (socket.connected) return Promise.resolve()
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      socket.off('connect', onConnect)
-      reject(new Error('Could not reach the live server'))
-    }, ms)
-    const onConnect = () => {
-      clearTimeout(timer)
-      resolve()
-    }
-    socket.once('connect', onConnect)
-  })
-}
-
-function emitJoin(
-  socket: ReturnType<typeof getLivestreamSocket>,
-  streamId: string,
-  audio: boolean,
-  video: boolean,
-): Promise<JoinResult> {
-  return new Promise((resolve) => {
-    let done = false
-    const timer = setTimeout(() => {
-      if (!done) {
-        done = true
-        resolve({ ok: false, error: 'Join timed out' })
-      }
-    }, 10000)
-    socket.emit('livestream:join', { streamId, audio, video }, (res: JoinResult) => {
-      if (!done) {
-        done = true
-        clearTimeout(timer)
-        resolve(res)
-      }
-    })
-  })
 }
 
 // useLivestreamVideo – full-mesh WebRTC video for one livestream.

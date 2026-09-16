@@ -1,23 +1,37 @@
-import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useUserSearch } from '../features/search/hooks/useUserSearch'
-import { useTagSearch } from '../features/search/hooks/useTagSearch'
 import SearchBar from '../features/search/components/SearchBar'
-import SearchTabs, { type SearchTab } from '../features/search/components/SearchTabs'
+import SearchTabs from '../features/search/components/SearchTabs'
 import TagResults from '../features/search/components/TagResults'
 import UserResults from '../features/search/components/UserResults'
-import { useFriendRequests } from '../features/friendship/hooks/useFriendRequests'
-import { useSendRequestMutation } from '../features/friendship/friendshipApi'
+import { useUserSearchPage } from '../features/search/hooks/useUserSearchPage'
 
-// UserSearchPage – thin shell for /search: auth guards + SearchBar +
-// People/Tags tabs + dumb result lists. Data lives in hooks, JSX in
-// features/search/components (same pattern as FeedPage/ProfilePage).
+// UserSearchPage – thin shell for /search: guards + SearchBar + tabs + lists.
+// All data + wiring lives in useUserSearchPage (same pattern as useFeed).
 export default function UserSearchPage() {
-  const { isAuthenticated, query, setQuery, debouncedTrimmed, users, isLoading, error, isSessionExpired } = useUserSearch()
-  const [tab, setTab] = useState<SearchTab>('people')
-  const { tags, tagsLoading } = useTagSearch(debouncedTrimmed, tab === 'tags')
-  const { currentUserId, pending, accept, cancel, decline, isRemoving, isAccepting } = useFriendRequests()
-  const [sendRequest, { isLoading: isSending }] = useSendRequestMutation()
+  const {
+    isAuthenticated,
+    query,
+    setQuery,
+    debouncedTrimmed,
+    users,
+    isLoading,
+    error,
+    isSessionExpired,
+    tab,
+    setTab,
+    tags,
+    tagsLoading,
+    currentUserId,
+    pending,
+    isRemoving,
+    isAccepting,
+    isSending,
+    accept,
+    cancel,
+    decline,
+    handleSend,
+  } = useUserSearchPage()
+
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (isSessionExpired) return <Navigate to="/login" replace />
 
@@ -43,7 +57,7 @@ export default function UserSearchPage() {
             onAccept={accept}
             onCancel={cancel}
             onDecline={decline}
-            onSend={(addresseeId) => currentUserId && sendRequest({ requesterId: currentUserId, addresseeId })}
+            onSend={handleSend}
           />
         )}
       </div>

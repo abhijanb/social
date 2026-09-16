@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import Avatar from '../../../components/Avatar'
 import { useLivestreamComments } from '../hooks/useLivestreamComments'
 import { useLivestreamVideo } from '../hooks/useLivestreamVideo'
 import type { Livestream } from '../livestreamApi'
+import LivestreamComments from './LivestreamComments'
+import LivestreamComposer, { MAX_LIVESTREAM_COMMENT } from './LivestreamComposer'
 import LivestreamVideoGrid from './LivestreamVideoGrid'
 
-const MAX_COMMENT = 500
+const MAX_COMMENT = MAX_LIVESTREAM_COMMENT
 
 // LivestreamRoom – watches one stream: WebRTC video grid on top, live
 // comment list (1.5s polling) with auto-scroll plus a composer below.
@@ -99,53 +100,20 @@ export default function LivestreamRoom({ stream, username }: { stream: Livestrea
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">
-        {isLoading && comments.length === 0 ? (
-          <p className="py-6 text-center text-sm text-gray-500 dark:text-zinc-400">Loading comments...</p>
-        ) : comments.length === 0 ? (
-          <p className="py-6 text-center text-sm text-gray-500 dark:text-zinc-400">
-            No comments yet — say hi!
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {comments.map((c) => (
-              <li key={c.id} className="flex items-start gap-2 text-sm leading-relaxed">
-                <Avatar username={c.author.username} avatarUrl={c.author.avatarUrl} size="xs" className="mt-0.5" />
-                <p className="min-w-0 flex-1">
-                  <span className="mr-2 font-medium text-gray-900 dark:text-white">{c.author.username}</span>
-                  <span className="break-words text-gray-700 dark:text-zinc-200">{c.text}</span>
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div ref={bottomRef} aria-hidden="true" />
-      </div>
+      <LivestreamComments comments={comments} isLoading={isLoading} bottomRef={bottomRef} />
 
       {streamEnded ? (
         <p className="border-t border-gray-200 p-3 text-center text-sm font-medium text-gray-500 dark:border-zinc-700 dark:text-zinc-400">
           Stream ended
         </p>
       ) : (
-        <div className="flex gap-2 border-t border-gray-200 p-3 dark:border-zinc-700">
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submit()
-            }}
-            placeholder="Add a comment..."
-            maxLength={MAX_COMMENT + 50}
-            className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-500"
-          />
-          <button
-            onClick={submit}
-            disabled={!canSend}
-            className="shrink-0 rounded-lg bg-[#aa3bff] px-4 py-1.5 text-sm font-medium text-white transition hover:bg-[#9835e6] disabled:cursor-not-allowed disabled:opacity-40 dark:bg-violet-600 dark:hover:bg-violet-700"
-          >
-            {isSending ? '...' : 'Send'}
-          </button>
-        </div>
+        <LivestreamComposer
+          draft={draft}
+          onChange={setDraft}
+          onSubmit={submit}
+          isSending={isSending}
+          disabled={!canSend}
+        />
       )}
     </div>
   )
