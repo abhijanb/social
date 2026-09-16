@@ -94,9 +94,22 @@ export const postsApi = baseApi.injectEndpoints({
       query: ({ postId, text }) => ({ url: `post/${postId}/comments`, method: 'POST', body: { text } }),
       invalidatesTags: (_result, _error, arg) => [{ type: 'Post', id: `comments-${arg.postId}` }],
     }),
+    // Delete filters the cached list optimistically — no refetch GET.
+    // Count sync stays via onCommentDeleted → FeedPage.patchPost.
     deleteComment: build.mutation<{ id: string }, { postId: string; commentId: string }>({
       query: ({ postId, commentId }) => ({ url: `post/${postId}/comments/${commentId}`, method: 'DELETE' }),
-      invalidatesTags: (_result, _error, arg) => [{ type: 'Post', id: `comments-${arg.postId}` }],
+      async onQueryStarted({ postId, commentId }, { dispatch, queryFulfilled }) {
+        const patch = dispatch(
+          postsApi.util.updateQueryData('getComments', { postId }, (draft) =>
+            draft.filter((c) => c.id !== commentId),
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patch.undo()
+        }
+      },
     }),
   }),
 })

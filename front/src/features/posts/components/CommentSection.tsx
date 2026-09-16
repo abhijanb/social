@@ -62,11 +62,15 @@ export default function CommentSection({ postId, postAuthorId, commentsCount, on
   const handleDelete = async (commentId: string) => {
     if (deletingIds.has(commentId)) return
     setDeletingIds((prev) => new Set(prev).add(commentId))
+    // Optimistic count: list row already drops instantly via the api
+    // optimistic patch; mirror it here so the toggle label updates too.
+    // Reverted below if the DELETE fails (api patch.undo() restores row).
+    onCommentDeleted?.(postId)
     try {
       await deleteComment({ postId, commentId }).unwrap()
-      onCommentDeleted?.(postId)
     } catch {
-      // 403/404 stays silent — list refetch on next open shows truth.
+      // 403/404 stays silent — revert the optimistic -1.
+      onCommentAdded?.(postId)
     } finally {
       setDeletingIds((prev) => {
         const next = new Set(prev)
