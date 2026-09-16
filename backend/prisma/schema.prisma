@@ -84,17 +84,19 @@ model PostImage {
 }
 
 model PostComment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   postId    String
   authorId  String
   text      String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
 
   post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([postId, createdAt])
   @@index([postId, id])
+  @@index([postId, deletedAt, createdAt])
 }
 
 enum PostMediaKind {
