@@ -3,12 +3,9 @@ import { useGetMeQuery } from '../../users/usersApi'
 import { useGetFriendsQuery } from '../../friendship/friendshipApi'
 import { usePresence } from '../../presence/usePresence'
 import { useAppDispatch } from '../../../app/hooks'
+import { isUnauthorizedError } from '../../../app/apiError'
 import { logout } from '../../auth/authSlice'
 import type { Conversation } from '../types'
-
-function isUnauthorizedError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
-}
 
 export function useChatConversations(isAuthenticated: boolean) {
   const dispatch = useAppDispatch()

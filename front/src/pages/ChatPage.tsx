@@ -5,10 +5,7 @@ import ChatConversationSelect from '../features/chat/components/ChatConversation
 import ChatSidebarPanel from '../features/chat/components/ChatSidebarPanel'
 import { useChatConversations } from '../features/chat/hooks/useChatConversations'
 import { useActiveChat } from '../features/chat/hooks/useActiveChat'
-
-function isUnauthorizedError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
-}
+import { isUnauthorizedError } from '../app/apiError'
 
 // ChatPage – thin shell for /chat: guards + sidebar/select + message panel.
 // Data lives in useChatConversations/useActiveChat, states in components.

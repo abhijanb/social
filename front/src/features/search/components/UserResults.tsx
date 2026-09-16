@@ -1,11 +1,8 @@
 import { Link } from 'react-router-dom'
 import Avatar from '../../../components/Avatar'
+import { isUnauthorizedError } from '../../../app/apiError'
 import type { FriendshipPending } from '../../friendship/friendshipApi'
 import type { User } from '../../users/usersApi'
-
-function isUnauthorizedError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
-}
 
 // UserResults – dumb list for the People tab: loading / error / empty / rows
 // with friendship actions. All data + callbacks come from the page.

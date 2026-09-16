@@ -1,12 +1,9 @@
 import { useEffect } from 'react'
 import { useAppDispatch } from '../../../app/hooks'
+import { isUnauthorizedError } from '../../../app/apiError'
 import { logout } from '../../auth/authSlice'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useGetMeQuery, useUpdateUserMutation } from '../usersApi'
-
-function isUnauthorizedError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
-}
 
 // useSettings – all data + toggle logic for /settings, no JSX:
 // auth, own profile, visibility toggle with save state.

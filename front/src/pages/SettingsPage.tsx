@@ -2,10 +2,7 @@ import { Navigate } from 'react-router-dom'
 import { SettingsError, SettingsLoading } from '../features/users/components/SettingsStates'
 import VisibilityToggle from '../features/users/components/VisibilityToggle'
 import { useSettings } from '../features/users/hooks/useSettings'
-
-function isUnauthorizedError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
-}
+import { isUnauthorizedError } from '../app/apiError'
 
 // SettingsPage – thin shell for /settings: guards + states + toggle card.
 // Data + toggle live in useSettings, JSX in users/components.

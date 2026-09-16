@@ -5,10 +5,7 @@ import LivestreamRoom from '../features/livestream/components/LivestreamRoom'
 import LivestreamSelect from '../features/livestream/components/LivestreamSelect'
 import StartLivestream from '../features/livestream/components/StartLivestream'
 import { useLivestreamPage } from '../features/livestream/hooks/useLivestreamPage'
-
-function isUnauthorizedError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
-}
+import { isUnauthorizedError } from '../app/apiError'
 
 // LivestreamPage – thin shell for /live: guards + go-live bar + list/room.
 // Data + selection live in useLivestreamPage, small JSX in components.

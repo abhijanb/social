@@ -4,11 +4,8 @@ import { getChatSocket, disconnectChatSocket } from './socket'
 import { useAuth } from '../auth/hooks/useAuth'
 import { useGetMeQuery } from '../users/usersApi'
 import { useAppDispatch } from '../../app/hooks'
+import { isUnauthorizedError } from '../../app/apiError'
 import { logout } from '../auth/authSlice'
-
-function isUnauthorizedError(error: unknown): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 401
-}
 
 export function useChat(friendId: string | null) {
   const { isAuthenticated } = useAuth()
