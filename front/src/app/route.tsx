@@ -9,10 +9,12 @@ import FeedPage from '../pages/FeedPage'
 import LivestreamPage from '../pages/LivestreamPage'
 import ProfilePage from '../pages/ProfilePage'
 import SettingsPage from '../pages/SettingsPage'
+import TagPage from '../pages/TagPage'
 
 export const routes: RouteObject[] = [
   { path: '/', element: <FeedPage /> },
   { path: 'u/:username', element: <ProfilePage /> },
+  { path: 'tag/:tag', element: <TagPage /> },
   { path: 'search', element: <UserSearchPage /> },
   { path: 'live', element: <LivestreamPage /> },
   { path: 'login', element: <Login /> },

@@ -57,3 +57,20 @@ export const createPostCommentSchema = z.object({
 });
 
 export type CreatePostCommentDto = z.infer<typeof createPostCommentSchema>;
+
+// Used by GET /post/by-hashtag?tag=&page=. Tag is normalized
+// (leading '#' stripped, lowercase) in the service.
+export const byHashtagQuerySchema = z.object({
+  tag: z.string().trim().min(1, "tag required").max(100),
+  page: z.string().optional().default("1"),
+});
+
+export type ByHashtagQueryDto = z.infer<typeof byHashtagQuerySchema>;
+
+// Used by GET /post/hashtags/search?q=&limit=. Prefix autocomplete.
+export const hashtagSearchQuerySchema = z.object({
+  q: z.string().trim().min(1, "q required").max(50),
+  limit: z.string().optional().default("10"),
+});
+
+export type HashtagSearchQueryDto = z.infer<typeof hashtagSearchQuerySchema>;

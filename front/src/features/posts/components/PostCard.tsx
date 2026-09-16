@@ -5,6 +5,7 @@ import { useOwnProfile } from '../../users/hooks/useOwnProfile'
 import type { Post } from '../postsApi'
 import { resolveImageUrl } from '../resolvePostImage'
 import CommentSection from './CommentSection'
+import HashtagText from './HashtagText'
 import LikeButton from './LikeButton'
 import PostCarousel from './PostCarousel'
 
@@ -132,7 +133,7 @@ export default function PostCard({
           <Link to={`/u/${encodeURIComponent(post.author.username)}`} className="mr-2 font-semibold hover:underline">
             {post.author.username}
           </Link>
-          {post.text}
+          <HashtagText text={post.text} />
         </p>
       )}
       {!post.text && post.likesCount === 0 && <div className="pb-3" />}

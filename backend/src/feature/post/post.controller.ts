@@ -5,7 +5,7 @@ import { AppError } from "../../lib/errorHandler.js";
 import { responseCreated, responseSuccess } from "../../lib/response.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import type { AuthRequest } from "../../middleware/auth.js";
-import { createPost, deletePost, getByAuthor, getFeed, toggleLike } from "./post.service.js";
+import { createPost, deletePost, getByAuthor, getByHashtag, getFeed, searchHashtags, toggleLike } from "./post.service.js";
 import {
   createPostComment,
   deletePostComment,
@@ -14,8 +14,10 @@ import {
 import type { PostMediaInput } from "./post.service.js";
 import {
   authorPostsQuerySchema,
+  byHashtagQuerySchema,
   createPostSchema,
   feedQuerySchema,
+  hashtagSearchQuerySchema,
   postCommentParamSchema,
   postCommentsQuerySchema,
   postIdParamSchema,
@@ -135,4 +137,18 @@ export async function deletePostController(req: AuthRequest, res: Response) {
       .map((url) => unlink(join(process.cwd(), url.slice(1)))),
   );
   return responseSuccess(res, { id }, "Post deleted");
+}
+
+// GET /post/by-hashtag?tag=&page= — friends-only tag feed.
+export async function getByHashtagController(req: AuthRequest, res: Response) {
+  if (!req.user) throw new AppError("Not authenticated", 401);
+  const { tag, page } = validateOrThrow(byHashtagQuerySchema, req.query);
+  return responseSuccess(res, await getByHashtag(req.user.id, tag, Number(page)));
+}
+
+// GET /post/hashtags/search?q=&limit= — tag autocomplete.
+export async function searchHashtagsController(req: AuthRequest, res: Response) {
+  if (!req.user) throw new AppError("Not authenticated", 401);
+  const { q, limit } = validateOrThrow(hashtagSearchQuerySchema, req.query);
+  return responseSuccess(res, await searchHashtags(q, Number(limit)));
 }

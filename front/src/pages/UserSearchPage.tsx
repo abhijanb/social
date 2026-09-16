@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import Avatar from '../components/Avatar'
 import { useUserSearch } from '../features/search/hooks/useUserSearch'
 import SearchBar from '../features/search/components/SearchBar'
+import { useSearchTagsQuery } from '../features/posts/hashtagsApi'
 import { useFriendRequests } from '../features/friendship/hooks/useFriendRequests'
 import { useSendRequestMutation } from '../features/friendship/friendshipApi'
 
@@ -11,6 +13,9 @@ function isUnauthorizedError(error: unknown): boolean {
 
 export default function UserSearchPage() {
   const { isAuthenticated, query, setQuery, debouncedTrimmed, users, isLoading, error, isSessionExpired } = useUserSearch()
+  const [tab, setTab] = useState<'people' | 'tags'>('people')
+  const tagQ = debouncedTrimmed.replace(/^#+/, '').toLowerCase()
+  const { data: tags, isLoading: tagsLoading } = useSearchTagsQuery({ q: tagQ }, { skip: tab !== 'tags' || !tagQ })
   const { currentUserId, pending, accept, cancel, decline, isRemoving, isAccepting } = useFriendRequests()
   const [sendRequest, { isLoading: isSending }] = useSendRequestMutation()
   if (!isAuthenticated) return <Navigate to="/login" replace />
@@ -20,7 +25,51 @@ export default function UserSearchPage() {
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-8 dark:bg-[#16171d]">
       <div className="mx-auto max-w-3xl">
         <SearchBar value={query} onChange={setQuery} />
+        <div className="mt-4 flex gap-2">
+          {(['people', 'tags'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold capitalize transition ${
+                tab === t
+                  ? 'bg-violet-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
 
+        {tab === 'tags' ? (
+          <>
+            {debouncedTrimmed && tagsLoading && (
+              <p className="mt-6 text-center text-sm text-gray-500 dark:text-zinc-400">Searching tags...</p>
+            )}
+            {debouncedTrimmed && !tagsLoading && tags && (
+              tags.length === 0 ? (
+                <p className="mt-6 text-center text-sm text-gray-500 dark:text-zinc-400">
+                  No tags found{debouncedTrimmed ? ` for "${debouncedTrimmed}"` : ''}
+                </p>
+              ) : (
+                <ul className="mt-6 space-y-2">
+                  {tags.map((h) => (
+                    <li key={h.tag} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
+                      <Link
+                        to={`/tag/${encodeURIComponent(h.tag)}`}
+                        className="font-medium text-violet-600 hover:underline dark:text-violet-400"
+                      >
+                        #{h.tag}
+                      </Link>
+                      <span className="ml-2 text-sm text-gray-500 dark:text-zinc-400">{h.postsCount} posts</span>
+                    </li>
+                  ))}
+                </ul>
+              )
+            )}
+          </>
+        ) : (
+          <>
         {debouncedTrimmed && isLoading && (
           <p className="mt-6 text-center text-sm text-gray-500 dark:text-zinc-400">Searching...</p>
         )}
@@ -111,6 +160,8 @@ export default function UserSearchPage() {
                 })}
               </ul>
             )}
+          </>
+        )}
           </>
         )}
       </div>

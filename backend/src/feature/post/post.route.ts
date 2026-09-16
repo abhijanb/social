@@ -6,8 +6,10 @@ import {
   deletePostCommentController,
   deletePostController,
   getByAuthorController,
+  getByHashtagController,
   getFeedController,
   listPostCommentsController,
+  searchHashtagsController,
   toggleLikeController,
 } from "./post.controller.js";
 import { uploadImage } from "./post.upload.js";
@@ -18,6 +20,8 @@ export const postRouter = Router();
 // author timeline (mirrors the Nest controller order).
 postRouter.post("/", requireAuth, uploadImage, createPostController);
 postRouter.get("/feed", requireAuth, getFeedController);
+postRouter.get("/by-hashtag", requireAuth, getByHashtagController);
+postRouter.get("/hashtags/search", requireAuth, searchHashtagsController);
 postRouter.post("/:id/like", requireAuth, toggleLikeController);
 postRouter.get("/:id/comments", requireAuth, listPostCommentsController);
 postRouter.post("/:id/comments", requireAuth, createPostCommentController);
