@@ -4,6 +4,7 @@ import { useAppDispatch } from '../app/hooks'
 import { useAuth } from '../features/auth/hooks/useAuth'
 import { logout } from '../features/auth/authSlice'
 import { useGetProfileQuery } from '../features/users/usersApi'
+import { useOwnProfile } from '../features/users/hooks/useOwnProfile'
 import { useGetUserPostsQuery, type Post } from '../features/posts/postsApi'
 import { resolveImageUrl } from '../features/posts/resolvePostImage'
 import Avatar from '../components/Avatar'
@@ -71,8 +72,15 @@ export default function ProfilePage() {
     isLoading: profileLoading,
   } = useGetProfileQuery(username, { skip: !isAuthenticated || !username })
 
-  const authorId = profile?.user.id
-  const canView = profile?.relation.canViewPosts ?? false
+  // Own-page fast path: header paints instantly from the localStorage-backed
+  // own identity while getProfile (stats/relation) still loads.
+  const { me: ownUser, username: ownUsername } = useOwnProfile()
+  const isOwnPage = ownUsername !== '' && ownUsername.toLowerCase() === username.toLowerCase()
+  const headerUser = profile?.user ?? (isOwnPage ? (ownUser ?? null) : null)
+  const relation = profile?.relation ?? (isOwnPage ? { isSelf: true, isFriend: false, pending: false, canViewPosts: true } : null)
+
+  const authorId = profile?.user.id ?? (isOwnPage ? ownUser?.id : undefined)
+  const canView = profile ? profile.relation.canViewPosts : isOwnPage
   const {
     data: postsData,
     error: postsError,
@@ -100,7 +108,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-6 dark:bg-[#16171d]">
       <div className="mx-auto max-w-2xl">
-        {profileLoading ? (
+        {!headerUser && profileLoading ? (
           <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
             <div className="flex items-center gap-4">
               <div className="h-20 w-20 animate-pulse rounded-full bg-gray-200 dark:bg-zinc-700" />
@@ -110,7 +118,7 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-        ) : profileError || !profile ? (
+        ) : !headerUser ? (
           <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center dark:border-zinc-700 dark:bg-zinc-900">
             {isNotFoundError(profileError) ? (
               <>
@@ -135,45 +143,45 @@ export default function ProfilePage() {
               <div className="flex items-start gap-5">
                 <div className="rounded-full bg-gradient-to-tr from-[#aa3bff] via-fuchsia-500 to-amber-400 p-0.5">
                   <div className="rounded-full bg-white p-0.5 dark:bg-zinc-900">
-                    <Avatar username={profile.user.username} avatarUrl={profile.user.avatarUrl} size="xl" />
+                    <Avatar username={headerUser.username} avatarUrl={headerUser.avatarUrl} size="xl" />
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="truncate text-xl font-bold text-gray-900 dark:text-white">
-                      {profile.user.username}
+                      {headerUser.username}
                     </h1>
-                    {!profile.user.isPublic && (
+                    {!headerUser.isPublic && (
                       <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold text-gray-500 dark:bg-zinc-800 dark:text-zinc-400">
                         Private
                       </span>
                     )}
                   </div>
-                  {profile.user.displayName && (
+                  {headerUser.displayName && (
                     <p className="mt-0.5 truncate text-sm font-medium text-gray-700 dark:text-zinc-200">
-                      {profile.user.displayName}
+                      {headerUser.displayName}
                     </p>
                   )}
                   <div className="mt-3 flex gap-5 text-sm">
                     <span className="text-gray-600 dark:text-zinc-300">
-                      <strong className="font-bold text-gray-900 dark:text-white">{profile.stats.posts}</strong> posts
+                      <strong className="font-bold text-gray-900 dark:text-white">{profile?.stats.posts ?? '…'}</strong> posts
                     </span>
                     <span className="text-gray-600 dark:text-zinc-300">
-                      <strong className="font-bold text-gray-900 dark:text-white">{profile.stats.friends}</strong> friends
+                      <strong className="font-bold text-gray-900 dark:text-white">{profile?.stats.friends ?? '…'}</strong> friends
                     </span>
                     <span className="text-gray-600 dark:text-zinc-300">
-                      <strong className="font-bold text-gray-900 dark:text-white">{profile.stats.storiesActive}</strong> stories
+                      <strong className="font-bold text-gray-900 dark:text-white">{profile?.stats.storiesActive ?? '…'}</strong> stories
                     </span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {profile.relation.isSelf ? (
+                    {relation?.isSelf ? (
                       <button
                         onClick={() => setEditing(true)}
                         className="rounded-full border border-gray-300 px-4 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
                       >
                         Edit profile
                       </button>
-                    ) : profile.relation.isFriend ? (
+                    ) : relation?.isFriend ? (
                       <>
                         <span className="rounded-full bg-green-100 px-4 py-1.5 text-sm font-semibold text-green-700 dark:bg-green-500/15 dark:text-green-300">
                           Friends
@@ -185,7 +193,7 @@ export default function ProfilePage() {
                           Message
                         </Link>
                       </>
-                    ) : profile.relation.pending ? (
+                    ) : relation?.pending ? (
                       <span className="rounded-full bg-gray-100 px-4 py-1.5 text-sm font-semibold text-gray-600 dark:bg-zinc-800 dark:text-zinc-300">
                         Request pending
                       </span>
@@ -200,9 +208,9 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
-              {profile.user.bio && (
+              {headerUser.bio && (
                 <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-800 dark:text-zinc-100">
-                  {profile.user.bio}
+                  {headerUser.bio}
                 </p>
               )}
             </div>
@@ -215,7 +223,7 @@ export default function ProfilePage() {
                     Become friends to see their posts.
                   </p>
                 </div>
-              ) : postsLoading && visiblePosts.length === 0 ? (
+              ) : (profileLoading && !profile) || (postsLoading && visiblePosts.length === 0) ? (
                 <div className="grid grid-cols-3 gap-1">
                   {[0, 1, 2, 3, 4, 5].map((i) => (
                     <div key={i} className="aspect-square animate-pulse bg-gray-200 dark:bg-zinc-800" />
@@ -251,10 +259,10 @@ export default function ProfilePage() {
 
             {editing && (
               <EditProfileModal
-                username={profile.user.username}
-                initialBio={profile.user.bio ?? ''}
-                initialDisplayName={profile.user.displayName ?? null}
-                initialAvatarUrl={profile.user.avatarUrl ?? null}
+                username={headerUser.username}
+                initialBio={headerUser.bio ?? ''}
+                initialDisplayName={headerUser.displayName ?? null}
+                initialAvatarUrl={headerUser.avatarUrl ?? null}
                 onClose={() => setEditing(false)}
               />
             )}

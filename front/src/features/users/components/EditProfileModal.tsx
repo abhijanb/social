@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import Avatar from '../../../components/Avatar'
+import { useAppDispatch } from '../../../app/hooks'
+import { setAvatarUrl } from '../../auth/authSlice'
 import { resolveImageUrl } from '../../posts/resolvePostImage'
 import { useUpdateUserMutation } from '../../users/usersApi'
 
@@ -30,6 +32,7 @@ export default function EditProfileModal({
   const [removeAvatar, setRemoveAvatar] = useState(false)
   const [pickError, setPickError] = useState<string | null>(null)
   const [updateUser, { isLoading, error }] = useUpdateUserMutation()
+  const dispatch = useAppDispatch()
 
   const bioOver = bio.trim().length > 150
   const nameOver = displayName.trim().length > 50
@@ -80,7 +83,9 @@ export default function EditProfileModal({
         form.set('displayName', displayName.trim())
         if (file) form.set('avatar', file)
         else if (removeAvatar) form.set('removeAvatar', 'true')
-        await updateUser({ form, hasAvatarChange: true }).unwrap()
+        const saved = await updateUser({ form, hasAvatarChange: true }).unwrap()
+        // Persist instantly so the avatar survives reloads before getMe refetches.
+        dispatch(setAvatarUrl(saved.avatarUrl ?? null))
       }
       if (preview) URL.revokeObjectURL(preview)
       onClose()

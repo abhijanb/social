@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAppDispatch } from '../../../app/hooks'
-import { login, setUsername } from '../authSlice'
+import { login, setAvatarUrl, setUsername } from '../authSlice'
 import { loginSchema, type LoginFormData } from '../schema'
 import { useLoginUserMutation } from '../authApi'
 import { useNavigate } from 'react-router-dom'
@@ -20,8 +20,9 @@ export function useLogin() {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      await loginUser({ username: data.username, password: data.password }).unwrap()
-      dispatch(setUsername(data.username))
+      const user = await loginUser({ username: data.username, password: data.password }).unwrap()
+      dispatch(setUsername(user.username))
+      dispatch(setAvatarUrl(user.avatarUrl ?? null))
       dispatch(login())
       navigate('/')
     } catch {

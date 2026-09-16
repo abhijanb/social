@@ -4,7 +4,7 @@ import { useAppDispatch } from '../app/hooks'
 import { baseApi } from '../app/baseApi'
 import { useAuth } from '../features/auth/hooks/useAuth'
 import { useGetFeedQuery, useToggleLikeMutation, type Post } from '../features/posts/postsApi'
-import { useGetMeQuery } from '../features/users/usersApi'
+import { useOwnProfile } from '../features/users/hooks/useOwnProfile'
 import { useGetStoryFeedQuery } from '../features/stories/storiesApi'
 import StoriesBar from '../features/stories/components/StoriesBar'
 import PostComposer from '../features/posts/components/PostComposer'
@@ -25,7 +25,8 @@ export default function FeedPage() {
   const { data, isLoading, isFetching, error } = useGetFeedQuery(page === FIRST_PAGE ? undefined : { page }, {
     skip: !isAuthenticated,
   })
-  const { data: me } = useGetMeQuery(undefined, { skip: !isAuthenticated })
+  // Own identity paints instantly from localStorage cache, reconciled by getMe.
+  const { me, username: ownUsername, avatarUrl: ownAvatarUrl } = useOwnProfile()
   const { data: storyGroups, isLoading: storiesLoading } = useGetStoryFeedQuery(undefined, {
     skip: !isAuthenticated,
   })
@@ -114,9 +115,9 @@ export default function FeedPage() {
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-6 dark:bg-[#16171d]">
       <div className="mx-auto max-w-xl">
-        <StoriesBar groups={storyGroups} meId={me?.id} meUsername={me?.username} meAvatarUrl={me?.avatarUrl} isLoading={storiesLoading} />
+        <StoriesBar groups={storyGroups} meId={me?.id} meUsername={ownUsername} meAvatarUrl={ownAvatarUrl} isLoading={storiesLoading} />
         {/* PostComposer – avatar + input row for writing a new post. */}
-        <PostComposer onCreated={handleCreated} username={me?.username} avatarUrl={me?.avatarUrl} />
+        <PostComposer onCreated={handleCreated} username={ownUsername} avatarUrl={ownAvatarUrl} />
         {error && !(typeof error === 'object' && 'status' in error && error.status === 401) && (
           <p className="mt-6 text-center text-sm text-red-600 dark:text-red-400">Failed to load feed</p>
         )}

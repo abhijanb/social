@@ -2,15 +2,23 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
 interface AuthState {
   username: string
+  avatarUrl: string | null
   isAuthenticated: boolean
 }
 
 function loadAuth(): AuthState {
   try {
     const raw = localStorage.getItem('auth')
-    if (raw) return JSON.parse(raw) as AuthState
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<AuthState>
+      return {
+        username: typeof parsed.username === 'string' ? parsed.username : '',
+        avatarUrl: typeof parsed.avatarUrl === 'string' ? parsed.avatarUrl : null,
+        isAuthenticated: parsed.isAuthenticated === true,
+      }
+    }
   } catch {}
-  return { username: '', isAuthenticated: false }
+  return { username: '', avatarUrl: null, isAuthenticated: false }
 }
 
 const initialState: AuthState = loadAuth()
@@ -29,6 +37,10 @@ export const authSlice = createSlice({
       state.username = action.payload
       persist(state)
     },
+    setAvatarUrl: (state, action: PayloadAction<string | null>) => {
+      state.avatarUrl = action.payload
+      persist(state)
+    },
     login: (state) => {
       state.isAuthenticated = true
       persist(state)
@@ -36,6 +48,7 @@ export const authSlice = createSlice({
     logout: (state) => {
       state.isAuthenticated = false
       state.username = ''
+      state.avatarUrl = null
       try {
         localStorage.removeItem('auth')
       } catch {}
@@ -43,5 +56,5 @@ export const authSlice = createSlice({
   },
 })
 
-export const { setUsername, login, logout } = authSlice.actions
+export const { setUsername, setAvatarUrl, login, logout } = authSlice.actions
 export default authSlice.reducer

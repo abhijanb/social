@@ -5,7 +5,7 @@ import { useAppDispatch, useAppSelector } from '../app/hooks'
 import { logout } from '../features/auth/authSlice'
 import { useFriendRequests } from '../features/friendship/hooks/useFriendRequests'
 import { useGetLiveStreamsQuery } from '../features/livestream/livestreamApi'
-import { useGetMeQuery } from '../features/users/usersApi'
+import { useOwnProfile } from '../features/users/hooks/useOwnProfile'
 
 // --- Icons (heroicons outline style, matching the settings gear) ---
 
@@ -127,13 +127,13 @@ function LiveDot() {
 // desktop, fixed bottom tab bar on mobile. Badges (pending requests, live
 // indicator) and links adapt to login state.
 export default function Navbar() {
-  const username = useAppSelector((state) => state.auth.username)
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated)
   const dispatch = useAppDispatch()
 
   // Badges reuse cached RTK queries (skipped when logged out).
   const { received } = useFriendRequests()
-  const { data: me } = useGetMeQuery(undefined, { skip: !isAuthenticated })
+  // Own identity paints instantly from localStorage cache, reconciled by getMe.
+  const { username, avatarUrl } = useOwnProfile()
   const { data: liveStreams } = useGetLiveStreamsQuery(undefined, {
     skip: !isAuthenticated,
     pollingInterval: 30000,
@@ -176,7 +176,7 @@ export default function Navbar() {
                   to={`/u/${encodeURIComponent(username)}`}
                   className="hidden items-center gap-2 rounded-full bg-gray-100 py-1 pl-1 pr-3 transition hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 md:flex"
                 >
-                  <Avatar username={username} avatarUrl={me?.avatarUrl} size="xs" />
+                  <Avatar username={username} avatarUrl={avatarUrl} size="xs" />
                   <span className="max-w-28 truncate text-xs font-medium text-gray-700 dark:text-zinc-200">
                     {username}
                   </span>
