@@ -1,115 +1,35 @@
-import { useCallback, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useAppDispatch } from '../app/hooks'
-import { baseApi } from '../app/baseApi'
-import { useAuth } from '../features/auth/hooks/useAuth'
-import { useGetFeedQuery, useToggleLikeMutation, type Post } from '../features/posts/postsApi'
-import { useOwnProfile } from '../features/users/hooks/useOwnProfile'
-import { useGetStoryFeedQuery } from '../features/stories/storiesApi'
 import StoriesBar from '../features/stories/components/StoriesBar'
 import PostComposer from '../features/posts/components/PostComposer'
 import PostFeed from '../features/posts/components/PostFeed'
-
-const FIRST_PAGE = 1
-
-type PageChunk = { page: number; posts: Post[]; nextPage: number | null }
+import { useFeed } from '../features/posts/hooks/useFeed'
 
 // FeedPage – friends-only posts feed: composer on top, page-based post list below (auth required).
+// Data + interactions live in useFeed; this file is guards + JSX shell only.
 export default function FeedPage() {
-  const { isAuthenticated } = useAuth()
-  const dispatch = useAppDispatch()
-  const [page, setPage] = useState(FIRST_PAGE)
-  const [chunks, setChunks] = useState<PageChunk[]>([])
-  const [likePending, setLikePending] = useState<Set<string>>(new Set())
-  const [toggleLike] = useToggleLikeMutation()
-  const { data, isLoading, isFetching, error } = useGetFeedQuery(page === FIRST_PAGE ? undefined : { page }, {
-    skip: !isAuthenticated,
-  })
-  // Own identity paints instantly from localStorage cache, reconciled by getMe.
-  const { me, username: ownUsername, avatarUrl: ownAvatarUrl } = useOwnProfile()
-  const { data: storyGroups, isLoading: storiesLoading } = useGetStoryFeedQuery(undefined, {
-    skip: !isAuthenticated,
-  })
-
-  // Each page is cached separately by RTK Query; collect fetched pages here.
-  // Guarded so each page is added once (render-time adjustment, not an effect).
-  if (data && !chunks.some((c) => c.page === page)) {
-    setChunks([...chunks, { page, posts: data.posts, nextPage: data.nextPage }])
-  }
-
-  const posts = chunks.flatMap((c) => c.posts)
-  const nextPage = chunks.length > 0 ? chunks[chunks.length - 1].nextPage : null
-
-  // Stable identity so PostFeed's observer effect only re-subscribes when the target page changes.
-  const handleLoadMore = useCallback(() => {
-    if (nextPage) setPage(nextPage)
-  }, [nextPage])
-
-  const patchPost = useCallback((postId: string, patch: (post: Post) => Post) => {
-    setChunks((prev) =>
-      prev.map((chunk) => ({
-        ...chunk,
-        posts: chunk.posts.map((post) => (post.id === postId ? patch(post) : post)),
-      })),
-    )
-  }, [])
-
-  // Optimistic like toggle: flip instantly, reconcile with the
-  // authoritative server response, revert on failure.
-  const handleToggleLike = useCallback(
-    async (postId: string) => {
-      const current = chunks.flatMap((c) => c.posts).find((p) => p.id === postId)
-      if (!current || likePending.has(postId)) return
-      const flipped: Post = {
-        ...current,
-        likedByMe: !current.likedByMe,
-        likesCount: current.likesCount + (current.likedByMe ? -1 : 1),
-      }
-      patchPost(postId, () => flipped)
-      setLikePending((prev) => new Set(prev).add(postId))
-      try {
-        const res = await toggleLike({ postId }).unwrap()
-        patchPost(postId, (post) => ({ ...post, likedByMe: res.liked, likesCount: res.likesCount }))
-      } catch {
-        patchPost(postId, () => current)
-      } finally {
-        setLikePending((prev) => {
-          const next = new Set(prev)
-          next.delete(postId)
-          return next
-        })
-      }
-    },
-    [chunks, likePending, patchPost, toggleLike],
-  )
-
-  // Comment created: bump the cached count so the toggle label stays in
-  // sync (same local-patch pattern as likes — no 'Post' invalidation).
-  const handleCommentAdded = useCallback(
-    (postId: string) => {
-      patchPost(postId, (post) => ({ ...post, commentsCount: (post.commentsCount ?? 0) + 1 }))
-    },
-    [patchPost],
-  )
-
-  // Comment deleted: decrement the cached count, floored at 0.
-  const handleCommentDeleted = useCallback(
-    (postId: string) => {
-      patchPost(postId, (post) => ({ ...post, commentsCount: Math.max(0, (post.commentsCount ?? 1) - 1) }))
-    },
-    [patchPost],
-  )
+  const {
+    isAuthenticated,
+    posts,
+    nextPage,
+    isLoading,
+    isFetching,
+    error,
+    likePending,
+    storyGroups,
+    storiesLoading,
+    me,
+    ownUsername,
+    ownAvatarUrl,
+    handleLoadMore,
+    handleToggleLike,
+    handleCommentAdded,
+    handleCommentDeleted,
+    handleCreated,
+  } = useFeed()
 
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
     return <Navigate to="/login" replace />
-  }
-
-  const handleCreated = () => {
-    // New post belongs on top of page 1 – drop collected pages and reload fresh.
-    setChunks([])
-    setPage(FIRST_PAGE)
-    dispatch(baseApi.util.resetApiState())
   }
 
   return (
