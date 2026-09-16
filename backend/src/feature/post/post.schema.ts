@@ -33,3 +33,27 @@ export const postIdParamSchema = z.object({
 });
 
 export type PostIdParamDto = z.infer<typeof postIdParamSchema>;
+
+// Used by DELETE /post/:id/comments/:commentId.
+export const postCommentParamSchema = z.object({
+  id: z.string().cuid(),
+  commentId: z.string().cuid(),
+});
+
+export type PostCommentParamDto = z.infer<typeof postCommentParamSchema>;
+
+// Used by GET /post/:id/comments?sinceId=&limit=. Without sinceId returns
+// the latest page (oldest first); with sinceId only newer comments.
+export const postCommentsQuerySchema = z.object({
+  sinceId: z.string().trim().min(1).optional(),
+  limit: z.string().optional().default("50"),
+});
+
+export type PostCommentsQueryDto = z.infer<typeof postCommentsQuerySchema>;
+
+// Used by POST /post/:id/comments. Instagram-style short comments.
+export const createPostCommentSchema = z.object({
+  text: z.string().trim().min(1, "Comment cannot be empty").max(500),
+});
+
+export type CreatePostCommentDto = z.infer<typeof createPostCommentSchema>;
