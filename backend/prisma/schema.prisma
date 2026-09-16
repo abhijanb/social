@@ -57,9 +57,29 @@ model Post {
   images PostImage[]
   likes  PostLike[]
   comments PostComment[]
+  hashtags PostHashtag[]
 
   @@index([authorId, createdAt])
   @@index([createdAt])
+}
+
+model Hashtag {
+  id        String   @id @default(cuid())
+  tag       String   @unique
+  createdAt DateTime @default(now())
+
+  posts PostHashtag[]
+}
+
+model PostHashtag {
+  postId    String
+  hashtagId String
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  hashtag Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, hashtagId])
+  @@index([hashtagId, postId])
 }
 
 model PostLike {
