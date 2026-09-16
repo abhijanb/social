@@ -1,22 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
 import Avatar from '../../../components/Avatar'
-import { resolveImageUrl } from '../../posts/resolvePostImage'
-import { useDeleteStoryMutation, useMarkStoryViewedMutation, type StoryFeedGroup } from '../storiesApi'
-
-const IMAGE_DURATION_MS = 5000
-
-function timeLeft(expiresAt: string): string {
-  const ms = new Date(expiresAt).getTime() - Date.now()
-  if (ms <= 0) return 'expired'
-  const h = Math.floor(ms / 3600000)
-  if (h >= 1) return `${h}h left`
-  const m = Math.floor(ms / 60000)
-  return `${Math.max(1, m)}m left`
-}
+import { timeLeft, useStoryViewer } from '../hooks/useStoryViewer'
+import type { StoryFeedGroup } from '../storiesApi'
 
 // StoryViewer – fullscreen Instagram-style viewer for one author's stories:
 // progress bars, auto-advance (5s per image, video-ended for videos),
 // caption, views count, delete-own, prev/next + Esc to close.
+// Playback + navigation logic live in useStoryViewer; this file is props + JSX only.
 export default function StoryViewer({
   group,
   initialIndex = 0,
@@ -30,73 +19,15 @@ export default function StoryViewer({
   onClose: () => void
   onDeleted?: () => void
 }) {
-  const [index, setIndex] = useState(initialIndex)
-  const [markViewed] = useMarkStoryViewedMutation()
-  const [deleteStory, { isLoading: isDeleting }] = useDeleteStoryMutation()
-  const timer = useRef<number | null>(null)
-  const story = group.stories[index]
-
-  const clearTimer = useCallback(() => {
-    if (timer.current !== null) {
-      window.clearTimeout(timer.current)
-      timer.current = null
-    }
-  }, [])
-
-  // Mark current story viewed (friends-only idempotent POST).
-  useEffect(() => {
-    if (!story || (story.viewedByMe && !isOwn)) return
-    if (story.authorId !== group.author.id) return
-    // Own views are harmless (upsert) but skip to avoid noise.
-    if (isOwn) return
-    markViewed({ storyId: story.id }).catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [story?.id])
-
-  // Auto-advance for images; videos advance onEnded.
-  useEffect(() => {
-    clearTimer()
-    if (!story || story.kind === 'VIDEO') return
-    timer.current = window.setTimeout(() => {
-      setIndex((i) => (i + 1 < group.stories.length ? i + 1 : i))
-    }, IMAGE_DURATION_MS)
-    return clearTimer
-  }, [story, group.stories.length, clearTimer])
-
-  // If we reach the end via auto-advance on the last image, close.
-  useEffect(() => {
-    if (!story) onClose()
-  }, [story, onClose])
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-      if (e.key === 'ArrowRight') setIndex((i) => Math.min(i + 1, group.stories.length - 1))
-      if (e.key === 'ArrowLeft') setIndex((i) => Math.max(i - 1, 0))
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [group.stories.length, onClose])
+  const { index, story, src, isDeleting, handleDelete, goPrev, goNext, goVideoEnded } = useStoryViewer({
+    group,
+    initialIndex,
+    isOwn,
+    onClose,
+    onDeleted,
+  })
 
   if (!story) return null
-  const src = resolveImageUrl(story.url)
-
-  const handleDelete = async () => {
-    if (isDeleting) return
-    try {
-      await deleteStory({ storyId: story.id }).unwrap()
-      // If that was the last story, close; else step back.
-      if (group.stories.length <= 1) {
-        onDeleted?.()
-        onClose()
-      } else {
-        onDeleted?.()
-        setIndex((i) => Math.max(0, i - 1))
-      }
-    } catch {
-      // stays open so retry is easy
-    }
-  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" onClick={onClose}>
@@ -154,7 +85,7 @@ export default function StoryViewer({
             autoPlay
             controls
             playsInline
-            onEnded={() => setIndex((i) => (i + 1 < group.stories.length ? i + 1 : i))}
+            onEnded={goVideoEnded}
             className="aspect-[9/16] max-h-[75vh] w-full bg-black object-contain"
           />
         ) : (
@@ -171,15 +102,12 @@ export default function StoryViewer({
         {/* Prev / next hit areas */}
         <button
           aria-label="Previous story"
-          onClick={() => setIndex((i) => Math.max(0, i - 1))}
+          onClick={goPrev}
           className="absolute inset-y-0 left-0 w-1/3"
         />
         <button
           aria-label="Next story"
-          onClick={() => {
-            if (index + 1 < group.stories.length) setIndex(index + 1)
-            else onClose()
-          }}
+          onClick={goNext}
           className="absolute inset-y-0 right-0 w-1/3"
         />
       </div>
