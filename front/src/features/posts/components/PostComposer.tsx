@@ -1,83 +1,26 @@
-import { useState } from 'react'
 import Avatar from '../../../components/Avatar'
-import {
-  ACCEPT_MEDIA,
-  MAX_IMAGE_BYTES,
-  MAX_POST_IMAGES,
-  MAX_VIDEO_BYTES,
-  isVideoFile,
-  useCreatePostMutation,
-} from '../postsApi'
-
-const MAX_LENGTH = 2200
-
-function fileTooBig(file: File): boolean {
-  return isVideoFile(file) ? file.size > MAX_VIDEO_BYTES : file.size > MAX_IMAGE_BYTES
-}
+import { ACCEPT_MEDIA, MAX_POST_IMAGES, isVideoFile } from '../postsApi'
+import { MAX_LENGTH, usePostComposer } from '../hooks/usePostComposer'
 
 // PostComposer – avatar + input row for writing a new post (max 2200 chars),
 // optional media attach (up to MAX_POST_IMAGES images/videos mixed) + previews,
 // and a pill Post button. Needs text, at least one attachment, or both.
+// Compose state + posting logic live in usePostComposer; this file is props + JSX only.
 export default function PostComposer({ onCreated, username, avatarUrl }: { onCreated?: () => void; username?: string; avatarUrl?: string | null }) {
-  const [text, setText] = useState('')
-  const [images, setImages] = useState<File[]>([])
-  const [previews, setPreviews] = useState<string[]>([])
-  const [pickError, setPickError] = useState<string | null>(null)
-  const [createPost, { isLoading, error }] = useCreatePostMutation()
-
-  const trimmed = text.trim()
-  const overLimit = text.length > MAX_LENGTH
-  const canPost = (!!trimmed || images.length > 0) && !overLimit && !isLoading
-
-  const handlePick = (files: FileList | undefined) => {
-    if (!files) return
-    const picked = Array.from(files)
-    if (picked.length === 0) return
-    const room = MAX_POST_IMAGES - images.length
-    const withinRoom = picked.slice(0, Math.max(0, room))
-    const accepted = withinRoom.filter((f) => !fileTooBig(f))
-    const rejected = withinRoom.length - accepted.length
-    setPickError(
-      rejected > 0
-        ? 'Some files were skipped (images max 5MB each, videos max 50MB each)'
-        : picked.length > withinRoom.length
-          ? `Max ${MAX_POST_IMAGES} attachments per post`
-          : null,
-    )
-    if (accepted.length === 0) return
-    setImages((prev) => [...prev, ...accepted])
-    setPreviews((prev) => [...prev, ...accepted.map((f) => URL.createObjectURL(f))])
-  }
-
-  const handleRemoveAt = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index))
-    setPreviews((prev) => {
-      const url = prev[index]
-      if (url) URL.revokeObjectURL(url)
-      return prev.filter((_, i) => i !== index)
-    })
-  }
-
-  const handleClearImages = () => {
-    setImages([])
-    setPickError(null)
-    setPreviews((prev) => {
-      for (const url of prev) URL.revokeObjectURL(url)
-      return []
-    })
-  }
-
-  const handlePost = async () => {
-    if (!canPost) return
-    try {
-      await createPost({ text: trimmed, images }).unwrap()
-      setText('')
-      handleClearImages()
-      onCreated?.()
-    } catch {
-      // error surfaces via `error` below
-    }
-  }
+  const {
+    text,
+    setText,
+    images,
+    previews,
+    pickError,
+    isLoading,
+    error,
+    overLimit,
+    canPost,
+    handlePick,
+    handleRemoveAt,
+    handlePost,
+  } = usePostComposer({ onCreated })
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900 dark:shadow-black/20">
