@@ -23,6 +23,8 @@ model User {
   posts            Post[]       @relation("UserPosts")
   postLikes        PostLike[]
   postComments     PostComment[]
+  stories          Story[]      @relation("UserStories")
+  storyViews       StoryView[]  @relation("StoryViews")
   hostedStreams    Livestream[] @relation("HostedStreams")
   streamComments   LivestreamComment[]
 }
@@ -102,6 +104,35 @@ model PostComment {
 enum PostMediaKind {
   IMAGE
   VIDEO
+}
+
+model Story {
+  id        String        @id @default(cuid())
+  authorId  String
+  url       String
+  kind      PostMediaKind @default(IMAGE)
+  text      String        @default("")
+  expiresAt DateTime
+  createdAt DateTime      @default(now())
+
+  author User        @relation("UserStories", fields: [authorId], references: [id], onDelete: Cascade)
+  views  StoryView[]
+
+  @@index([authorId, expiresAt])
+  @@index([expiresAt])
+}
+
+model StoryView {
+  storyId  String
+  viewerId String
+  viewedAt DateTime @default(now())
+
+  story  Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewer User  @relation("StoryViews", fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, viewerId])
+  @@index([storyId])
+  @@index([viewerId])
 }
 
 model Livestream {
