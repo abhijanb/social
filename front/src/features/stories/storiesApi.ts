@@ -27,14 +27,6 @@ export type StoryFeedGroup = {
   hasUnseen: boolean
 }
 
-export const MAX_STORY_BYTES_IMAGE = 5 * 1024 * 1024
-export const MAX_STORY_BYTES_VIDEO = 50 * 1024 * 1024
-export const ACCEPT_STORY_MEDIA = 'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm'
-
-export function isStoryVideoFile(file: File): boolean {
-  return file.type.startsWith('video/')
-}
-
 export const storiesApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getStoryFeed: build.query<StoryFeedGroup[], void>({

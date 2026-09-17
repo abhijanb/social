@@ -1,17 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  MAX_IMAGE_BYTES,
-  MAX_POST_IMAGES,
-  MAX_VIDEO_BYTES,
-  isVideoFile,
-  useCreatePostMutation,
-} from '../postsApi'
+import { fileTooBig } from '../../../app/media'
+import { MAX_POST_IMAGES, useCreatePostMutation } from '../postsApi'
 
 export const MAX_LENGTH = 2200
-
-export function fileTooBig(file: File): boolean {
-  return isVideoFile(file) ? file.size > MAX_VIDEO_BYTES : file.size > MAX_IMAGE_BYTES
-}
 
 // usePostComposer – all composer logic for writing a post, no JSX: text,
 // media attach with room-capping + oversize filtering, blob-URL previews,

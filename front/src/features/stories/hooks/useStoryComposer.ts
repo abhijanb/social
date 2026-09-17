@@ -1,16 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  MAX_STORY_BYTES_IMAGE,
-  MAX_STORY_BYTES_VIDEO,
-  isStoryVideoFile,
-  useCreateStoryMutation,
-} from '../storiesApi'
+import { fileTooBig } from '../../../app/media'
+import { useCreateStoryMutation } from '../storiesApi'
 
 export const MAX_CAPTION = 220
-
-export function fileTooBig(file: File): boolean {
-  return isStoryVideoFile(file) ? file.size > MAX_STORY_BYTES_VIDEO : file.size > MAX_STORY_BYTES_IMAGE
-}
 
 // useStoryComposer – all composer logic for posting a story, no JSX: file,
 // blob-URL preview, caption, pick/post handlers. Single media only.

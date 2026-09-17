@@ -1,4 +1,4 @@
-import { isStoryVideoFile } from '../storiesApi'
+import { isVideoFile } from '../../../app/media'
 import { MAX_CAPTION } from '../hooks/useStoryComposer'
 
 // StoryPreview – dumb preview + caption + actions for StoryComposer. No hooks here.
@@ -24,7 +24,7 @@ export default function StoryPreview({
   return (
     <div className="space-y-3">
       <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-700">
-        {file && isStoryVideoFile(file) ? (
+        {file && isVideoFile(file) ? (
           <video src={preview} muted playsInline controls preload="metadata" className="max-h-72 w-full bg-black object-contain" />
         ) : (
           <img src={preview} alt="Story preview" className="max-h-72 w-full bg-black object-contain" />

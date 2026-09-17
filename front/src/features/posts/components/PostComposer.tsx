@@ -1,6 +1,7 @@
 import Avatar from '../../../components/Avatar'
 import { isUnauthorizedError } from '../../../app/apiError'
-import { ACCEPT_MEDIA, MAX_POST_IMAGES, isVideoFile } from '../postsApi'
+import { ACCEPT_MEDIA, isVideoFile } from '../../../app/media'
+import { MAX_POST_IMAGES } from '../postsApi'
 import { MAX_LENGTH, usePostComposer } from '../hooks/usePostComposer'
 
 // PostComposer – avatar + input row for writing a new post (max 2200 chars),

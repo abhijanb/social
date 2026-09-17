@@ -1,4 +1,4 @@
-import { ACCEPT_STORY_MEDIA } from '../storiesApi'
+import { ACCEPT_MEDIA } from '../../../app/media'
 
 // StoryFilePicker – dumb dashed dropzone for StoryComposer. No hooks here.
 export default function StoryFilePicker({ onPick }: { onPick: (files: FileList | undefined) => void }) {
@@ -11,7 +11,7 @@ export default function StoryFilePicker({ onPick }: { onPick: (files: FileList |
       <span className="text-xs text-gray-400 dark:text-zinc-500">Expires in 24h • friends-only</span>
       <input
         type="file"
-        accept={ACCEPT_STORY_MEDIA}
+        accept={ACCEPT_MEDIA}
         className="hidden"
         onChange={(e) => {
           onPick(e.target.files ?? undefined)
