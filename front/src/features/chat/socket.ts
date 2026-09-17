@@ -1,4 +1,5 @@
 import { io, type Socket } from 'socket.io-client'
+import { getApiBaseUrl } from '../../app/config'
 
 let socket: Socket | null = null
 
@@ -8,7 +9,7 @@ export function getChatSocket(): Socket {
     socket.disconnect()
     socket = null
   }
-  const base = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3000'
+  const base = getApiBaseUrl()
   socket = io(`${base}/chat`, {
     withCredentials: true,
     transports: ['websocket', 'polling'],

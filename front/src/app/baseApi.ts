@@ -5,9 +5,10 @@ import {
   type FetchArgs,
   type FetchBaseQueryError,
 } from '@reduxjs/toolkit/query/react'
+import { getApiBaseUrl } from './config'
 
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: import.meta.env.VITE_API_URL ?? 'http://localhost:3000',
+  baseUrl: getApiBaseUrl(),
   credentials: 'include',
 })
 
