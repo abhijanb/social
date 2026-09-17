@@ -1,15 +1,14 @@
-import { Navigate } from 'react-router-dom'
 import StoriesBar from '../features/stories/components/StoriesBar'
 import PostComposer from '../features/posts/components/PostComposer'
 import PostFeed from '../features/posts/components/PostFeed'
 import { useFeed } from '../features/posts/hooks/useFeed'
 import { isUnauthorizedError } from '../app/apiError'
 
-// FeedPage – friends-only posts feed: composer on top, page-based post list below (auth required).
-// Data + interactions live in useFeed; this file is guards + JSX shell only.
+// FeedPage – friends-only posts feed: composer on top, page-based post list below.
+// Auth is gated by ProtectedLayout; stale sessions log out via useFeed.
+// Data + interactions live in useFeed; this file is JSX shell only.
 export default function FeedPage() {
   const {
-    isAuthenticated,
     posts,
     nextPage,
     isLoading,
@@ -28,11 +27,6 @@ export default function FeedPage() {
     handleCreated,
     handleDeleted,
   } = useFeed()
-
-  if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (isUnauthorizedError(error)) {
-    return <Navigate to="/login" replace />
-  }
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-6 dark:bg-[#16171d]">

@@ -1,4 +1,7 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { useAppDispatch } from '../../../app/hooks'
+import { isUnauthorizedError } from '../../../app/apiError'
+import { logout } from '../../auth/authSlice'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useGetTagPostsQuery } from '../hashtagsApi'
 import { useDeletePostMutation, useToggleLikeMutation, type Post } from '../postsApi'
@@ -12,6 +15,7 @@ type PageChunk = { page: number; posts: Post[]; nextPage: number | null }
 export function useTagFeed(rawTag: string) {
   const tag = rawTag.replace(/^#+/, '').toLowerCase()
   const { isAuthenticated } = useAuth()
+  const dispatch = useAppDispatch()
   const [page, setPage] = useState(1)
   const [chunks, setChunks] = useState<PageChunk[]>([])
   const [prevTag, setPrevTag] = useState(tag)
@@ -30,6 +34,11 @@ export function useTagFeed(rawTag: string) {
     { tag, page },
     { skip: !isAuthenticated || !tag },
   )
+
+  // Stale session: first 401 logs out, ProtectedLayout redirects — replaces the page-level guard.
+  useEffect(() => {
+    if (isUnauthorizedError(error)) dispatch(logout())
+  }, [error, dispatch])
 
   // Each page is cached separately by RTK Query; collect fetched pages here.
   if (data && !chunks.some((c) => c.page === page)) {

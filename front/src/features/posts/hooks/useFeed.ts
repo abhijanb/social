@@ -1,5 +1,7 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAppDispatch } from '../../../app/hooks'
+import { isUnauthorizedError } from '../../../app/apiError'
+import { logout } from '../../auth/authSlice'
 import { baseApi } from '../../../app/baseApi'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useGetFeedQuery, useDeletePostMutation, useToggleLikeMutation, type Post } from '../postsApi'
@@ -29,6 +31,12 @@ export function useFeed() {
   const { data: storyGroups, isLoading: storiesLoading } = useGetStoryFeedQuery(undefined, {
     skip: !isAuthenticated,
   })
+
+  // Stale session (cookie gone but local mirror true): first 401 logs out,
+  // ProtectedLayout redirects on re-render — replaces the page-level guard.
+  useEffect(() => {
+    if (isUnauthorizedError(error)) dispatch(logout())
+  }, [error, dispatch])
 
   // Each page is cached separately by RTK Query; collect fetched pages here.
   // Guarded so each page is added once (render-time adjustment, not an effect).

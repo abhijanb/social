@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useAppDispatch } from '../../../app/hooks'
+import { isUnauthorizedError } from '../../../app/apiError'
+import { logout } from '../../auth/authSlice'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useGetMeQuery } from '../../users/usersApi'
 import { useGetLiveStreamsQuery } from '../livestreamApi'
@@ -7,6 +10,7 @@ import { useGetLiveStreamsQuery } from '../livestreamApi'
 // auth, own identity, live list (15s poll), active stream derivation.
 export function useLivestreamPage() {
   const { isAuthenticated } = useAuth()
+  const dispatch = useAppDispatch()
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const { data: me, error: meError } = useGetMeQuery(undefined, { skip: !isAuthenticated })
@@ -20,6 +24,11 @@ export function useLivestreamPage() {
     pollingInterval: 15000,
     skipPollingIfUnfocused: true,
   })
+
+  // Stale session: first 401 logs out, ProtectedLayout redirects — replaces the page-level guard.
+  useEffect(() => {
+    if (isUnauthorizedError(meError) || isUnauthorizedError(streamsError)) dispatch(logout())
+  }, [meError, streamsError, dispatch])
 
   const myStream = streams.find((s) => s.hostId === me?.id) ?? null
   const activeStream = streams.find((s) => s.id === activeId) ?? null

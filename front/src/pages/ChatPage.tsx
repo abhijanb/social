@@ -1,16 +1,12 @@
-import { Navigate } from 'react-router-dom'
-import { useAuth } from '../features/auth/hooks/useAuth'
 import ActiveChatPanel from '../features/chat/components/ActiveChatPanel'
 import ChatConversationSelect from '../features/chat/components/ChatConversationSelect'
 import ChatSidebarPanel from '../features/chat/components/ChatSidebarPanel'
 import { useChatConversations } from '../features/chat/hooks/useChatConversations'
 import { useActiveChat } from '../features/chat/hooks/useActiveChat'
-import { isUnauthorizedError } from '../app/apiError'
 
-// ChatPage – thin shell for /chat: guards + sidebar/select + message panel.
-// Data lives in useChatConversations/useActiveChat, states in components.
+// ChatPage – thin shell for /chat: sidebar/select + message panel.
+// Auth is gated by ProtectedLayout; stale sessions log out via the chat hooks.
 export default function ChatPage() {
-  const { isAuthenticated } = useAuth()
   const {
     currentUserId,
     conversations,
@@ -21,13 +17,8 @@ export default function ChatPage() {
     isOnline,
     lastSeen,
     isLoadingFriends,
-    meError,
-    friendsError,
-  } = useChatConversations(isAuthenticated)
+  } = useChatConversations()
   const { uiMessages, isLoadingChat, handleSend } = useActiveChat(activeId, currentUserId)
-
-  if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (isUnauthorizedError(meError) || isUnauthorizedError(friendsError)) return <Navigate to="/login" replace />
 
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null
   const isLoading = (isLoadingFriends && !conversations.length) || isLoadingChat

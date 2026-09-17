@@ -1,31 +1,23 @@
-import { Navigate } from 'react-router-dom'
 import LivestreamEmptyState from '../features/livestream/components/LivestreamEmptyState'
 import LivestreamList from '../features/livestream/components/LivestreamList'
 import LivestreamRoom from '../features/livestream/components/LivestreamRoom'
 import LivestreamPicker from '../features/livestream/components/LivestreamPicker'
 import StartLivestream from '../features/livestream/components/StartLivestream'
 import { useLivestreamPage } from '../features/livestream/hooks/useLivestreamPage'
-import { isUnauthorizedError } from '../app/apiError'
 
-// LivestreamPage – thin shell for /live: guards + go-live bar + list/room.
-// Data + selection live in useLivestreamPage, small JSX in components.
+// LivestreamPage – thin shell for /live: go-live bar + list/room.
+// Auth is gated by ProtectedLayout; stale sessions log out via useLivestreamPage.
 export default function LivestreamPage() {
   const {
-    isAuthenticated,
     me,
-    meError,
     streams,
     isLoading,
-    streamsError,
     myStream,
     activeStream,
     activeId,
     setActiveId,
     handleSelect,
   } = useLivestreamPage()
-
-  if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (isUnauthorizedError(meError) || isUnauthorizedError(streamsError)) return <Navigate to="/login" replace />
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-8 dark:bg-[#16171d]">

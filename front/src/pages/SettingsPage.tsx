@@ -1,16 +1,12 @@
-import { Navigate } from 'react-router-dom'
 import { SettingsError, SettingsLoading } from '../features/users/components/SettingsLoadingError'
 import VisibilityToggle from '../features/users/components/VisibilityToggle'
 import { useSettings } from '../features/users/hooks/useSettings'
 import { isUnauthorizedError } from '../app/apiError'
 
-// SettingsPage – thin shell for /settings: guards + states + toggle card.
-// Data + toggle live in useSettings, JSX in users/components.
+// SettingsPage – thin shell for /settings: states + toggle card.
+// Auth is gated by ProtectedLayout; stale sessions log out via useSettings.
 export default function SettingsPage() {
-  const { isAuthenticated, isLoading, error, isPublic, isSaving, saveError, handleToggle } = useSettings()
-
-  if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (isUnauthorizedError(error)) return <Navigate to="/login" replace />
+  const { isLoading, error, isPublic, isSaving, saveError, handleToggle } = useSettings()
 
   if (isLoading) return <SettingsLoading />
   if (error && !isUnauthorizedError(error)) return <SettingsError />

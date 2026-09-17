@@ -4,10 +4,12 @@ import { useGetFriendsQuery } from '../../friendship/friendshipApi'
 import { usePresence } from '../../presence/hooks/usePresence'
 import { useAppDispatch } from '../../../app/hooks'
 import { isUnauthorizedError } from '../../../app/apiError'
+import { useAuth } from '../../auth/hooks/useAuth'
 import { logout } from '../../auth/authSlice'
 import type { Conversation } from '../types'
 
-export function useChatConversations(isAuthenticated: boolean) {
+export function useChatConversations() {
+  const { isAuthenticated } = useAuth()
   const dispatch = useAppDispatch()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [filter, setFilter] = useState('')

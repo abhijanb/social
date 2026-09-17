@@ -1,22 +1,19 @@
-import { Navigate } from 'react-router-dom'
 import SearchBar from '../features/search/components/SearchBar'
 import SearchTabs from '../features/search/components/SearchTabs'
 import TagResults from '../features/search/components/TagResults'
 import UserResults from '../features/search/components/UserResults'
 import { useUserSearchPage } from '../features/search/hooks/useUserSearchPage'
 
-// UserSearchPage – thin shell for /search: guards + SearchBar + tabs + lists.
-// All data + wiring lives in useUserSearchPage (same pattern as useFeed).
+// UserSearchPage – thin shell for /search: SearchBar + tabs + lists.
+// Auth is gated by ProtectedLayout; stale sessions log out via the search hooks.
 export default function UserSearchPage() {
   const {
-    isAuthenticated,
     query,
     setQuery,
     debouncedTrimmed,
     users,
     isLoading,
     error,
-    isSessionExpired,
     tab,
     setTab,
     tags,
@@ -31,9 +28,6 @@ export default function UserSearchPage() {
     decline,
     handleSend,
   } = useUserSearchPage()
-
-  if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (isSessionExpired) return <Navigate to="/login" replace />
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-8 dark:bg-[#16171d]">

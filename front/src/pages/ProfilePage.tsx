@@ -1,18 +1,17 @@
-import { Navigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import EditProfileModal from '../features/users/components/EditProfileModal'
 import ProfileHeader from '../features/users/components/ProfileHeader'
 import ProfilePostsGrid from '../features/users/components/ProfilePostsGrid'
 import ProfileHeaderSkeleton from '../features/users/components/ProfileHeaderSkeleton'
 import ProfileNotFound from '../features/users/components/ProfileNotFound'
 import { useProfilePage } from '../features/users/hooks/useProfilePage'
-import { isUnauthorizedError } from '../app/apiError'
 
-// ProfilePage – thin shell for /u/:username: guards + header + posts grid.
+// ProfilePage – thin shell for /u/:username: header + posts grid.
+// Auth is gated by ProtectedLayout; stale sessions log out via useProfilePage.
 // Data + pagination live in useProfilePage, JSX in features/users/components.
 export default function ProfilePage() {
   const { username = '' } = useParams<{ username: string }>()
   const {
-    isAuthenticated,
     profile,
     profileError,
     profileLoading,
@@ -28,11 +27,6 @@ export default function ProfilePage() {
     setEditing,
     setPage,
   } = useProfilePage(username)
-
-  if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (isUnauthorizedError(profileError)) {
-    return <Navigate to="/login" replace />
-  }
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-6 dark:bg-[#16171d]">

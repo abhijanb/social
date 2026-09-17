@@ -1,20 +1,17 @@
-import { Navigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import PostFeed from '../features/posts/components/PostFeed'
 import { useTagFeed } from '../features/posts/hooks/useTagFeed'
-import { isUnauthorizedError } from '../app/apiError'
 
-// TagPage – thin shell for /tag/:tag: guards + header + PostFeed.
-// Data + interactions live in useTagFeed (same pattern as useFeed).
+// TagPage – thin shell for /tag/:tag: header + PostFeed.
+// Auth is gated by ProtectedLayout; stale sessions log out via useTagFeed.
 export default function TagPage() {
   const { tag: rawTag = '' } = useParams<{ tag: string }>()
   const {
     tag,
-    isAuthenticated,
     visiblePosts,
     nextPage,
     isLoading,
     isFetching,
-    error,
     likePending,
     handleLoadMore,
     handleToggleLike,
@@ -22,11 +19,6 @@ export default function TagPage() {
     handleCommentDeleted,
     handleDeleted,
   } = useTagFeed(rawTag)
-
-  if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (isUnauthorizedError(error)) {
-    return <Navigate to="/login" replace />
-  }
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-6 dark:bg-[#16171d]">

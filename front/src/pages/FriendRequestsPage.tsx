@@ -1,10 +1,10 @@
-import { Navigate } from 'react-router-dom'
 import { useFriendRequests } from '../features/friendship/hooks/useFriendRequests'
 import FriendRequestList from '../features/friendship/components/FriendRequestList'
 
+// FriendRequestsPage – thin shell for /requests: loading state + sent/received lists.
+// Auth is gated by ProtectedLayout; stale sessions log out via useFriendRequests.
 export default function FriendRequestsPage() {
   const {
-    isAuthenticated,
     isResolvingUser,
     sent,
     received,
@@ -16,8 +16,6 @@ export default function FriendRequestsPage() {
     cancel,
     decline,
   } = useFriendRequests()
-
-  if (!isAuthenticated) return <Navigate to="/login" replace />
 
   if (isResolvingUser && isLoading) {
     return (
