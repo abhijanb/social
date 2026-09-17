@@ -3,19 +3,18 @@ import { AppError } from "../../lib/errorHandler.js";
 import { responseCreated, responseSuccess } from "../../lib/response.js";
 import {
   deleteUploadFiles,
-  deleteUploadUrls,
   findOversizedImage,
   uploadUrl,
 } from "../../lib/uploads.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import type { AuthRequest } from "../../middleware/auth.js";
 import {
-  cleanupExpired,
   createStory,
   deleteStory,
   getByAuthor,
   getStoryFeed,
   markViewed,
+  softDeleteExpiredStories,
 } from "./story.service.js";
 import type { StoryMediaKindDto } from "./story.service.js";
 import {
@@ -66,18 +65,17 @@ export async function markViewedController(req: AuthRequest, res: Response) {
   return responseSuccess(res, await markViewed(req.user.id, id));
 }
 
-// DELETE /story/:id — author only, unlinks the file from disk.
+// DELETE /story/:id — author only, soft-deletes (invisible immediately,
+// hard-deleted with its file by the 30-day purge).
 export async function deleteStoryController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(storyIdParamSchema, req.params);
-  const { url } = await deleteStory(req.user.id, id);
-  await deleteUploadUrls([url]);
-  return responseSuccess(res, { id }, "Story deleted");
+  return responseSuccess(res, await deleteStory(req.user.id, id), "Story deleted");
 }
 
-// POST /story/cleanup — delete expired stories (called by the hourly
+// POST /story/cleanup — soft-delete expired stories (called by the hourly
 // timer; exposed for admins/manual runs, auth required).
 export async function cleanupController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
-  return responseSuccess(res, await cleanupExpired(), "Cleanup done");
+  return responseSuccess(res, await softDeleteExpiredStories(), "Cleanup done");
 }

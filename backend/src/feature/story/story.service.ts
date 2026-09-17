@@ -74,7 +74,7 @@ export async function createStory(
 ) {
   const dto = validateOrThrow(createStorySchema, { text });
   const activeCount = await prisma.story.count({
-    where: { authorId, expiresAt: { gt: new Date() } },
+    where: { authorId, expiresAt: { gt: new Date() }, deletedAt: null },
   });
   if (activeCount >= MAX_ACTIVE_STORIES)
     throw new AppError(`Max ${MAX_ACTIVE_STORIES} active stories`, 400);
@@ -98,7 +98,7 @@ export async function getStoryFeed(meId: string): Promise<StoryFeedGroup[]> {
   const friendIds = await getFriendIds(meId);
   const authorIds = [meId, ...friendIds];
   const rows = await prisma.story.findMany({
-    where: { authorId: { in: authorIds }, expiresAt: { gt: new Date() } },
+    where: { authorId: { in: authorIds }, expiresAt: { gt: new Date() }, deletedAt: null },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     include: storyInclude,
   });
@@ -137,7 +137,7 @@ export async function getByAuthor(
 ): Promise<StoryWithAuthor[]> {
   await ensureCanView(meId, authorId);
   const rows = await prisma.story.findMany({
-    where: { authorId, expiresAt: { gt: new Date() } },
+    where: { authorId, expiresAt: { gt: new Date() }, deletedAt: null },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     include: storyInclude,
   });
@@ -148,9 +148,9 @@ export async function getByAuthor(
 export async function markViewed(viewerId: string, storyId: string) {
   const story = await prisma.story.findUnique({
     where: { id: storyId },
-    select: { id: true, authorId: true, expiresAt: true },
+    select: { id: true, authorId: true, expiresAt: true, deletedAt: true },
   });
-  if (!story || story.expiresAt <= new Date())
+  if (!story || story.deletedAt || story.expiresAt <= new Date())
     throw new AppError("Story not found", 404);
   await ensureCanView(viewerId, story.authorId);
   await prisma.storyView.upsert({
@@ -161,30 +161,48 @@ export async function markViewed(viewerId: string, storyId: string) {
   return { id: storyId };
 }
 
-// Delete a story — author only. Returns the file url so the controller
-// can unlink it from disk.
+// Soft-delete a story — author only. Already-deleted reads as 404.
+// Files stay on disk until the 30-day purge (keeps rows restorable).
 export async function deleteStory(userId: string, storyId: string) {
   const story = await prisma.story.findUnique({
     where: { id: storyId },
-    select: { id: true, authorId: true, url: true },
+    select: { id: true, authorId: true, deletedAt: true },
   });
-  if (!story) throw new AppError("Story not found", 404);
+  if (!story || story.deletedAt) throw new AppError("Story not found", 404);
   if (story.authorId !== userId)
     throw new AppError("Not allowed to delete this story", 403);
-  await prisma.story.delete({ where: { id: storyId } });
-  return { id: storyId, url: story.url };
+  await prisma.story.update({
+    where: { id: storyId },
+    data: { deletedAt: new Date() },
+  });
+  return { id: storyId };
 }
 
-// Delete expired stories (and return their urls for disk cleanup).
-// Runs on a timer from index.ts; also safe to call manually.
-export async function cleanupExpired(): Promise<{ deleted: number }> {
-  const expired = await prisma.story.findMany({
-    where: { expiresAt: { lte: new Date() } },
-    select: { id: true },
+// Soft-delete expired stories (24h TTL). Runs hourly from index.ts;
+// also safe to call manually. Replaces the old hard-delete sweep.
+export async function softDeleteExpiredStories(): Promise<{ deleted: number }> {
+  const res = await prisma.story.updateMany({
+    where: { expiresAt: { lte: new Date() }, deletedAt: null },
+    data: { deletedAt: new Date() },
   });
-  if (expired.length === 0) return { deleted: 0 };
+  return { deleted: res.count };
+}
+
+// Hard-delete soft-deleted stories older than the retention window
+// (default 30 days). Returns file urls so the caller can unlink them
+// from disk. Views cascade in the DB. Runs from the soft-delete-purge
+// schedule; also safe to call manually.
+export async function purgeDeletedStories(
+  olderThanDays = 30,
+): Promise<{ deleted: number; urls: string[] }> {
+  const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
+  const expired = await prisma.story.findMany({
+    where: { deletedAt: { lte: cutoff } },
+    select: { id: true, url: true },
+  });
+  if (expired.length === 0) return { deleted: 0, urls: [] };
   await prisma.story.deleteMany({
     where: { id: { in: expired.map((s) => s.id) } },
   });
-  return { deleted: expired.length };
+  return { deleted: expired.length, urls: expired.map((s) => s.url) };
 }

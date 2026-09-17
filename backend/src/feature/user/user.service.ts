@@ -102,7 +102,7 @@ export async function getProfile(viewerId: string, username: string) {
           },
         }),
         prisma.story.count({
-          where: { authorId: target.id, expiresAt: { gt: new Date() } },
+          where: { authorId: target.id, expiresAt: { gt: new Date() }, deletedAt: null },
         }),
       ])
     : [0, 0, 0];
