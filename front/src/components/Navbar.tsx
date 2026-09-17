@@ -3,7 +3,7 @@ import Avatar from './Avatar'
 import DesktopNav from './DesktopNav'
 import MobileTabBar from './MobileTabBar'
 import { LogoutIcon, SettingsIcon } from './NavbarIcons'
-import { useNavbarBadges } from './useNavbarBadges'
+import { useNavbarBadges } from './hooks/useNavbarBadges'
 import { useAppDispatch } from '../app/hooks'
 import { logout } from '../features/auth/authSlice'
 

@@ -1,5 +1,5 @@
 import UsersList from '../features/users/components/UsersList'
-import { UsersError, UsersLoading } from '../features/users/components/UsersStates'
+import { UsersError, UsersLoading } from '../features/users/components/UsersLoadingError'
 import { useUsersPage } from '../features/users/hooks/useUsersPage'
 
 // UsersPage – thin shell for /users: states + list shell.

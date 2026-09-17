@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
-import { useGetPresenceQuery } from './presenceApi'
-import { getPresenceSocket, disconnectPresenceSocket } from './socket'
-import type { PresenceInfo } from './presenceApi'
-import { useAuth } from '../auth/hooks/useAuth'
+import { useGetPresenceQuery } from '../presenceApi'
+import { getPresenceSocket, disconnectPresenceSocket } from '../socket'
+import type { PresenceInfo } from '../presenceApi'
+import { useAuth } from '../../auth/hooks/useAuth'
 
 function formatLastSeen(lastSeenAt: string | null): string | null {
   if (!lastSeenAt) return null

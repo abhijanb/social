@@ -1,8 +1,8 @@
 import type { PeerTile } from '../hooks/useLivestreamVideo'
 import { getGridCols } from '../layout'
 import LivestreamControls from './LivestreamControls'
-import VideoAvatar from './VideoAvatar'
-import VideoTile from './VideoTile'
+import LivestreamVideoAvatar from './LivestreamVideoAvatar'
+import LivestreamVideoTile from './LivestreamVideoTile'
 
 type Props = {
   localStream: MediaStream | null
@@ -36,9 +36,9 @@ export default function LivestreamVideoGrid({
       <div className={`grid gap-2 ${cols}`}>
         <div className="relative aspect-video overflow-hidden rounded-lg bg-zinc-900">
           {showLocalVideo && localStream ? (
-            <VideoTile stream={localStream} muted label="Your camera" />
+            <LivestreamVideoTile stream={localStream} muted label="Your camera" />
           ) : (
-            <VideoAvatar name={localName} />
+            <LivestreamVideoAvatar name={localName} />
           )}
           <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[11px] font-medium text-white">
             You {!micOn && '· muted'}
@@ -47,9 +47,9 @@ export default function LivestreamVideoGrid({
         {peers.map((peer) => (
           <div key={peer.socketId} className="relative aspect-video overflow-hidden rounded-lg bg-zinc-900">
             {peer.stream && peer.video ? (
-              <VideoTile stream={peer.stream} muted={false} label={`Video from ${peer.username}`} />
+              <LivestreamVideoTile stream={peer.stream} muted={false} label={`Video from ${peer.username}`} />
             ) : (
-              <VideoAvatar name={peer.username} />
+              <LivestreamVideoAvatar name={peer.username} />
             )}
             <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[11px] font-medium text-white">
               {peer.username} {!peer.audio && '· muted'}

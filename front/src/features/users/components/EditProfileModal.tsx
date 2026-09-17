@@ -1,6 +1,6 @@
 import { useEditProfile } from '../../users/hooks/useEditProfile'
 import AvatarField from './AvatarField'
-import ModalFooter from './ModalFooter'
+import EditProfileFooter from './EditProfileFooter'
 import ProfileFields from './ProfileFields'
 
 // EditProfileModal – edit bio + display name + avatar (username stays stable
@@ -78,14 +78,13 @@ export default function EditProfileModal({
           bioOver={bioOver}
         />
 
-        <ModalFooter
+        <EditProfileFooter
           error={error}
           isLoading={isLoading}
           canSave={canSave}
           onClose={onClose}
           onSave={handleSave}
-        />
-      </div>
+        />      </div>
     </div>
   )
 }

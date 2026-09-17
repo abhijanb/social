@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useGetMeQuery } from '../../users/usersApi'
 import { useGetFriendsQuery } from '../../friendship/friendshipApi'
-import { usePresence } from '../../presence/usePresence'
+import { usePresence } from '../../presence/hooks/usePresence'
 import { useAppDispatch } from '../../../app/hooks'
 import { isUnauthorizedError } from '../../../app/apiError'
 import { logout } from '../../auth/authSlice'

@@ -1,9 +1,9 @@
 import { useCallback, useRef, useState, type RefObject } from 'react'
-import { getLivestreamSocket } from '../../socket'
-import { ICE_SERVERS } from '../../signaling'
-import type { JoinPeers, SignalPayload } from '../../signaling'
-import type { PeerTile } from '../useLivestreamVideo'
-import { closeAllPeers, type PeerConn } from '../../webrtc/peerCleanup'
+import { getLivestreamSocket } from '../socket'
+import { ICE_SERVERS } from '../signaling'
+import type { JoinPeers, SignalPayload } from '../signaling'
+import type { PeerTile } from '../hooks/useLivestreamVideo'
+import { closeAllPeers, type PeerConn } from './peerCleanup'
 
 // usePeerMesh – full-mesh peer-connection map for one livestream, no JSX:
 // tiles + create/offer/renegotiate + perfect-negotiation-lite signal handling.

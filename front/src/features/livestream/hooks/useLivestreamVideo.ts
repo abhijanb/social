@@ -3,8 +3,8 @@ import { disconnectLivestreamSocket, getLivestreamSocket } from '../socket'
 import { acquireMedia } from '../media'
 import { emitJoin, waitForConnect } from '../signaling'
 import type { JoinPeers, SignalPayload } from '../signaling'
-import { usePeerMesh } from './webrtc/usePeerMesh'
-import { useLocalMedia } from './webrtc/useLocalMedia'
+import { usePeerMesh } from '../webrtc/usePeerMesh'
+import { useLocalMedia } from '../webrtc/useLocalMedia'
 
 export type PeerTile = {
   socketId: string

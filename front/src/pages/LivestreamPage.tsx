@@ -1,8 +1,8 @@
 import { Navigate } from 'react-router-dom'
-import LivestreamEmpty from '../features/livestream/components/LivestreamEmpty'
+import LivestreamEmptyState from '../features/livestream/components/LivestreamEmptyState'
 import LivestreamList from '../features/livestream/components/LivestreamList'
 import LivestreamRoom from '../features/livestream/components/LivestreamRoom'
-import LivestreamSelect from '../features/livestream/components/LivestreamSelect'
+import LivestreamPicker from '../features/livestream/components/LivestreamPicker'
 import StartLivestream from '../features/livestream/components/StartLivestream'
 import { useLivestreamPage } from '../features/livestream/hooks/useLivestreamPage'
 import { isUnauthorizedError } from '../app/apiError'
@@ -35,7 +35,7 @@ export default function LivestreamPage() {
 
         <div className="mt-4 flex flex-col gap-4 sm:flex-row">
           <div className="shrink-0 sm:w-80">
-            <LivestreamSelect streams={streams} activeId={activeId} onChange={setActiveId} />
+            <LivestreamPicker streams={streams} activeId={activeId} onChange={setActiveId} />
             <div className="hidden sm:block">
               <LivestreamList
                 streams={streams}
@@ -51,7 +51,7 @@ export default function LivestreamPage() {
             {activeStream ? (
               <LivestreamRoom key={activeStream.id} stream={activeStream} username={me?.username ?? '?'} />
             ) : (
-              <LivestreamEmpty hasStreams={streams.length > 0} />
+              <LivestreamEmptyState hasStreams={streams.length > 0} />
             )}
           </div>
         </div>

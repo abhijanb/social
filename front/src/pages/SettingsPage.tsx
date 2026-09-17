@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom'
-import { SettingsError, SettingsLoading } from '../features/users/components/SettingsStates'
+import { SettingsError, SettingsLoading } from '../features/users/components/SettingsLoadingError'
 import VisibilityToggle from '../features/users/components/VisibilityToggle'
 import { useSettings } from '../features/users/hooks/useSettings'
 import { isUnauthorizedError } from '../app/apiError'

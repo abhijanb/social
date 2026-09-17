@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { CountBadge, LiveDot } from './NavBadges'
-import { APP_LINKS, desktopLinkClass } from './navLinks'
+import { APP_LINKS, desktopLinkClass } from './NavLinks'
 
 // DesktopNav – dumb desktop pills for Navbar with request/live badges. No hooks here.
 export default function DesktopNav({ pendingCount, anyoneLive }: { pendingCount: number; anyoneLive: boolean }) {

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useChat } from '../useChat'
+import { useChat } from './useChat'
 import type { Message } from '../types'
 
 export function useActiveChat(activeId: string | null, currentUserId?: string) {

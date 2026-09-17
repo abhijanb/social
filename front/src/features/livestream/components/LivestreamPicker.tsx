@@ -1,7 +1,7 @@
 import type { Livestream } from '../livestreamApi'
 
-// LivestreamSelect – dumb mobile <select> for /live. Dumb: streams + value + onChange only.
-export default function LivestreamSelect({
+// LivestreamPicker – dumb mobile stream-picker <select> for /live: streams + value + onChange only.
+export default function LivestreamPicker({
   streams,
   activeId,
   onChange,

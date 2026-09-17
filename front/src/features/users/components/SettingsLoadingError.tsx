@@ -1,4 +1,4 @@
-// SettingsStates – dumb loading / error states for /settings. No hooks here.
+// SettingsLoadingError – dumb loading / error states for /settings. No hooks here.
 export function SettingsLoading() {
   return (
     <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-gray-50 dark:bg-[#16171d]">

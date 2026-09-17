@@ -1,7 +1,7 @@
 import { isUnauthorizedError } from '../../../app/apiError'
 
-// ModalFooter – dumb error + Cancel/Save for EditProfileModal. No hooks here.
-export default function ModalFooter({
+// EditProfileFooter – dumb error + Cancel/Save for EditProfileModal. No hooks here.
+export default function EditProfileFooter({
   error,
   isLoading,
   canSave,

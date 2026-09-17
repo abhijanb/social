@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useGetHistoryQuery, useSendMessageMutation, type ChatMessage } from './chatApi'
-import { getChatSocket, disconnectChatSocket } from './socket'
-import { useAuth } from '../auth/hooks/useAuth'
-import { useGetMeQuery } from '../users/usersApi'
-import { useAppDispatch } from '../../app/hooks'
-import { isUnauthorizedError } from '../../app/apiError'
-import { logout } from '../auth/authSlice'
+import { useGetHistoryQuery, useSendMessageMutation, type ChatMessage } from '../chatApi'
+import { getChatSocket, disconnectChatSocket } from '../socket'
+import { useAuth } from '../../auth/hooks/useAuth'
+import { useGetMeQuery } from '../../users/usersApi'
+import { useAppDispatch } from '../../../app/hooks'
+import { isUnauthorizedError } from '../../../app/apiError'
+import { logout } from '../../auth/authSlice'
 
 export function useChat(friendId: string | null) {
   const { isAuthenticated } = useAuth()

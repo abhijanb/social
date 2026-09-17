@@ -1,7 +1,7 @@
-import { useAppSelector } from '../app/hooks'
-import { useFriendRequests } from '../features/friendship/hooks/useFriendRequests'
-import { useGetLiveStreamsQuery } from '../features/livestream/livestreamApi'
-import { useOwnProfile } from '../features/users/hooks/useOwnProfile'
+import { useAppSelector } from '../../app/hooks'
+import { useFriendRequests } from '../../features/friendship/hooks/useFriendRequests'
+import { useGetLiveStreamsQuery } from '../../features/livestream/livestreamApi'
+import { useOwnProfile } from '../../features/users/hooks/useOwnProfile'
 
 // useNavbarBadges – badge + identity data for Navbar, no JSX.
 // Reuses cached RTK queries (skipped when logged out).

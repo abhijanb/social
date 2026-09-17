@@ -1,5 +1,5 @@
 import { useCallback, useState, type RefObject } from 'react'
-import type { PeerConn } from '../../webrtc/peerCleanup'
+import type { PeerConn } from './peerCleanup'
 
 // useLocalMedia – local camera/mic tracks for one livestream, no JSX.
 // Merges the near-identical toggleCamera/toggleMic acquire paths into one

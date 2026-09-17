@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
-// VideoTile – binds a MediaStream to a <video> element (external DOM sync). No other logic.
-export default function VideoTile({
+// LivestreamVideoTile – binds a MediaStream to a <video> element (external DOM sync). No other logic.
+export default function LivestreamVideoTile({
   stream,
   muted,
   label,
