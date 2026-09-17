@@ -54,6 +54,6 @@ export default function PostCarousel({ items, alt }: Props) {
           <CarouselDots count={count} active={safeIndex} onSelect={select} />
         </>
       )}
-    </div>
+    </div>  
   )
 }

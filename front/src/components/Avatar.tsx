@@ -1,5 +1,11 @@
 import { resolveImageUrl } from '../features/posts/resolvePostImage'
 
+// getInitials – first-letter avatar fallback, empty-safe ('?' for blank names).
+// Single source of truth (was copy-pasted into video tiles and chat mapping).
+export function getInitials(name: string): string {
+  return (name || '?').charAt(0).toUpperCase()
+}
+
 // Avatar – shared Instagram-style profile pic with initial-letter fallback.
 // Shows the uploaded image when avatarUrl resolves, otherwise the first
 // letter of username. object-cover keeps non-square uploads cropped.
@@ -22,7 +28,7 @@ export default function Avatar({
     lg: 'h-14 w-14 text-base',
     xl: 'h-20 w-20 text-2xl',
   } as const
-  const fallback = (username || '?').charAt(0).toUpperCase()
+  const fallback = getInitials(username)
   if (src) {
     return (
       <img

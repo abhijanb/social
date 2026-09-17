@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import Avatar from './Avatar'
+import Avatar, { getInitials } from './Avatar'
 import DesktopNav from './DesktopNav'
 import MobileTabBar from './MobileTabBar'
 import { LogoutIcon, SettingsIcon } from './NavbarIcons'
@@ -43,7 +43,7 @@ export default function Navbar() {
               ) : (
                 <span className="hidden items-center gap-2 rounded-full bg-gray-100 py-1 pl-1 pr-3 dark:bg-zinc-800 md:flex">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-[#aa3bff] text-[11px] font-semibold text-white">
-                    ?
+                    {getInitials(username ?? '')}
                   </span>
                 </span>
               )}

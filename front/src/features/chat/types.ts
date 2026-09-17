@@ -8,7 +8,6 @@ export type Message = {
 export type Conversation = {
   id: string
   username: string
-  avatar: string
   avatarUrl: string | null
   lastMessage: string
 }
