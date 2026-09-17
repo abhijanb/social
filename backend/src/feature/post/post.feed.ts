@@ -1,0 +1,69 @@
+import { prisma } from "../../lib/prisma.js";
+import { ensureCanView, getFriendIds } from "../../lib/friends.js";
+import { FEED_PAGE_SIZE, type FeedPage } from "./post.types.js";
+
+const authorSelect = { id: true, username: true, avatarUrl: true } as const;
+const imagesOrderBy = { order: "asc" } as const;
+export const postInclude = {
+  author: { select: authorSelect },
+  images: { orderBy: imagesOrderBy },
+  _count: {
+    select: { likes: true, comments: { where: { deletedAt: null } } },
+  },
+} as const;
+
+// Maps Prisma rows (with _count.likes + _count.comments) to PostWithAuthor,
+// resolving likedByMe with a single batched query per page.
+export async function withLikeState<
+  T extends { id: string; _count: { likes: number; comments: number } },
+>(rows: T[], meId: string) {
+  const liked =
+    rows.length > 0
+      ? await prisma.postLike.findMany({
+          where: { postId: { in: rows.map((r) => r.id) }, userId: meId },
+          select: { postId: true },
+        })
+      : [];
+  const likedIds = new Set(liked.map((l) => l.postId));
+  return rows.map(({ _count, ...rest }) => ({
+    ...rest,
+    likesCount: _count.likes,
+    commentsCount: _count.comments,
+    likedByMe: likedIds.has(rest.id),
+  }));
+}
+
+async function findPage(
+  meId: string,
+  authorIds: string[],
+  page = 1,
+): Promise<FeedPage> {
+  const p = Math.max(1, Math.floor(page) || 1);
+  const rows = await prisma.post.findMany({
+    where: { authorId: { in: authorIds } },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: (p - 1) * FEED_PAGE_SIZE,
+    take: FEED_PAGE_SIZE + 1,
+    include: postInclude,
+  });
+  const hasMore = rows.length > FEED_PAGE_SIZE;
+  const pageRows = hasMore ? rows.slice(0, FEED_PAGE_SIZE) : rows;
+  const posts = await withLikeState(pageRows, meId);
+  return { posts, nextPage: hasMore ? p + 1 : null };
+}
+
+// Port of PostService.getFeed — own + ACCEPTED friends' posts.
+export async function getFeed(meId: string, page = 1): Promise<FeedPage> {
+  const friendIds = await getFriendIds(meId);
+  return findPage(meId, [meId, ...friendIds], page);
+}
+
+// Port of PostService.getByAuthor — friends-only (403 for strangers).
+export async function getByAuthor(
+  meId: string,
+  authorId: string,
+  page = 1,
+): Promise<FeedPage> {
+  await ensureCanView(meId, authorId);
+  return findPage(meId, [authorId], page);
+}

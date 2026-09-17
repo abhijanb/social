@@ -1,0 +1,26 @@
+import { AppError } from "../../lib/errorHandler.js";
+import { prisma } from "../../lib/prisma.js";
+import { ensureCanView } from "../../lib/friends.js";
+
+// Toggle the viewer's like on a post — friends-only (same guard as
+// viewing; liking your own posts is allowed). Idempotent: liking twice
+// unlikes. Returns the new state plus the fresh count.
+export async function toggleLike(userId: string, postId: string) {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { id: true, authorId: true },
+  });
+  if (!post) throw new AppError("Post not found", 404);
+  await ensureCanView(userId, post.authorId);
+  const existing = await prisma.postLike.findUnique({
+    where: { postId_userId: { postId, userId } },
+    select: { id: true },
+  });
+  if (existing) {
+    await prisma.postLike.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.postLike.create({ data: { postId, userId } });
+  }
+  const likesCount = await prisma.postLike.count({ where: { postId } });
+  return { liked: !existing, likesCount };
+}

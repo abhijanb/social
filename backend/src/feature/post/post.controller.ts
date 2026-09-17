@@ -9,13 +9,16 @@ import {
 } from "../../lib/uploads.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import type { AuthRequest } from "../../middleware/auth.js";
-import { createPost, deletePost, getByAuthor, getByHashtag, getFeed, searchHashtags, toggleLike } from "./post.service.js";
+import { createPost, deletePost } from "./post.service.js";
+import { getByAuthor, getFeed } from "./post.feed.js";
+import { getByHashtag, searchHashtags } from "./post.hashtags.js";
+import { toggleLike } from "./post.likes.js";
 import {
   createPostComment,
   deletePostComment,
   listPostComments,
-} from "./post.service.js";
-import type { PostMediaInput } from "./post.service.js";
+} from "./post.comments.js";
+import type { PostMediaInput } from "./post.types.js";
 import {
   authorPostsQuerySchema,
   byHashtagQuerySchema,
