@@ -1,8 +1,8 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { useAppDispatch } from '../../../app/hooks'
 import { logout } from '../../auth/authSlice'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { useDeletePostMutation, useGetUserPostsQuery, type Post } from '../../posts/postsApi'
+import { useGetUserPostsQuery, type Post } from '../../posts/postsApi'
 import { useGetProfileQuery } from '../usersApi'
 import { useOwnProfile } from './useOwnProfile'
 import { isUnauthorizedError } from '../../../app/apiError'
@@ -18,7 +18,6 @@ export function useProfilePage(username: string) {
   const [page, setPage] = useState(1)
   const [chunks, setChunks] = useState<{ page: number; posts: Post[] }[]>([])
   const [prevUsername, setPrevUsername] = useState(username)
-  const [deletePost] = useDeletePostMutation()
 
   // Reset pagination when switching profiles (render-time guard, same as useFeed).
   if (prevUsername !== username) {
@@ -64,35 +63,13 @@ export function useProfilePage(username: string) {
   const visiblePosts = posts.length > 0 ? posts : (postsData?.posts ?? [])
   const nextPage = postsData?.nextPage ?? null
 
-  // Post deleted: drop it from collected chunks optimistically, revert on failure.
-  const handleDeleted = useCallback(
-    async (postId: string) => {
-      const prev = chunks
-      setChunks((prevChunks) =>
-        prevChunks.map((chunk) => ({
-          ...chunk,
-          posts: chunk.posts.filter((post) => post.id !== postId),
-        })),
-      )
-      try {
-        await deletePost({ postId }).unwrap()
-      } catch {
-        setChunks(prev)
-      }
-    },
-    [chunks, deletePost],
-  )
-
   return {
-    username,
-    isAuthenticated,
     profile,
     profileError,
     profileLoading,
     headerUser,
     relation,
     canView,
-    posts,
     visiblePosts,
     nextPage,
     postsError,
@@ -101,6 +78,5 @@ export function useProfilePage(username: string) {
     editing,
     setEditing,
     setPage,
-    handleDeleted,
   }
 }

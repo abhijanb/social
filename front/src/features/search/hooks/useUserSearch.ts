@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '../../auth/hooks/useAuth'
 import { useGetUsersQuery } from '../../users/usersApi'
 import { useDebounce } from './useDebounce'
 import type { User } from '../../users/usersApi'
@@ -8,7 +7,6 @@ import { isUnauthorizedError } from '../../../app/apiError'
 import { logout } from '../../auth/authSlice'
 
 export function useUserSearch() {
-  const { isAuthenticated, logout: doLogout } = useAuth()
   const dispatch = useAppDispatch()
   const [query, setQuery] = useState('')
   const debounced = useDebounce(query, 300)
@@ -24,7 +22,6 @@ export function useUserSearch() {
   }, [isSessionExpired, dispatch])
 
   return {
-    isAuthenticated: isAuthenticated && !isSessionExpired,
     query,
     setQuery,
     debouncedTrimmed: trimmed,
@@ -32,6 +29,5 @@ export function useUserSearch() {
     isLoading,
     error,
     isSessionExpired,
-    logout: doLogout,
   }
 }

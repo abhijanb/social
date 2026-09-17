@@ -54,7 +54,6 @@ export function useChatConversations() {
   return {
     currentUserId,
     conversations,
-    friendIds,
     activeId,
     setActiveId,
     filter,
@@ -62,7 +61,5 @@ export function useChatConversations() {
     isOnline,
     lastSeen,
     isLoadingFriends,
-    meError,
-    friendsError,
   }
 }

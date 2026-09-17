@@ -123,12 +123,10 @@ export function useTagFeed(rawTag: string) {
 
   return {
     tag,
-    isAuthenticated,
     visiblePosts,
     nextPage,
     isLoading,
     isFetching,
-    error,
     likePending,
     handleLoadMore,
     handleToggleLike,

@@ -134,7 +134,6 @@ export function useFeed() {
   )
 
   return {
-    isAuthenticated,
     posts,
     nextPage,
     isLoading,

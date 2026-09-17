@@ -38,12 +38,9 @@ export function useLivestreamPage() {
   }
 
   return {
-    isAuthenticated,
     me,
-    meError,
     streams,
     isLoading,
-    streamsError,
     myStream,
     activeStream,
     activeId,

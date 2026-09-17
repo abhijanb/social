@@ -25,7 +25,6 @@ export function useFriendRequests() {
   }, [meError, dispatch])
 
   const currentUserId = currentUser?.id
-  const username = currentUser?.username ?? ''
 
   const {
     data: pending,
@@ -61,8 +60,6 @@ export function useFriendRequests() {
   const decline = cancel
 
   return {
-    isAuthenticated,
-    username,
     currentUserId,
     isResolvingUser,
     pending,

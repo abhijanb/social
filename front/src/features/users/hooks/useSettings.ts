@@ -28,8 +28,6 @@ export function useSettings() {
   }
 
   return {
-    isAuthenticated,
-    me,
     isLoading,
     error,
     isPublic,

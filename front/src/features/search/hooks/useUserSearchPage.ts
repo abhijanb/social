@@ -8,8 +8,7 @@ import { useUserSearch } from './useUserSearch'
 // useUserSearchPage – all data + tab + friendship wiring for /search, no JSX.
 // Single hook so the page stays a thin shell like Feed/Tag/Profile.
 export function useUserSearchPage() {
-  const { isAuthenticated, query, setQuery, debouncedTrimmed, users, isLoading, error, isSessionExpired } =
-    useUserSearch()
+  const { query, setQuery, debouncedTrimmed, users, isLoading, error } = useUserSearch()
   const [tab, setTab] = useState<SearchTab>('people')
   const { tags, tagsLoading } = useTagSearch(debouncedTrimmed, tab === 'tags')
   const { currentUserId, pending, accept, cancel, decline, isRemoving, isAccepting } = useFriendRequests()
@@ -20,14 +19,12 @@ export function useUserSearchPage() {
   }
 
   return {
-    isAuthenticated,
     query,
     setQuery,
     debouncedTrimmed,
     users,
     isLoading,
     error,
-    isSessionExpired,
     tab,
     setTab,
     tags,
