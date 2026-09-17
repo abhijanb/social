@@ -1,4 +1,5 @@
 import { AppError } from "../../lib/errorHandler.js";
+import { listCommentsPage } from "../../lib/comments.js";
 import { ensureCanView, getFriendIds } from "../../lib/friends.js";
 import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
@@ -17,9 +18,6 @@ const streamInclude = {
 const commentInclude = {
   author: { select: commentAuthorSelect },
 } as const;
-
-/** Max comments returned per comments request (delta or initial page). */
-export const STREAM_COMMENTS_PAGE_SIZE = 100;
 
 // ensureCanWatch was unified into lib/friends ensureCanView (same guard,
 // "Not friends with the host" message preserved at call sites).
@@ -78,6 +76,7 @@ export async function listLive(meId: string) {
 // (oldest first); with sinceId returns only strictly newer comments for
 // cheap 1.5s incremental polling. cuids are not chronological, so the
 // cursor resolves to its timestamp with id as tiebreak.
+// Pagination shape lives in lib/comments; LIVE + friends guards stay here.
 export async function getComments(
   viewerId: string,
   streamId: string,
@@ -86,45 +85,40 @@ export async function getComments(
 ) {
   const stream = await getLiveStreamOrThrow(streamId);
   await ensureCanView(viewerId, stream.hostId, "Not friends with the host");
-  const n = Math.min(
-    STREAM_COMMENTS_PAGE_SIZE,
-    Math.max(1, Math.floor(limit) || 50),
-  );
-  if (!sinceId) {
-    const latest = await prisma.livestreamComment.findMany({
+  const fetchLatest = (take: number) =>
+    prisma.livestreamComment.findMany({
       where: { streamId },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: n,
+      take,
       include: commentInclude,
     });
-    return latest.reverse();
-  }
-  const cursor = await prisma.livestreamComment.findUnique({
-    where: { id: sinceId },
-    select: { createdAt: true, streamId: true },
-  });
-  // Unknown cursor (or one from another stream) → fall back to latest page
-  // so the poller self-heals instead of stalling.
-  if (!cursor || cursor.streamId !== streamId) {
-    const latest = await prisma.livestreamComment.findMany({
-      where: { streamId },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: n,
-      include: commentInclude,
-    });
-    return latest.reverse();
-  }
-  return prisma.livestreamComment.findMany({
-    where: {
-      streamId,
-      OR: [
-        { createdAt: { gt: cursor.createdAt } },
-        { createdAt: cursor.createdAt, id: { gt: sinceId } },
-      ],
+  return listCommentsPage({
+    sinceId,
+    limit,
+    scopeId: streamId,
+    fetchLatest,
+    fetchCursor: async (id) => {
+      const cursor = await prisma.livestreamComment.findUnique({
+        where: { id },
+        select: { createdAt: true, streamId: true },
+      });
+      // Unknown cursor (or one from another stream) → null falls back to
+      // the latest page so the poller self-heals instead of stalling.
+      return cursor ? { createdAt: cursor.createdAt, scopeId: cursor.streamId } : null;
     },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    take: n,
-    include: commentInclude,
+    fetchDelta: (take, createdAt, cursorId) =>
+      prisma.livestreamComment.findMany({
+        where: {
+          streamId,
+          OR: [
+            { createdAt: { gt: createdAt } },
+            { createdAt, id: { gt: cursorId } },
+          ],
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        take,
+        include: commentInclude,
+      }),
   });
 }
 

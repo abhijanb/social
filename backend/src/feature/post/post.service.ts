@@ -1,4 +1,5 @@
 import { AppError } from "../../lib/errorHandler.js";
+import { listCommentsPage } from "../../lib/comments.js";
 import { ensureCanView, getFriendIds } from "../../lib/friends.js";
 import { extractHashtags } from "../../lib/hashtags.js";
 import { prisma } from "../../lib/prisma.js";
@@ -56,9 +57,6 @@ export type FeedPage = {
   /** Next page number, or null when there are no more pages. */
   nextPage: number | null;
 };
-
-/** Max comments returned per comments request (delta or initial page). */
-export const POST_COMMENTS_PAGE_SIZE = 100;
 
 // Port of PostService.create — text, media, or both required.
 // Accepts up to MAX_POST_IMAGES attachments, any mix of images and
@@ -249,6 +247,7 @@ export async function createPostComment(
 
 // List comments on a post — friends-only. Without sinceId returns the
 // latest page (oldest first); with sinceId only strictly newer comments.
+// Pagination shape lives in lib/comments; soft-delete scoping stays here.
 export async function listPostComments(
   viewerId: string,
   postId: string,
@@ -257,44 +256,39 @@ export async function listPostComments(
 ) {
   const post = await getPostOrThrow(postId);
   await ensureCanView(viewerId, post.authorId);
-  const n = Math.min(
-    POST_COMMENTS_PAGE_SIZE,
-    Math.max(1, Math.floor(limit) || 50),
-  );
-  if (!sinceId) {
-    const latest = await prisma.postComment.findMany({
+  const fetchLatest = (take: number) =>
+    prisma.postComment.findMany({
       where: { postId, deletedAt: null },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: n,
+      take,
       include: commentInclude,
     });
-    return latest.reverse();
-  }
-  const cursor = await prisma.postComment.findUnique({
-    where: { id: sinceId },
-    select: { createdAt: true, postId: true },
-  });
-  if (!cursor || cursor.postId !== postId) {
-    const latest = await prisma.postComment.findMany({
-      where: { postId, deletedAt: null },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: n,
-      include: commentInclude,
-    });
-    return latest.reverse();
-  }
-  return prisma.postComment.findMany({
-    where: {
-      postId,
-      deletedAt: null,
-      OR: [
-        { createdAt: { gt: cursor.createdAt } },
-        { createdAt: cursor.createdAt, id: { gt: sinceId } },
-      ],
+  return listCommentsPage({
+    sinceId,
+    limit,
+    scopeId: postId,
+    fetchLatest,
+    fetchCursor: async (id) => {
+      const cursor = await prisma.postComment.findUnique({
+        where: { id },
+        select: { createdAt: true, postId: true },
+      });
+      return cursor ? { createdAt: cursor.createdAt, scopeId: cursor.postId } : null;
     },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    take: n,
-    include: commentInclude,
+    fetchDelta: (take, createdAt, cursorId) =>
+      prisma.postComment.findMany({
+        where: {
+          postId,
+          deletedAt: null,
+          OR: [
+            { createdAt: { gt: createdAt } },
+            { createdAt, id: { gt: cursorId } },
+          ],
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        take,
+        include: commentInclude,
+      }),
   });
 }
 
