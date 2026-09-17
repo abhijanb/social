@@ -1,45 +1,9 @@
 import { baseApi } from '../../app/baseApi'
-import type { ApiMiniUser, MediaKind } from '../../app/apiTypes'
+import type { FeedPage, Post, PostComment } from './types'
 
-export type PostAuthor = ApiMiniUser
-
-export type PostMediaKind = MediaKind
-
-export type PostImage = {
-  id: string
-  url: string
-  kind: PostMediaKind
-  order: number
-}
-
-export type Post = {
-  id: string
-  authorId: string
-  text: string
-  images: PostImage[]
-  likesCount: number
-  likedByMe: boolean
-  commentsCount: number
-  createdAt: string
-  author: PostAuthor
-}
-
-export type PostComment = {
-  id: string
-  postId: string
-  authorId: string
-  text: string
-  createdAt: string
-  author: PostAuthor
-}
+export type { FeedPage, Post, PostAuthor, PostComment, PostImage, PostMediaKind } from './types'
 
 export const MAX_POST_IMAGES = 10
-
-export type FeedPage = {
-  posts: Post[]
-  /** Next page number, or null when there are no more pages. */
-  nextPage: number | null
-}
 
 export const postsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
