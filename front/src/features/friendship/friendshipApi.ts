@@ -1,12 +1,9 @@
 import { baseApi } from "../../app/baseApi"
+import type { ApiMiniUser } from "../../app/apiTypes"
 
 export type FriendshipStatus = 'PENDING' | 'ACCEPTED' | 'BLOCKED'
 
-export interface FriendshipUser {
-  id: string
-  username: string
-  avatarUrl: string | null
-}
+export type FriendshipUser = ApiMiniUser
 
 export interface FriendshipPending {
   id: string

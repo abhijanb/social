@@ -1,10 +1,7 @@
 import { baseApi } from '../../app/baseApi'
+import type { ApiMiniUser } from '../../app/apiTypes'
 
-export type LivestreamHost = {
-  id: string
-  username: string
-  avatarUrl: string | null
-}
+export type LivestreamHost = ApiMiniUser
 
 export type Livestream = {
   id: string

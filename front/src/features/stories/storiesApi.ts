@@ -1,12 +1,9 @@
 import { baseApi } from '../../app/baseApi'
+import type { ApiMiniUser, MediaKind } from '../../app/apiTypes'
 
-export type StoryAuthor = {
-  id: string
-  username: string
-  avatarUrl: string | null
-}
+export type StoryAuthor = ApiMiniUser
 
-export type StoryMediaKind = 'IMAGE' | 'VIDEO'
+export type StoryMediaKind = MediaKind
 
 export type Story = {
   id: string

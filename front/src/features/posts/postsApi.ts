@@ -1,12 +1,9 @@
 import { baseApi } from '../../app/baseApi'
+import type { ApiMiniUser, MediaKind } from '../../app/apiTypes'
 
-export type PostAuthor = {
-  id: string
-  username: string
-  avatarUrl: string | null
-}
+export type PostAuthor = ApiMiniUser
 
-export type PostMediaKind = 'IMAGE' | 'VIDEO'
+export type PostMediaKind = MediaKind
 
 export type PostImage = {
   id: string
