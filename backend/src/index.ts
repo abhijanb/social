@@ -17,6 +17,8 @@ import { storyRouter } from "./feature/story/story.route.js";
 import { cleanupExpired } from "./feature/story/story.service.js";
 import { userRouter } from "./feature/user/user.route.js";
 import { errorMiddleware } from "./middleware/error.js";
+import { startSchedules } from "./schedule/core/scheduler.js";
+import { schedules } from "./schedule/jobs/index.js";
 import {
   getChatNamespace,
   getLivestreamNamespace,
@@ -79,6 +81,9 @@ setInterval(
   },
   60 * 60 * 1000,
 ).unref?.();
+
+// Cron schedules (soft-delete purge daily 2am, …). Overlap-safe, unref'd.
+startSchedules(schedules);
 
 const rawPort = (process.env.PORT ?? "").trim();
 const parsedPort = rawPort.length > 0 ? Number(rawPort) : Number.NaN;

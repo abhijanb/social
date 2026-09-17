@@ -122,6 +122,7 @@ model PostComment {
   @@index([postId, createdAt])
   @@index([postId, id])
   @@index([postId, deletedAt, createdAt])
+  @@index([deletedAt])
 }
 
 enum PostMediaKind {

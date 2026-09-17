@@ -104,3 +104,17 @@ export async function deletePostComment(
   });
   return { id: commentId };
 }
+
+// Hard-delete soft-deleted comments older than the retention window
+// (default 30 days). Comments hold text only — no files or children —
+// so row removal is side-effect free. Runs from the soft-delete-purge
+// schedule; also safe to call manually.
+export async function purgeDeletedComments(
+  olderThanDays = 30,
+): Promise<{ deleted: number }> {
+  const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
+  const res = await prisma.postComment.deleteMany({
+    where: { deletedAt: { lte: cutoff } },
+  });
+  return { deleted: res.count };
+}
