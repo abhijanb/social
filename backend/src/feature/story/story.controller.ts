@@ -1,11 +1,14 @@
 import type { Response } from "express";
-import { unlink } from "node:fs/promises";
-import { join } from "node:path";
 import { AppError } from "../../lib/errorHandler.js";
 import { responseCreated, responseSuccess } from "../../lib/response.js";
+import {
+  deleteUploadFiles,
+  deleteUploadUrls,
+  findOversizedImage,
+  uploadUrl,
+} from "../../lib/uploads.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import type { AuthRequest } from "../../middleware/auth.js";
-import { MAX_IMAGE_BYTES } from "../post/post.upload.js";
 import {
   cleanupExpired,
   createStory,
@@ -29,14 +32,12 @@ export async function createStoryController(req: AuthRequest, res: Response) {
   const dto = validateOrThrow(createStorySchema, req.body);
   const file = (req as AuthRequest & { file?: Express.Multer.File }).file;
   if (!file) throw new AppError("Story needs an image or video", 400);
-  if (!file.mimetype.startsWith("video/") && file.size > MAX_IMAGE_BYTES) {
-    await unlink(join(process.cwd(), "uploads", file.filename)).catch(
-      () => {},
-    );
+  if (findOversizedImage([file])) {
+    await deleteUploadFiles([file.filename]);
     throw new AppError("Image too large (max 5MB per image)", 400);
   }
   const media = {
-    url: `/uploads/${file.filename}`,
+    url: uploadUrl(file.filename),
     kind: (file.mimetype.startsWith("video/")
       ? "VIDEO"
       : "IMAGE") as StoryMediaKindDto,
@@ -70,9 +71,7 @@ export async function deleteStoryController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(storyIdParamSchema, req.params);
   const { url } = await deleteStory(req.user.id, id);
-  if (url.startsWith("/uploads/")) {
-    await unlink(join(process.cwd(), url.slice(1))).catch(() => {});
-  }
+  await deleteUploadUrls([url]);
   return responseSuccess(res, { id }, "Story deleted");
 }
 

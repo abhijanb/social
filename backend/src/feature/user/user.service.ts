@@ -1,8 +1,7 @@
 import * as bcrypt from "bcrypt";
-import { unlink } from "node:fs/promises";
-import { join } from "node:path";
 import { AppError } from "../../lib/errorHandler.js";
 import { getFriendIds } from "../../lib/friends.js";
+import { deleteUploadUrls } from "../../lib/uploads.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import { prisma } from "../../lib/prisma.js";
 import { stripPassword } from "../../lib/stripPassword.js";
@@ -163,7 +162,7 @@ export async function removeUser(id: string) {
     throw error;
   }
   const oldUrl = existing?.avatarUrl;
-  if (oldUrl && oldUrl.startsWith("/uploads/")) {
-    await unlink(join(process.cwd(), oldUrl.slice(1))).catch(() => {});
+  if (oldUrl) {
+    await deleteUploadUrls([oldUrl]);
   }
 }

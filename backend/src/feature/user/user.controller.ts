@@ -1,9 +1,12 @@
 import type { Response } from "express";
-import { unlink } from "node:fs/promises";
-import { join } from "node:path";
 import { AppError } from "../../lib/errorHandler.js";
 import { prisma } from "../../lib/prisma.js";
 import { responseSuccess } from "../../lib/response.js";
+import {
+  deleteUploadFiles,
+  deleteUploadUrls,
+  uploadUrl,
+} from "../../lib/uploads.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import type { AuthRequest } from "../../middleware/auth.js";
 import {
@@ -72,9 +75,9 @@ export async function updateMeController(req: AuthRequest, res: Response) {
   // or removeAvatar.
   delete body.avatarUrl;
 
-  const newAvatarUrl = file ? `/uploads/${file.filename}` : undefined;
+  const newAvatarUrl = file ? uploadUrl(file.filename) : undefined;
   const unlinkNew = () =>
-    file ? unlink(join(process.cwd(), "uploads", file.filename)).catch(() => {}) : Promise.resolve();
+    file ? deleteUploadFiles([file.filename]) : Promise.resolve();
 
   // Snapshot the old avatar so it can be cleaned up after replace/clear.
   const current = await prisma.user.findUnique({
@@ -99,8 +102,8 @@ export async function updateMeController(req: AuthRequest, res: Response) {
     const oldUrl = current.avatarUrl;
     const changed =
       newAvatarUrl !== undefined || body.removeAvatar === true;
-    if (changed && oldUrl && oldUrl.startsWith("/uploads/") && oldUrl !== newAvatarUrl) {
-      await unlink(join(process.cwd(), oldUrl.slice(1))).catch(() => {});
+    if (changed && oldUrl && oldUrl !== newAvatarUrl) {
+      await deleteUploadUrls([oldUrl]);
     }
     return responseSuccess(res, user);
   } catch (err) {

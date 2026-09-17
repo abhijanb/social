@@ -1,8 +1,12 @@
 import type { Response } from "express";
-import { unlink } from "node:fs/promises";
-import { join } from "node:path";
 import { AppError } from "../../lib/errorHandler.js";
 import { responseCreated, responseSuccess } from "../../lib/response.js";
+import {
+  deleteUploadFiles,
+  deleteUploadUrls,
+  findOversizedImage,
+  uploadUrl,
+} from "../../lib/uploads.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import type { AuthRequest } from "../../middleware/auth.js";
 import { createPost, deletePost, getByAuthor, getByHashtag, getFeed, searchHashtags, toggleLike } from "./post.service.js";
@@ -22,7 +26,6 @@ import {
   postCommentsQuerySchema,
   postIdParamSchema,
 } from "./post.schema.js";
-import { MAX_IMAGE_BYTES } from "./post.upload.js";
 
 // POST /post — multipart text + optional media attachments (up to 10,
 // any mix of images/videos, uploadImage runs first).
@@ -35,17 +38,13 @@ export async function createPostController(req: AuthRequest, res: Response) {
   // Multer caps every file at the video limit; enforce the tighter
   // image cap here. On failure delete the just-uploaded files so
   // rejected uploads don't leave orphans on disk.
-  const oversized = list.find(
-    (f) => !f.mimetype.startsWith("video/") && f.size > MAX_IMAGE_BYTES,
-  );
+  const oversized = findOversizedImage(list);
   if (oversized) {
-    await Promise.allSettled(
-      list.map((f) => unlink(join(process.cwd(), "uploads", f.filename))),
-    );
+    await deleteUploadFiles(list.map((f) => f.filename));
     throw new AppError("Image too large (max 5MB per image)", 400);
   }
   const media: PostMediaInput[] = list.map((f) => ({
-    url: `/uploads/${f.filename}`,
+    url: uploadUrl(f.filename),
     kind: f.mimetype.startsWith("video/") ? "VIDEO" : "IMAGE",
   }));
   const post = await createPost(req.user.id, dto.text, media);
@@ -131,11 +130,7 @@ export async function deletePostController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(postIdParamSchema, req.params);
   const { urls } = await deletePost(req.user.id, id);
-  await Promise.allSettled(
-    urls
-      .filter((url) => url.startsWith("/uploads/"))
-      .map((url) => unlink(join(process.cwd(), url.slice(1)))),
-  );
+  await deleteUploadUrls(urls);
   return responseSuccess(res, { id }, "Post deleted");
 }
 
