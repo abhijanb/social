@@ -4,15 +4,17 @@ import { responseCreated, responseSuccess } from "../../lib/response.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import type { AuthRequest } from "../../middleware/auth.js";
 import {
-  acceptFriendship,
-  createFriendship,
   findAllFriendships,
   findFriends,
   findFriendshipById,
   findPending,
+} from "./friendship.queries.js";
+import {
+  acceptFriendship,
+  createFriendship,
   removeFriendship,
   updateFriendship,
-} from "./friendship.service.js";
+} from "./friendship.requests.js";
 import {
   friendshipIdParamSchema,
   friendshipListQuerySchema,
