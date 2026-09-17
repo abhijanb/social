@@ -26,6 +26,7 @@ model User {
   posts            Post[]       @relation("UserPosts")
   postLikes        PostLike[]
   postComments     PostComment[]
+  savedPosts       PostSave[]
   stories          Story[]      @relation("UserStories")
   storyViews       StoryView[]  @relation("StoryViews")
   hostedStreams    Livestream[] @relation("HostedStreams")
@@ -58,6 +59,7 @@ model Post {
   likes  PostLike[]
   comments PostComment[]
   hashtags PostHashtag[]
+  saves  PostSave[]
 
   @@index([authorId, createdAt])
   @@index([createdAt])
@@ -93,6 +95,20 @@ model PostLike {
 
   @@unique([postId, userId])
   @@index([postId])
+}
+
+model PostSave {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId, createdAt])
 }
 
 model PostImage {
