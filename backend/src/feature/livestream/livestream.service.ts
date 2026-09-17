@@ -1,4 +1,5 @@
 import { AppError } from "../../lib/errorHandler.js";
+import { ensureCanView, getFriendIds } from "../../lib/friends.js";
 import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import {
@@ -20,34 +21,8 @@ const commentInclude = {
 /** Max comments returned per comments request (delta or initial page). */
 export const STREAM_COMMENTS_PAGE_SIZE = 100;
 
-async function getFriendIds(userId: string): Promise<string[]> {
-  const friendships = await prisma.friendship.findMany({
-    where: {
-      status: "ACCEPTED",
-      OR: [{ requesterId: userId }, { addresseeId: userId }],
-    },
-    select: { requesterId: true, addresseeId: true },
-  });
-  return friendships.map((f) =>
-    f.requesterId === userId ? f.addresseeId : f.requesterId,
-  );
-}
-
-// Friends-only guard for watching/commenting. The host always passes;
-// anyone else needs an ACCEPTED friendship with the host.
-async function ensureCanWatch(viewerId: string, hostId: string): Promise<void> {
-  if (viewerId === hostId) return;
-  const friendship = await prisma.friendship.findFirst({
-    where: {
-      status: "ACCEPTED",
-      OR: [
-        { requesterId: viewerId, addresseeId: hostId },
-        { requesterId: hostId, addresseeId: viewerId },
-      ],
-    },
-  });
-  if (!friendship) throw new AppError("Not friends with the host", 403);
-}
+// ensureCanWatch was unified into lib/friends ensureCanView (same guard,
+// "Not friends with the host" message preserved at call sites).
 
 async function getLiveStreamOrThrow(streamId: string) {
   const stream = await prisma.livestream.findUnique({
@@ -110,7 +85,7 @@ export async function getComments(
   limit = 50,
 ) {
   const stream = await getLiveStreamOrThrow(streamId);
-  await ensureCanWatch(viewerId, stream.hostId);
+  await ensureCanView(viewerId, stream.hostId, "Not friends with the host");
   const n = Math.min(
     STREAM_COMMENTS_PAGE_SIZE,
     Math.max(1, Math.floor(limit) || 50),
@@ -161,7 +136,7 @@ export async function sendComment(
 ) {
   const dto = validateOrThrow(sendStreamCommentSchema, input);
   const stream = await getLiveStreamOrThrow(streamId);
-  await ensureCanWatch(authorId, stream.hostId);
+  await ensureCanView(authorId, stream.hostId, "Not friends with the host");
   return prisma.livestreamComment.create({
     data: { streamId, authorId, text: dto.text },
     include: commentInclude,

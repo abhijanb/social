@@ -1,4 +1,5 @@
 import { AppError } from "../../lib/errorHandler.js";
+import { ensureCanView } from "../../lib/friends.js";
 import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import { sendMessageSchema } from "./chat.schema.js";
@@ -12,16 +13,7 @@ async function ensureFriends(
   if (senderId === receiverId) {
     throw new AppError("Cannot message yourself", 400);
   }
-  const friendship = await prisma.friendship.findFirst({
-    where: {
-      status: "ACCEPTED",
-      OR: [
-        { requesterId: senderId, addresseeId: receiverId },
-        { requesterId: receiverId, addresseeId: senderId },
-      ],
-    },
-  });
-  if (!friendship) throw new AppError("Not friends", 403);
+  await ensureCanView(senderId, receiverId);
   const receiver = await prisma.user.findUnique({
     where: { id: receiverId },
   });

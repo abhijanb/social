@@ -2,6 +2,7 @@ import * as bcrypt from "bcrypt";
 import { unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { AppError } from "../../lib/errorHandler.js";
+import { getFriendIds } from "../../lib/friends.js";
 import { Prisma } from "../../generated/prisma/client.js";
 import { prisma } from "../../lib/prisma.js";
 import { stripPassword } from "../../lib/stripPassword.js";
@@ -19,16 +20,7 @@ export async function findAll(
 ) {
   let friendIds: string[] = [];
   if (currentUserId) {
-    const friendships = await prisma.friendship.findMany({
-      where: {
-        status: "ACCEPTED",
-        OR: [{ requesterId: currentUserId }, { addresseeId: currentUserId }],
-      },
-      select: { requesterId: true, addresseeId: true },
-    });
-    friendIds = friendships.map((f) =>
-      f.requesterId === currentUserId ? f.addresseeId : f.requesterId,
-    );
+    friendIds = await getFriendIds(currentUserId);
   }
 
   const excludeIds = [...(currentUserId ? [currentUserId] : []), ...friendIds];

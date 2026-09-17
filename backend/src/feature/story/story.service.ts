@@ -1,4 +1,5 @@
 import { AppError } from "../../lib/errorHandler.js";
+import { ensureCanView, getFriendIds } from "../../lib/friends.js";
 import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import { createStorySchema } from "./story.schema.js";
@@ -34,36 +35,6 @@ export type StoryFeedGroup = {
 export const STORY_TTL_MS = 24 * 60 * 60 * 1000;
 /** Cap of active stories per user to avoid spam. */
 export const MAX_ACTIVE_STORIES = 20;
-
-async function getFriendIds(userId: string): Promise<string[]> {
-  const friendships = await prisma.friendship.findMany({
-    where: {
-      status: "ACCEPTED",
-      OR: [{ requesterId: userId }, { addresseeId: userId }],
-    },
-    select: { requesterId: true, addresseeId: true },
-  });
-  return friendships.map((f) =>
-    f.requesterId === userId ? f.addresseeId : f.requesterId,
-  );
-}
-
-async function ensureCanView(
-  viewerId: string,
-  authorId: string,
-): Promise<void> {
-  if (viewerId === authorId) return;
-  const friendship = await prisma.friendship.findFirst({
-    where: {
-      status: "ACCEPTED",
-      OR: [
-        { requesterId: viewerId, addresseeId: authorId },
-        { requesterId: authorId, addresseeId: viewerId },
-      ],
-    },
-  });
-  if (!friendship) throw new AppError("Not friends", 403);
-}
 
 type StoryRow = {
   id: string;

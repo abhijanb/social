@@ -1,4 +1,5 @@
 import { AppError } from "../../lib/errorHandler.js";
+import { ensureCanView, getFriendIds } from "../../lib/friends.js";
 import { extractHashtags } from "../../lib/hashtags.js";
 import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
@@ -58,36 +59,6 @@ export type FeedPage = {
 
 /** Max comments returned per comments request (delta or initial page). */
 export const POST_COMMENTS_PAGE_SIZE = 100;
-
-async function getFriendIds(userId: string): Promise<string[]> {
-  const friendships = await prisma.friendship.findMany({
-    where: {
-      status: "ACCEPTED",
-      OR: [{ requesterId: userId }, { addresseeId: userId }],
-    },
-    select: { requesterId: true, addresseeId: true },
-  });
-  return friendships.map((f) =>
-    f.requesterId === userId ? f.addresseeId : f.requesterId,
-  );
-}
-
-async function ensureCanView(
-  viewerId: string,
-  authorId: string,
-): Promise<void> {
-  if (viewerId === authorId) return;
-  const friendship = await prisma.friendship.findFirst({
-    where: {
-      status: "ACCEPTED",
-      OR: [
-        { requesterId: viewerId, addresseeId: authorId },
-        { requesterId: authorId, addresseeId: viewerId },
-      ],
-    },
-  });
-  if (!friendship) throw new AppError("Not friends", 403);
-}
 
 // Port of PostService.create — text, media, or both required.
 // Accepts up to MAX_POST_IMAGES attachments, any mix of images and

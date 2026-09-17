@@ -1,5 +1,6 @@
 import type { Socket } from "socket.io";
 import { AppError } from "../../lib/errorHandler.js";
+import { ensureCanView } from "../../lib/friends.js";
 import { verifyToken } from "../../lib/jwt.js";
 import { prisma } from "../../lib/prisma.js";
 import {
@@ -46,18 +47,8 @@ async function getJoinContext(
   });
   if (!stream || stream.status !== "LIVE")
     throw new AppError("Stream ended or not found", 404);
-  if (userId !== stream.hostId) {
-    const friendship = await prisma.friendship.findFirst({
-      where: {
-        status: "ACCEPTED",
-        OR: [
-          { requesterId: userId, addresseeId: stream.hostId },
-          { requesterId: stream.hostId, addresseeId: userId },
-        ],
-      },
-    });
-    if (!friendship) throw new AppError("Not friends with the host", 403);
-  }
+  // Host always passes (shared guard self-passes); friends need ACCEPTED.
+  await ensureCanView(userId, stream.hostId, "Not friends with the host");
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { username: true },
