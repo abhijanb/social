@@ -1,5 +1,6 @@
 import type { FriendshipPending } from '../friendshipApi'
 import FriendRequestItem from './FriendRequestItem'
+import FriendRequestListStates from './FriendRequestListStates'
 
 type Props = {
   title: string
@@ -15,6 +16,8 @@ type Props = {
   emptyMessage?: string
 }
 
+// FriendRequestList – thin shell: titled card + status screens + rows.
+// States live in FriendRequestListStates, rows in FriendRequestItem.
 export default function FriendRequestList({
   title,
   items,
@@ -34,19 +37,13 @@ export default function FriendRequestList({
         {title} <span className="font-normal text-gray-500 dark:text-zinc-400">({items.length})</span>
       </h2>
 
-      {isLoading && <p className="py-4 text-center text-sm text-gray-500 dark:text-zinc-400">Loading...</p>}
-
-      {!!error && !isLoading && (
-        <p className="py-4 text-center text-sm text-red-600 dark:text-red-400">Failed to load requests</p>
-      )}
-
-      {!isLoading && !error && items.length === 0 && (
-        <p className="py-4 text-center text-sm text-gray-500 dark:text-zinc-400">
-          {emptyMessage ?? `No ${type} requests`}
-        </p>
-      )}
-
-      {!isLoading && !error && items.length > 0 && (
+      {isLoading ? (
+        <FriendRequestListStates status="loading" />
+      ) : error ? (
+        <FriendRequestListStates status="error" />
+      ) : items.length === 0 ? (
+        <FriendRequestListStates status="empty" emptyMessage={emptyMessage} type={type} />
+      ) : (
         <ul className="space-y-2">
           {items.map((item) => (
             <FriendRequestItem
