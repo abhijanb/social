@@ -7,6 +7,7 @@ import HashtagText from './HashtagText'
 import LikeButton from './LikeButton'
 import PostCarousel from './PostCarousel'
 import PostMenu from './PostMenu'
+import SaveButton from './SaveButton'
 
 // PostCard – Instagram-style post: header with ring avatar, username and
 // time on one line; media full-bleed edge-to-edge; like unit and text
@@ -15,6 +16,8 @@ export default function PostCard({
   post,
   onToggleLike,
   likePending = false,
+  onToggleSave,
+  savePending = false,
   onCommentAdded,
   onCommentDeleted,
   onPostDeleted,
@@ -22,6 +25,8 @@ export default function PostCard({
   post: Post
   onToggleLike?: (postId: string) => void
   likePending?: boolean
+  onToggleSave?: (postId: string) => void
+  savePending?: boolean
   onCommentAdded?: (postId: string) => void
   onCommentDeleted?: (postId: string) => void
   onPostDeleted?: (postId: string) => void
@@ -71,6 +76,16 @@ export default function PostCard({
         hasCaption={!!post.text}
         onToggleLike={onToggleLike}
         likePending={likePending}
+        actionRight={
+          onToggleSave ? (
+            <SaveButton
+              postId={post.id}
+              savedByMe={post.savedByMe ?? false}
+              onToggleSave={onToggleSave}
+              savePending={savePending}
+            />
+          ) : undefined
+        }
       />
       {post.text && (
         <p className="whitespace-pre-wrap break-words px-4 pb-3 pt-1 text-sm leading-relaxed text-gray-900 dark:text-zinc-100">

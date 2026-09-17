@@ -13,23 +13,37 @@ export const postInclude = {
 } as const;
 
 // Maps Prisma rows (with _count.likes + _count.comments) to PostWithAuthor,
-// resolving likedByMe with a single batched query per page.
-export async function withLikeState<
+// resolving viewer-specific likedByMe/savedByMe with batched queries per page.
+export async function withViewerState<
   T extends { id: string; _count: { likes: number; comments: number } },
 >(rows: T[], meId: string) {
-  const liked =
-    rows.length > 0
-      ? await prisma.postLike.findMany({
-          where: { postId: { in: rows.map((r) => r.id) }, userId: meId },
-          select: { postId: true },
-        })
-      : [];
+  if (rows.length === 0) {
+    return rows.map(({ _count, ...rest }) => ({
+      ...rest,
+      likesCount: _count.likes,
+      commentsCount: _count.comments,
+      likedByMe: false,
+      savedByMe: false,
+    }));
+  }
+  const [liked, saved] = await Promise.all([
+    prisma.postLike.findMany({
+      where: { postId: { in: rows.map((r) => r.id) }, userId: meId },
+      select: { postId: true },
+    }),
+    prisma.postSave.findMany({
+      where: { postId: { in: rows.map((r) => r.id) }, userId: meId },
+      select: { postId: true },
+    }),
+  ]);
   const likedIds = new Set(liked.map((l) => l.postId));
+  const savedIds = new Set(saved.map((s) => s.postId));
   return rows.map(({ _count, ...rest }) => ({
     ...rest,
     likesCount: _count.likes,
     commentsCount: _count.comments,
     likedByMe: likedIds.has(rest.id),
+    savedByMe: savedIds.has(rest.id),
   }));
 }
 
@@ -48,7 +62,7 @@ async function findPage(
   });
   const hasMore = rows.length > FEED_PAGE_SIZE;
   const pageRows = hasMore ? rows.slice(0, FEED_PAGE_SIZE) : rows;
-  const posts = await withLikeState(pageRows, meId);
+  const posts = await withViewerState(pageRows, meId);
   return { posts, nextPage: hasMore ? p + 1 : null };
 }
 

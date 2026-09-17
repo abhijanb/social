@@ -20,6 +20,7 @@ export type Post = {
   images: PostImage[]
   likesCount: number
   likedByMe: boolean
+  savedByMe: boolean
   commentsCount: number
   createdAt: string
   author: PostAuthor

@@ -6,6 +6,8 @@ type Props = {
   hasCaption: boolean
   onToggleLike?: (postId: string) => void
   likePending?: boolean
+  /** Right-aligned action (e.g. save button) sharing the like row. */
+  actionRight?: React.ReactNode
 }
 
 // LikeButton – Instagram-style like unit: heart button + likes count.
@@ -17,10 +19,11 @@ export default function LikeButton({
   hasCaption,
   onToggleLike,
   likePending = false,
+  actionRight,
 }: Props) {
   return (
     <>
-      <div className="flex items-center gap-1 px-3 pt-2">
+      <div className={`flex items-center gap-1 px-3 pt-2 ${actionRight ? 'justify-between' : ''}`}>
         <button
           onClick={() => onToggleLike?.(postId)}
           disabled={!onToggleLike || likePending}
@@ -36,6 +39,7 @@ export default function LikeButton({
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
           </svg>
         </button>
+        {actionRight}
       </div>
       {likesCount > 0 && (
         <p className={`px-4 pt-1 text-sm font-semibold text-gray-900 dark:text-white ${hasCaption ? '' : 'pb-3'}`}>

@@ -13,6 +13,7 @@ import { createPost, deletePost } from "./post.service.js";
 import { getByAuthor, getFeed } from "./post.feed.js";
 import { getByHashtag, searchHashtags } from "./post.hashtags.js";
 import { toggleLike } from "./post.likes.js";
+import { getSavedPosts, toggleSave } from "./post.saves.js";
 import {
   createPostComment,
   deletePostComment,
@@ -67,6 +68,22 @@ export async function toggleLikeController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(postIdParamSchema, req.params);
   return responseSuccess(res, await toggleLike(req.user.id, id));
+}
+
+// POST /post/:id/save — toggle the viewer's save (friends-only, same
+// guard as viewing; self-saves allowed). Returns { saved } — no count,
+// saves are fully private.
+export async function toggleSaveController(req: AuthRequest, res: Response) {
+  if (!req.user) throw new AppError("Not authenticated", 401);
+  const { id } = validateOrThrow(postIdParamSchema, req.params);
+  return responseSuccess(res, await toggleSave(req.user.id, id));
+}
+
+// GET /post/saved?page= — viewer's own saved posts, newest save first.
+export async function getSavedPostsController(req: AuthRequest, res: Response) {
+  if (!req.user) throw new AppError("Not authenticated", 401);
+  const { page } = validateOrThrow(feedQuerySchema, req.query);
+  return responseSuccess(res, await getSavedPosts(req.user.id, Number(page)));
 }
 
 // GET /post?authorId=&page= — friends-only author timeline.

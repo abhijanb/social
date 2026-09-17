@@ -4,7 +4,7 @@ import { isUnauthorizedError } from '../../../app/apiError'
 import { logout } from '../../auth/authSlice'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useGetTagPostsQuery } from '../hashtagsApi'
-import { useDeletePostMutation, useToggleLikeMutation, type Post } from '../postsApi'
+import { useDeletePostMutation, useToggleLikeMutation, useToggleSaveMutation, type Post } from '../postsApi'
 
 type PageChunk = { page: number; posts: Post[]; nextPage: number | null }
 
@@ -20,7 +20,9 @@ export function useTagFeed(rawTag: string) {
   const [chunks, setChunks] = useState<PageChunk[]>([])
   const [prevTag, setPrevTag] = useState(tag)
   const [likePending, setLikePending] = useState<Set<string>>(new Set())
+  const [savePending, setSavePending] = useState<Set<string>>(new Set())
   const [toggleLike] = useToggleLikeMutation()
+  const [toggleSave] = useToggleSaveMutation()
   const [deletePost] = useDeletePostMutation()
 
   // Reset pagination when switching tags (render-time guard, same as useFeed).
@@ -89,6 +91,28 @@ export function useTagFeed(rawTag: string) {
     [chunks, likePending, patchPost, toggleLike],
   )
 
+  const handleToggleSave = useCallback(
+    async (postId: string) => {
+      const current = chunks.flatMap((c) => c.posts).find((p) => p.id === postId)
+      if (!current || savePending.has(postId)) return
+      patchPost(postId, () => ({ ...current, savedByMe: !current.savedByMe }))
+      setSavePending((prev) => new Set(prev).add(postId))
+      try {
+        const res = await toggleSave({ postId }).unwrap()
+        patchPost(postId, (post) => ({ ...post, savedByMe: res.saved }))
+      } catch {
+        patchPost(postId, () => current)
+      } finally {
+        setSavePending((prev) => {
+          const next = new Set(prev)
+          next.delete(postId)
+          return next
+        })
+      }
+    },
+    [chunks, savePending, patchPost, toggleSave],
+  )
+
   const handleCommentAdded = useCallback(
     (postId: string) => {
       patchPost(postId, (post) => ({ ...post, commentsCount: (post.commentsCount ?? 0) + 1 }))
@@ -128,8 +152,10 @@ export function useTagFeed(rawTag: string) {
     isLoading,
     isFetching,
     likePending,
+    savePending,
     handleLoadMore,
     handleToggleLike,
+    handleToggleSave,
     handleCommentAdded,
     handleCommentDeleted,
     handleDeleted,

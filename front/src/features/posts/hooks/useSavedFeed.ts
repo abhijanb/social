@@ -1,55 +1,35 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useAppDispatch } from '../../../app/hooks'
-import { isUnauthorizedError } from '../../../app/apiError'
-import { logout } from '../../auth/authSlice'
-import { baseApi } from '../../../app/baseApi'
+import { useCallback, useState } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { useGetFeedQuery, useDeletePostMutation, useToggleLikeMutation, useToggleSaveMutation, type Post } from '../postsApi'
-import { useOwnProfile } from '../../users/hooks/useOwnProfile'
-import { useGetStoryFeedQuery } from '../../stories/storiesApi'
-
-const FIRST_PAGE = 1
+import { useGetSavedPostsQuery, useDeletePostMutation, useToggleLikeMutation, useToggleSaveMutation, type Post } from '../postsApi'
 
 type PageChunk = { page: number; posts: Post[]; nextPage: number | null }
 
-// useFeed – all data + interaction logic for the friends-only posts feed,
-// no JSX: page-chunk collection, optimistic like toggles, comment-count
-// patches, post-created reset, own identity + stories tray data.
-export function useFeed() {
+// useSavedFeed – all data + interaction logic for the private saved-posts
+// page, no JSX: page-chunk collection, optimistic like/save toggles,
+// comment-count patches, optimistic deletes. Mirrors useFeed, sourced from
+// getSavedPosts (own saves, newest first).
+export function useSavedFeed() {
   const { isAuthenticated } = useAuth()
-  const dispatch = useAppDispatch()
-  const [page, setPage] = useState(FIRST_PAGE)
+  const [page, setPage] = useState(1)
   const [chunks, setChunks] = useState<PageChunk[]>([])
   const [likePending, setLikePending] = useState<Set<string>>(new Set())
   const [savePending, setSavePending] = useState<Set<string>>(new Set())
   const [toggleLike] = useToggleLikeMutation()
   const [toggleSave] = useToggleSaveMutation()
   const [deletePost] = useDeletePostMutation()
-  const { data, isLoading, isFetching, error } = useGetFeedQuery(page === FIRST_PAGE ? undefined : { page }, {
+  const { data, isLoading, isFetching, error } = useGetSavedPostsQuery(page === 1 ? undefined : { page }, {
     skip: !isAuthenticated,
   })
-  // Own identity paints instantly from localStorage cache, reconciled by getMe.
-  const { me, username: ownUsername, avatarUrl: ownAvatarUrl } = useOwnProfile()
-  const { data: storyGroups, isLoading: storiesLoading } = useGetStoryFeedQuery(undefined, {
-    skip: !isAuthenticated,
-  })
-
-  // Stale session (cookie gone but local mirror true): first 401 logs out,
-  // ProtectedLayout redirects on re-render — replaces the page-level guard.
-  useEffect(() => {
-    if (isUnauthorizedError(error)) dispatch(logout())
-  }, [error, dispatch])
 
   // Each page is cached separately by RTK Query; collect fetched pages here.
-  // Guarded so each page is added once (render-time adjustment, not an effect).
   if (data && !chunks.some((c) => c.page === page)) {
     setChunks([...chunks, { page, posts: data.posts, nextPage: data.nextPage }])
   }
 
   const posts = chunks.flatMap((c) => c.posts)
-  const nextPage = chunks.length > 0 ? chunks[chunks.length - 1].nextPage : null
+  const visiblePosts = posts.length > 0 ? posts : (data?.posts ?? [])
+  const nextPage = chunks.length > 0 ? chunks[chunks.length - 1].nextPage : (data?.nextPage ?? null)
 
-  // Stable identity so PostFeed's observer effect only re-subscribes when the target page changes.
   const handleLoadMore = useCallback(() => {
     if (nextPage) setPage(nextPage)
   }, [nextPage])
@@ -63,8 +43,6 @@ export function useFeed() {
     )
   }, [])
 
-  // Optimistic like toggle: flip instantly, reconcile with the
-  // authoritative server response, revert on failure.
   const handleToggleLike = useCallback(
     async (postId: string) => {
       const current = chunks.flatMap((c) => c.posts).find((p) => p.id === postId)
@@ -92,8 +70,6 @@ export function useFeed() {
     [chunks, likePending, patchPost, toggleLike],
   )
 
-  // Optimistic save toggle: flip instantly, reconcile with the
-  // authoritative server response, revert on failure.
   const handleToggleSave = useCallback(
     async (postId: string) => {
       const current = chunks.flatMap((c) => c.posts).find((p) => p.id === postId)
@@ -116,8 +92,6 @@ export function useFeed() {
     [chunks, savePending, patchPost, toggleSave],
   )
 
-  // Comment created: bump the cached count so the toggle label stays in
-  // sync (same local-patch pattern as likes — no 'Post' invalidation).
   const handleCommentAdded = useCallback(
     (postId: string) => {
       patchPost(postId, (post) => ({ ...post, commentsCount: (post.commentsCount ?? 0) + 1 }))
@@ -125,7 +99,6 @@ export function useFeed() {
     [patchPost],
   )
 
-  // Comment deleted: decrement the cached count, floored at 0.
   const handleCommentDeleted = useCallback(
     (postId: string) => {
       patchPost(postId, (post) => ({ ...post, commentsCount: Math.max(0, (post.commentsCount ?? 1) - 1) }))
@@ -133,14 +106,8 @@ export function useFeed() {
     [patchPost],
   )
 
-  const handleCreated = useCallback(() => {
-    // New post belongs on top of page 1 – drop collected pages and reload fresh.
-    setChunks([])
-    setPage(FIRST_PAGE)
-    dispatch(baseApi.util.resetApiState())
-  }, [dispatch])
-
-  // Post deleted: drop it from collected chunks optimistically, revert on failure.
+  // Unsaving removes the post from this list on next fetch; deleting drops
+  // it from collected chunks optimistically, revert on failure.
   const handleDeleted = useCallback(
     async (postId: string) => {
       const prev = chunks
@@ -160,24 +127,18 @@ export function useFeed() {
   )
 
   return {
-    posts,
+    visiblePosts,
     nextPage,
     isLoading,
     isFetching,
     error,
     likePending,
     savePending,
-    storyGroups,
-    storiesLoading,
-    me,
-    ownUsername,
-    ownAvatarUrl,
     handleLoadMore,
     handleToggleLike,
     handleToggleSave,
     handleCommentAdded,
     handleCommentDeleted,
-    handleCreated,
     handleDeleted,
   }
 }

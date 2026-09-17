@@ -38,6 +38,21 @@ export const postsApi = baseApi.injectEndpoints({
     toggleLike: build.mutation<{ liked: boolean; likesCount: number }, { postId: string }>({
       query: ({ postId }) => ({ url: `post/${postId}/like`, method: 'POST' }),
     }),
+    // Toggle save — no tag invalidation, same chunk-patch reason as likes.
+    // No count: saves are fully private, only savedByMe travels.
+    toggleSave: build.mutation<{ saved: boolean }, { postId: string }>({
+      query: ({ postId }) => ({ url: `post/${postId}/save`, method: 'POST' }),
+    }),
+    // Own saved posts, newest save first — same envelope as the feed.
+    getSavedPosts: build.query<FeedPage, { page?: number } | void>({
+      query: (args) => {
+        const params = new URLSearchParams()
+        if (args?.page) params.set('page', String(args.page))
+        const qs = params.toString()
+        return qs ? `post/saved?${qs}` : 'post/saved'
+      },
+      providesTags: ['Post'],
+    }),
     // Comments — fetch-on-open only (no polling). Per-post tag so creating
     // a comment refetches just that post's list; never invalidates 'Post'
     // (same page-guard reason as toggleLike — FeedPage patches counts locally).
@@ -74,4 +89,4 @@ export const postsApi = baseApi.injectEndpoints({
   }),
 })
 
-export const { useGetFeedQuery, useGetUserPostsQuery, useCreatePostMutation, useToggleLikeMutation, useGetCommentsQuery, useCreateCommentMutation, useDeleteCommentMutation, useDeletePostMutation } = postsApi
+export const { useGetFeedQuery, useGetUserPostsQuery, useCreatePostMutation, useToggleLikeMutation, useToggleSaveMutation, useGetSavedPostsQuery, useGetCommentsQuery, useCreateCommentMutation, useDeleteCommentMutation, useDeletePostMutation } = postsApi

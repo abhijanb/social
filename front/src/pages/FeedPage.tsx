@@ -15,6 +15,7 @@ export default function FeedPage() {
     isFetching,
     error,
     likePending,
+    savePending,
     storyGroups,
     storiesLoading,
     me,
@@ -22,6 +23,7 @@ export default function FeedPage() {
     ownAvatarUrl,
     handleLoadMore,
     handleToggleLike,
+    handleToggleSave,
     handleCommentAdded,
     handleCommentDeleted,
     handleCreated,
@@ -45,6 +47,8 @@ export default function FeedPage() {
           onLoadMore={handleLoadMore}
           onToggleLike={handleToggleLike}
           likePendingIds={likePending}
+          onToggleSave={handleToggleSave}
+          savePendingIds={savePending}
           onCommentAdded={handleCommentAdded}
           onCommentDeleted={handleCommentDeleted}
           onPostDeleted={handleDeleted}

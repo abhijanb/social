@@ -30,6 +30,7 @@ export type PostWithAuthor = {
   images: PostImageDto[];
   likesCount: number;
   likedByMe: boolean;
+  savedByMe: boolean;
   commentsCount: number;
 };
 

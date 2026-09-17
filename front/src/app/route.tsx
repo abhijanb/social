@@ -10,6 +10,7 @@ import ChatPage from '../pages/ChatPage'
 import FeedPage from '../pages/FeedPage'
 import LivestreamPage from '../pages/LivestreamPage'
 import ProfilePage from '../pages/ProfilePage'
+import SavedPage from '../pages/SavedPage'
 import SettingsPage from '../pages/SettingsPage'
 import TagPage from '../pages/TagPage'
 
@@ -32,6 +33,7 @@ export const routes: RouteObject[] = [
       { path: 'users', element: <UsersPage /> },
       { path: 'requests', element: <FriendRequestsPage /> },
       { path: 'chat', element: <ChatPage /> },
+      { path: 'saved', element: <SavedPage /> },
       { path: 'settings', element: <SettingsPage /> },
     ],
   },

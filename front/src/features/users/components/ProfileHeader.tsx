@@ -48,12 +48,20 @@ export default function ProfileHeader({
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {relation?.isSelf ? (
-              <button
-                onClick={onEdit}
-                className="rounded-full border border-gray-300 px-4 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
-              >
-                Edit profile
-              </button>
+              <>
+                <button
+                  onClick={onEdit}
+                  className="rounded-full border border-gray-300 px-4 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                >
+                  Edit profile
+                </button>
+                <Link
+                  to="/saved"
+                  className="rounded-full border border-gray-300 px-4 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                >
+                  Saved
+                </Link>
+              </>
             ) : relation?.isFriend ? (
               <>
                 <span className="rounded-full bg-green-100 px-4 py-1.5 text-sm font-semibold text-green-700 dark:bg-green-500/15 dark:text-green-300">

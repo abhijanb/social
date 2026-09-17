@@ -1,7 +1,7 @@
 import { AppError } from "../../lib/errorHandler.js";
 import { extractHashtags } from "../../lib/hashtags.js";
 import { prisma } from "../../lib/prisma.js";
-import { postInclude, withLikeState } from "./post.feed.js";
+import { postInclude, withViewerState } from "./post.feed.js";
 import {
   MAX_POST_IMAGES,
   type PostMediaInput,
@@ -39,7 +39,7 @@ export async function createPost(
     },
     include: postInclude,
   });
-  const [withLikes] = await withLikeState([post], authorId);
+  const [withLikes] = await withViewerState([post], authorId);
   return withLikes;
 }
 

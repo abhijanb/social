@@ -1,7 +1,7 @@
 import { AppError } from "../../lib/errorHandler.js";
 import { prisma } from "../../lib/prisma.js";
 import { getFriendIds } from "../../lib/friends.js";
-import { postInclude, withLikeState } from "./post.feed.js";
+import { postInclude, withViewerState } from "./post.feed.js";
 import { FEED_PAGE_SIZE, type FeedPage } from "./post.types.js";
 
 function normalizeTag(raw: string): string {
@@ -32,7 +32,7 @@ export async function getByHashtag(
   });
   const hasMore = rows.length > FEED_PAGE_SIZE;
   const pageRows = hasMore ? rows.slice(0, FEED_PAGE_SIZE) : rows;
-  const posts = await withLikeState(pageRows, meId);
+  const posts = await withViewerState(pageRows, meId);
   return { posts, nextPage: hasMore ? p + 1 : null };
 }
 
