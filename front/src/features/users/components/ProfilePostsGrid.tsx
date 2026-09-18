@@ -51,9 +51,12 @@ export default function ProfilePostsGrid({
   hasProfile: boolean
   onLoadMore: (page: number) => void
 }) {
+  // Locked when not viewable, or when the friends-only timeline answers
+  // 403 (e.g. public stranger: profile says viewable, posts stay guarded).
+  const locked = !canView || isForbiddenError(postsError)
   return (
     <div className="mt-4">
-      {!canView ? (
+      {locked ? (
         <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center dark:border-zinc-700 dark:bg-zinc-900">
           <p className="text-sm font-semibold text-gray-900 dark:text-white">This account is private</p>
           <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">Become friends to see their posts.</p>
