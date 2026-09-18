@@ -2,9 +2,18 @@ import { Link } from 'react-router-dom'
 import Avatar from '../../../components/Avatar'
 import type { User } from '../usersApi'
 
-// UsersList – dumb list for /users: empty / rows with profile links + delete.
+// UsersList – dumb list for /users: empty / rows with profile links +
+// self-only delete (other rows have no button; the backend 403s anyway).
 // Data + callbacks come from useUsersPage; no hooks here.
-export default function UsersList({ users, onDelete }: { users: User[] | undefined; onDelete: (id: string) => void }) {
+export default function UsersList({
+  users,
+  currentUserId,
+  onDelete,
+}: {
+  users: User[] | undefined
+  currentUserId: string | undefined
+  onDelete: (id: string) => void
+}) {
   if (!users?.length) {
     return <p className="text-gray-500 dark:text-zinc-400">No users found.</p>
   }
@@ -29,12 +38,14 @@ export default function UsersList({ users, onDelete }: { users: User[] | undefin
               </p>
             </div>
           </div>
-          <button
-            onClick={() => onDelete(u.id)}
-            className="rounded-md bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700"
-          >
-            Delete
-          </button>
+          {u.id === currentUserId && (
+            <button
+              onClick={() => onDelete(u.id)}
+              className="rounded-md bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700"
+            >
+              Delete
+            </button>
+          )}
         </li>
       ))}
     </ul>
