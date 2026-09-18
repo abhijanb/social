@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useLogin } from '../features/auth/hooks/useLogin'
 
 export default function Login() {
-  const { register, handleSubmit, errors, onSubmit } = useLogin()
+  const { register, handleSubmit, errors, onSubmit, isLoading, error, errorMessage } = useLogin()
 
   return (
     <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-gray-50 px-4 py-12 dark:bg-[#16171d]">
@@ -44,11 +44,17 @@ export default function Login() {
               <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{errors.password.message}</p>
             )}
           </div>
+          {error && errorMessage && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-600 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400">
+              <p>{errorMessage}</p>
+            </div>
+          )}
           <button
             type="submit"
-            className="w-full rounded-lg bg-[#aa3bff] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#9835e6] focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 dark:bg-violet-600 dark:hover:bg-violet-700 dark:focus:ring-offset-zinc-800"
+            disabled={isLoading}
+            className="w-full rounded-lg bg-[#aa3bff] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#9835e6] focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:opacity-50 dark:bg-violet-600 dark:hover:bg-violet-700 dark:focus:ring-offset-zinc-800"
           >
-            Login
+            {isLoading ? 'Logging in...' : 'Login'}
           </button>
         </form>
         <p className="mt-6 text-center text-sm text-gray-600 dark:text-zinc-400">
