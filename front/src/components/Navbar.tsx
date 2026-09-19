@@ -13,7 +13,7 @@ import { logout } from '../features/auth/authSlice'
 // badge data live in sibling components/hook.
 export default function Navbar() {
   const dispatch = useAppDispatch()
-  const { isAuthenticated, pendingCount, anyoneLive, username, avatarUrl } = useNavbarBadges()
+  const { isAuthenticated, pendingCount, username, avatarUrl } = useNavbarBadges()
 
   return (
     <>
@@ -26,7 +26,7 @@ export default function Navbar() {
               </span>
               <span className="text-sm font-bold tracking-tight text-gray-900 dark:text-white">Social</span>
             </Link>
-            {isAuthenticated && <DesktopNav pendingCount={pendingCount} anyoneLive={anyoneLive} />}
+            {isAuthenticated && <DesktopNav pendingCount={pendingCount} />}
           </div>
 
           {isAuthenticated ? (
@@ -84,7 +84,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {isAuthenticated && <MobileTabBar pendingCount={pendingCount} anyoneLive={anyoneLive} />}
+      {isAuthenticated && <MobileTabBar pendingCount={pendingCount} />}
     </>
   )
 }

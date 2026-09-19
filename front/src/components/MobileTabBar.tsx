@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router-dom'
-import { CountBadge, LiveDot } from './NavBadges'
+import { CountBadge } from './NavBadges'
 import { TAB_LINKS } from './NavLinks'
 
-// MobileTabBar – dumb bottom 5-tab bar for Navbar with request/live badges. No hooks here.
-export default function MobileTabBar({ pendingCount, anyoneLive }: { pendingCount: number; anyoneLive: boolean }) {
+// MobileTabBar – dumb bottom 5-tab bar for Navbar with request badge. No hooks here.
+export default function MobileTabBar({ pendingCount }: { pendingCount: number }) {
   return (
     <nav
       aria-label="Primary"
@@ -27,7 +27,6 @@ export default function MobileTabBar({ pendingCount, anyoneLive }: { pendingCoun
             <span className="relative">
               <Icon className="h-6 w-6" />
               {to === '/requests' && <CountBadge count={pendingCount} />}
-              {to === '/live' && anyoneLive && <LiveDot />}
             </span>
             {label}
           </NavLink>
