@@ -31,6 +31,7 @@ model User {
   storyViews       StoryView[]  @relation("StoryViews")
   hostedStreams    Livestream[] @relation("HostedStreams")
   streamComments   LivestreamComment[]
+  notifications     Notification[]
 }
 
 model Message {
@@ -232,4 +233,30 @@ enum FriendshipStatus {
   PENDING
   ACCEPTED
   BLOCKED
+}
+
+
+model Notification {
+  id          String               @id @default(cuid())
+  userId      String
+  type        NotificationType
+  content     String
+  isRead      Boolean              @default(false)
+  createdAt   DateTime             @default(now())
+  relatedPost String?
+  relatedUser String?
+  isDeleted   Boolean              @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+}
+
+enum NotificationType {
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+  POST_LIKE
+  POST_COMMENT
+  STORY_VIEW
+  LIVESTREAM_COMMENT
 }
