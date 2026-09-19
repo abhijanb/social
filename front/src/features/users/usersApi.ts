@@ -46,7 +46,7 @@ export const usersApi = baseApi.injectEndpoints({
         { type: 'User', id: `profile-${username.toLowerCase()}` },
       ],
     }),
-    registerUser: build.mutation<User, { username: string; password: string }>({
+    registerUser: build.mutation<User, { username: string; password: string; email: string }>({
       query: (body) => ({ url: 'user', method: 'POST', body }),
       invalidatesTags: ['User'],
     }),

@@ -10,7 +10,9 @@ export const authSchema = z.object({
 })
 
 export const loginSchema = authSchema
-export const registerSchema = authSchema
+export const registerSchema = authSchema.extend({
+  email: z.string().email('Invalid email address'),
+});
 
 export type AuthFormData = z.infer<typeof authSchema>
 export type LoginFormData = z.infer<typeof loginSchema>

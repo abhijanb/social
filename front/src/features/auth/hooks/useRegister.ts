@@ -28,7 +28,7 @@ export function useRegister() {
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
-      const user = await registerUser({ username: data.username, password: data.password }).unwrap()
+      const user = await registerUser({ username: data.username, password: data.password, email: data.email }).unwrap()
       dispatch(setUserId(user.id))
       dispatch(setUsername(user.username))
       dispatch(setAvatarUrl(user.avatarUrl ?? null))

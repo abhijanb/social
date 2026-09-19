@@ -4,7 +4,7 @@ import { signToken } from "../../lib/jwt.js";
 import { prisma } from "../../lib/prisma.js";
 import { stripPassword } from "../../lib/stripPassword.js";
 import { validateOrThrow } from "../../lib/validate.js";
-import { authSchema } from "./auth.schema.js";
+import { authSchema, registerSchema } from "./auth.schema.js";
 
 // Suggests available usernames by appending numbers (alex -> alex1, ...).
 // Port of UserService.suggestUsernames — the IB-highlight conflict UX:
@@ -30,10 +30,10 @@ export async function suggestUsernames(
 }
 
 // Port of UserService.register — validates input, 409 + suggestions when
-// taken, otherwise creates the user (bcrypt-hashed password) and returns
-// a signed JWT.
+// taken, otherwise creates the user (bcrypt-hashed password, email stored)
+// and returns a signed JWT. Sends a welcome email on success.
 export async function register(input: unknown) {
-  const dto = validateOrThrow(authSchema, input);
+  const dto = validateOrThrow(registerSchema, input);
   const exists = await prisma.user.findUnique({
     where: { username: dto.username },
   });
@@ -48,6 +48,7 @@ export async function register(input: unknown) {
   const user = await prisma.user.create({
     data: {
       username: dto.username,
+      email: dto.email,
       password: await bcrypt.hash(dto.password, 10),
     },
   });

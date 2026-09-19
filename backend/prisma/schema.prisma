@@ -11,6 +11,7 @@ datasource db {
 model User {
   id          String   @id @default(cuid())
   username    String   @unique
+  email       String   @unique
   password    String
   bio         String   @default("") @db.VarChar(150)
   displayName String?  @db.VarChar(50)
@@ -259,4 +260,19 @@ enum NotificationType {
   POST_COMMENT
   STORY_VIEW
   LIVESTREAM_COMMENT
+}
+
+model MailTemplate {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  locale    String   @default("en")
+  subject   String
+  bodyText  String
+  bodyHtml  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, locale])
+  @@index([isActive])
 }

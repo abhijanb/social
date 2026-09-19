@@ -31,6 +31,21 @@ export default function Register() {
             )}
           </div>
           <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-zinc-300">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              placeholder="Enter your email"
+              {...register('email')}
+              className="mt-1.5 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 dark:border-zinc-600 dark:bg-zinc-900 dark:text-white dark:placeholder-zinc-500"
+            />
+            {errors.email && (
+              <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>
+            )}
+          </div>
+          <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-zinc-300">
               Password
             </label>

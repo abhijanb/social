@@ -3,6 +3,7 @@ import { listCommentsPage } from "../../lib/comments.js";
 import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import { ensureCanView } from "../../lib/friends.js";
+import { sendPostCommentEmail } from "../notification/mailNotification.js";
 import { notifyPostComment } from "../notification/notification.request.js";
 import { createPostCommentSchema } from "./post.schema.js";
 
@@ -37,6 +38,7 @@ export async function createPostComment(
   // Never notify for your own posts.
   if (post.authorId !== authorId) {
     await notifyPostComment(post.authorId, authorId, postId);
+    sendPostCommentEmail(post.authorId, authorId);
   }
   return comment;
 }

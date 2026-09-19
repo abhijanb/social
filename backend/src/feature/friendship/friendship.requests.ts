@@ -2,6 +2,10 @@ import { AppError } from "../../lib/errorHandler.js";
 import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import {
+  sendFriendAcceptedEmail,
+  sendFriendRequestEmail,
+} from "../notification/mailNotification.js";
+import {
   notifyFriendAccepted,
   notifyFriendRequest,
 } from "../notification/notification.request.js";
@@ -71,6 +75,7 @@ export async function createFriendship(
     },
   });
   await notifyFriendRequest(addresseeId, requesterId);
+  sendFriendRequestEmail(addresseeId, requesterId);
   return friendship;
 }
 
@@ -102,6 +107,7 @@ export async function acceptFriendship(id: string, input: unknown) {
     data: { status: "ACCEPTED" },
   });
   await notifyFriendAccepted(friendship.requesterId, friendship.addresseeId);
+  sendFriendAcceptedEmail(friendship.requesterId, friendship.addresseeId);
   return updated;
 }
 

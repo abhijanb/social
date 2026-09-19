@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import {  type Request, type Response } from "express";
 import { AppError } from "../../lib/errorHandler.js";
 import { verifyToken } from "../../lib/jwt.js";
 import type { JwtPayload } from "../../lib/jwt.js";
@@ -8,6 +8,7 @@ import {
   responseSuccess,
 } from "../../lib/response.js";
 import { findUserById, login, register } from "./auth.service.js";
+import { sendWelcomeEmail } from "../notification/mailNotification.js";
 
 function getCurrentUser(req: Request): JwtPayload | null {
   const token =
@@ -50,6 +51,7 @@ export async function registerController(req: Request, res: Response) {
   try {
     const { user, token } = await register(req.body);
     setAuthCookie(res, token);
+    sendWelcomeEmail(user.id, user.username).catch(console.error);
     return responseCreated(res, user, "Registered successfully");
   } catch (err) {
     return handleError(res, err);
