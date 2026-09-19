@@ -23,6 +23,9 @@ export function useNotifications() {
 
   const { data: unread } = useGetUnreadCountQuery(undefined, {
     skip: !isAuthenticated,
+    // Keep the bell badge fresh without manual refresh.
+    pollingInterval: 15000,
+    skipPollingIfUnfocused: true,
   })
 
   useEffect(() => {
