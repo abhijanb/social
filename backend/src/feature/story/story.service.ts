@@ -2,7 +2,6 @@ import { AppError } from "../../lib/errorHandler.js";
 import { ensureCanView, getFriendIds } from "../../lib/friends.js";
 import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
-import { sendStoryViewEmail } from "../notification/mailNotification.js";
 import { notifyStoryView } from "../notification/notification.request.js";
 import { createStorySchema } from "./story.schema.js";
 
@@ -167,7 +166,6 @@ export async function markViewed(viewerId: string, storyId: string) {
   });
   if (!alreadyViewed && story.authorId !== viewerId) {
     await notifyStoryView(story.authorId, viewerId);
-    sendStoryViewEmail(story.authorId, viewerId);
   }
   return { id: storyId };
 }

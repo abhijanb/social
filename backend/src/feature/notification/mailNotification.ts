@@ -124,15 +124,3 @@ export async function sendPostCommentEmail(
     html: `<p>${name} commented on your post</p>`,
   }).catch(console.error);
 }
-
-export async function sendStoryViewEmail(
-  authorId: string,
-  viewerId: string,
-): Promise<void> {
-  const name = await resolveUsername(viewerId);
-  await sendMailToUser(authorId, {
-    subject: `${name} viewed your story`,
-    text: `${name} viewed your story`,
-    html: `<p>${name} viewed your story</p>`,
-  }).catch(console.error);
-}

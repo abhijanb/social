@@ -243,6 +243,7 @@ model Notification {
   type        NotificationType
   content     String
   isRead      Boolean              @default(false)
+  isEmailSent Boolean              @default(false)
   createdAt   DateTime             @default(now())
   relatedPost String?
   relatedUser String?
