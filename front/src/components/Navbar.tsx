@@ -3,6 +3,7 @@ import Avatar, { getInitials } from './Avatar'
 import DesktopNav from './DesktopNav'
 import MobileTabBar from './MobileTabBar'
 import { LogoutIcon, SettingsIcon } from './NavbarIcons'
+import NotificationBell from '../features/notification/components/NotificationBell'
 import { useNavbarBadges } from './hooks/useNavbarBadges'
 import { useAppDispatch } from '../app/hooks'
 import { logout } from '../features/auth/authSlice'
@@ -47,6 +48,7 @@ export default function Navbar() {
                   </span>
                 </span>
               )}
+              <NotificationBell />
               <Link
                 to="/settings"
                 aria-label="Settings"

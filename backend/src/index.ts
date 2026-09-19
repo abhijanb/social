@@ -10,6 +10,7 @@ import { registerChatHandlers } from "./feature/chat/chat.socket.js";
 import { friendshipRouter } from "./feature/friendship/friendship.route.js";
 import { registerLivestreamHandlers } from "./feature/livestream/livestream.socket.js";
 import { livestreamRouter } from "./feature/livestream/livestream.route.js";
+import { notificationRouter } from "./feature/notification/notification.route.js";
 import { postRouter } from "./feature/post/post.route.js";
 import { presenceRouter } from "./feature/presence/presence.route.js";
 import { registerPresenceHandlers } from "./feature/presence/presence.socket.js";
@@ -55,6 +56,8 @@ app.use("/post", postRouter);
 app.use("/story", storyRouter);
 
 app.use("/livestream", livestreamRouter);
+
+app.use("/notification", notificationRouter);
 
 // Final error middleware — must stay last, after all routers.
 app.use(errorMiddleware);
