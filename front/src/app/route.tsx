@@ -3,6 +3,7 @@ import GuestLayout from './GuestLayout'
 import ProtectedLayout from './ProtectedLayout'
 import Login from '../pages/Login'
 import Register from '../pages/Register'
+import VerifyEmail from '../pages/VerifyEmail'
 import UserSearchPage from '../pages/UserSearchPage'
 import UsersPage from '../pages/UsersPage'
 import FriendRequestsPage from '../pages/FriendRequestsPage'
@@ -20,6 +21,7 @@ export const routes: RouteObject[] = [
     children: [
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
+      { path: 'verify-email', element: <VerifyEmail /> },
     ],
   },
   {

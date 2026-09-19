@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAppDispatch } from '../../../app/hooks'
-import { login, setAvatarUrl, setUserId, setUsername } from '../authSlice'
+import { setAvatarUrl, setUserId, setUsername } from '../authSlice'
 import { registerSchema, type RegisterFormData } from '../schema'
 import { useRegisterUserMutation } from '../../users/usersApi'
 import { useNavigate } from 'react-router-dom'
@@ -32,8 +32,7 @@ export function useRegister() {
       dispatch(setUserId(user.id))
       dispatch(setUsername(user.username))
       dispatch(setAvatarUrl(user.avatarUrl ?? null))
-      dispatch(login())
-      navigate('/')
+      navigate('/verify-email?registered=true')
     } catch {
       // error handled via `error`
     }

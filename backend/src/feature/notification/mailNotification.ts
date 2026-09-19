@@ -129,9 +129,11 @@ export async function sendVerificationEmail(
   userId: string,
   token: string,
 ): Promise<void> {
+  const baseUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const link = `${baseUrl}/verify-email?token=${token}`;
   await sendMailToUser(userId, {
     subject: "Verify your email",
-    text: `Verify your email by visiting: http://localhost:3000/user/verify-email?token=${token}`,
-    html: `<p>Verify your email by visiting: <a href="http://localhost:3000/user/verify-email?token=${token}">Verify Email</a></p>`,
+    text: `Verify your email by visiting: ${link}`,
+    html: `<p>Verify your email by visiting: <a href="${link}">Verify Email</a></p>`,
   }).catch(console.error);
 }

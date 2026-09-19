@@ -46,11 +46,11 @@ function handleError(res: Response, err: unknown) {
   );
 }
 
-// POST /user — register, sets the token cookie.
+// POST /user — register. Does NOT set the auth cookie; the user must
+// verify their email before logging in (login blocks unverified users).
 export async function registerController(req: Request, res: Response) {
   try {
-    const { user, token } = await register(req.body);
-    setAuthCookie(res, token);
+    const { user } = await register(req.body);
     const verificationToken = signToken({ id: user.id, username: user.username }, "24h");
     sendVerificationEmail(user.id, verificationToken).catch(console.error);
     sendWelcomeEmail(user.id, user.username).catch(console.error);

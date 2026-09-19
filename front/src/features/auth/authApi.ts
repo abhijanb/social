@@ -10,7 +10,10 @@ export const authApi = baseApi.injectEndpoints({
     logoutUser: build.mutation<void, void>({
       query: () => ({ url: 'user/logout', method: 'POST' }),
     }),
+    verifyEmail: build.query<{ success: boolean }, string>({
+      query: (token) => ({ url: 'user/verify-email?token=' + encodeURIComponent(token), method: 'GET' }),
+    }),
   }),
 })
 
-export const { useLoginUserMutation, useLogoutUserMutation } = authApi
+export const { useLoginUserMutation, useLogoutUserMutation, useVerifyEmailQuery } = authApi
