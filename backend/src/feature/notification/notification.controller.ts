@@ -9,6 +9,7 @@ import {
 } from "./notification.query.js";
 import {
   deleteNotification,
+  markAllNotificationsAsRead,
   markNotificationAsRead,
 } from "./notification.request.js";
 import { notificationIdParamSchema } from "./notification.schema.js";
@@ -40,6 +41,14 @@ export async function markNotificationReadController(
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(notificationIdParamSchema, req.params);
   return responseSuccess(res, await markNotificationAsRead(id, req.user.id));
+}
+
+export async function markAllNotificationsReadController(
+  req: AuthRequest,
+  res: Response,
+) {
+  if (!req.user) throw new AppError("Not authenticated", 401);
+  return responseSuccess(res, await markAllNotificationsAsRead(req.user.id));
 }
 
 // DELETE /notification/:id — soft-delete own notification.

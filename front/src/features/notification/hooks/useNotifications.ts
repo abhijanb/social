@@ -7,6 +7,7 @@ import {
   useLazyGetNotificationsQuery,
   useGetUnreadCountQuery,
   useMarkReadMutation,
+  useMarkAllReadMutation,
   useDeleteNotificationMutation,
 } from '../notificationsApi'
 
@@ -40,10 +41,16 @@ export function useNotifications() {
   }, [isAuthenticated, fetchList])
 
   const [markReadRequest, { isLoading: isMarkingRead }] = useMarkReadMutation()
+  const [markAllReadRequest, { isLoading: isMarkingAllRead }] =
+    useMarkAllReadMutation()
   const [deleteRequest, { isLoading: isDeleting }] = useDeleteNotificationMutation()
 
   const markRead = async (id: string) => {
     await markReadRequest(id).unwrap()
+  }
+
+  const markAllRead = async () => {
+    await markAllReadRequest().unwrap()
   }
 
   const remove = async (id: string) => {
@@ -56,9 +63,11 @@ export function useNotifications() {
     isLoading,
     error,
     isMarkingRead,
+    isMarkingAllRead,
     isDeleting,
     ensureList,
     markRead,
+    markAllRead,
     remove,
   }
 }

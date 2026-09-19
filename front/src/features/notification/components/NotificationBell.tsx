@@ -25,8 +25,10 @@ export default function NotificationBell() {
     error,
     isMarkingRead,
     isDeleting,
+    isMarkingAllRead,
     ensureList,
     markRead,
+    markAllRead,
     remove,
   } = useNotifications()
 
@@ -80,6 +82,16 @@ export default function NotificationBell() {
               <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
                 {unreadCount} new
               </span>
+            )}
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={() => void markAllRead()}
+                disabled={isMarkingAllRead}
+                className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 transition hover:bg-violet-200 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-violet-500/15 dark:text-violet-300 dark:hover:bg-violet-500/25"
+              >
+                {isMarkingAllRead ? 'Marking...' : 'Mark all as read'}
+              </button>
             )}
           </div>
 

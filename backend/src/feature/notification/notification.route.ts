@@ -4,6 +4,7 @@ import {
   deleteNotificationController,
   getUnreadCountController,
   listNotificationsController,
+  markAllNotificationsReadController,
   markNotificationReadController,
 } from "./notification.controller.js";
 
@@ -16,6 +17,11 @@ notificationRouter.get(
   "/unread-count",
   requireAuth,
   getUnreadCountController,
+);
+notificationRouter.patch(
+  "/read-all",
+  requireAuth,
+  markAllNotificationsReadController,
 );
 notificationRouter.patch(
   "/:id/read",

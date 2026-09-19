@@ -110,6 +110,13 @@ export async function markNotificationAsRead(id: string, userId: string) {
   });
 }
 
+export async function markAllNotificationsAsRead(userId: string) {
+  return prisma.notification.updateMany({
+    where: { userId, isRead: false, isDeleted: false },
+    data: { isRead: true },
+  });
+}
+
 // Soft-delete own notification. Missing/deleted → 404, another user's → 403.
 export async function deleteNotification(id: string, userId: string) {
   await assertOwnNotification(id, userId);
