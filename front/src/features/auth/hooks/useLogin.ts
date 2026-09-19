@@ -4,12 +4,14 @@ import { useAppDispatch } from '../../../app/hooks'
 import { login, setAvatarUrl, setUserId, setUsername } from '../authSlice'
 import { loginSchema, type LoginFormData } from '../schema'
 import { useLoginUserMutation } from '../authApi'
+import { useResendVerificationMutation } from '../../users/usersApi'
 import { useNavigate } from 'react-router-dom'
 
 export function useLogin() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const [loginUser, { isLoading, error }] = useLoginUserMutation()
+  const [resendVerification, { isLoading: isResending }] = useResendVerificationMutation()
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -31,6 +33,16 @@ export function useLogin() {
     }
   }
 
+  const resend = async () => {
+    const username = form.getValues('username')
+    if (!username) return
+    try {
+      await resendVerification({ username }).unwrap()
+    } catch {
+      // error handled via mutation state
+    }
+  }
+
   return {
     register: form.register,
     handleSubmit: form.handleSubmit,
@@ -39,5 +51,7 @@ export function useLogin() {
     isLoading,
     error,
     errorMessage,
+    resend,
+    isResending,
   }
 }

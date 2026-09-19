@@ -12,6 +12,7 @@ model User {
   id          String   @id @default(cuid())
   username    String   @unique
   email       String   @unique
+  emailVerified Boolean @default(false)
   password    String
   bio         String   @default("") @db.VarChar(150)
   displayName String?  @db.VarChar(50)

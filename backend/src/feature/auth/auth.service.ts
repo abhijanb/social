@@ -1,6 +1,7 @@
 import * as bcrypt from "bcrypt";
 import { AppError } from "../../lib/errorHandler.js";
-import { signToken } from "../../lib/jwt.js";
+import { signToken, verifyToken } from "../../lib/jwt.js";
+import { sendVerificationEmail } from "../notification/mailNotification.js";
 import { prisma } from "../../lib/prisma.js";
 import { stripPassword } from "../../lib/stripPassword.js";
 import { validateOrThrow } from "../../lib/validate.js";
@@ -49,6 +50,7 @@ export async function register(input: unknown) {
     data: {
       username: dto.username,
       email: dto.email,
+      emailVerified: false,
       password: await bcrypt.hash(dto.password, 10),
     },
   });
@@ -68,10 +70,38 @@ export async function login(input: unknown) {
   if (!user || !(await bcrypt.compare(dto.password, user.password))) {
     throw new AppError("Invalid credentials", 401);
   }
+  if (!user.emailVerified) {
+    throw new AppError("Email not verified", 403);
+  }
   return {
     user: stripPassword(user),
     token: signToken({ id: user.id, username: user.username }),
   };
+}
+
+// Verify email via token — sets emailVerified: true on success.
+export async function verifyEmail(token: string) {
+  const payload = verifyToken(token);
+  if (!payload?.id) throw new AppError("Invalid or expired token", 400);
+  const user = await prisma.user.findUnique({ where: { id: payload.id } });
+  if (!user) throw new AppError("User not found", 404);
+  if (user.emailVerified) throw new AppError("Email already verified", 400);
+  await prisma.user.update({
+    where: { id: payload.id },
+    data: { emailVerified: true },
+  });
+  return { success: true };
+}
+
+// Resend verification email — generates a fresh 24h token.
+// No auth required — caller identifies user by username.
+export async function resendVerification(username: string) {
+  const user = await prisma.user.findUnique({ where: { username } });
+  if (!user) throw new AppError("User not found", 404);
+  if (user.emailVerified) throw new AppError("Email already verified", 400);
+  const token = signToken({ id: user.id, username: user.username }, "24h");
+  await sendVerificationEmail(user.id, token).catch(console.error);
+  return { success: true };
 }
 
 // Port of UserService.findOne — used by GET /user/me. Returns null when

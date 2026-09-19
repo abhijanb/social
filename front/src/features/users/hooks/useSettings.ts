@@ -3,21 +3,24 @@ import { useAppDispatch } from '../../../app/hooks'
 import { isUnauthorizedError } from '../../../app/apiError'
 import { logout } from '../../auth/authSlice'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { useGetMeQuery, useUpdateUserMutation } from '../usersApi'
+import { useGetMeQuery, useResendVerificationMutation, useUpdateUserMutation } from '../usersApi'
 
 // useSettings – all data + toggle logic for /settings, no JSX:
-// auth, own profile, visibility toggle with save state.
+// auth, own profile, visibility toggle with save state + email verify.
 export function useSettings() {
   const { isAuthenticated } = useAuth()
   const dispatch = useAppDispatch()
   const { data: me, isLoading, error } = useGetMeQuery(undefined, { skip: !isAuthenticated })
   const [updateUser, { isLoading: isSaving, error: saveError }] = useUpdateUserMutation()
+  const [resendVerification, { isLoading: isResending }] = useResendVerificationMutation()
 
   useEffect(() => {
     if (isUnauthorizedError(error)) dispatch(logout())
   }, [error, dispatch])
 
   const isPublic = me?.isPublic ?? true
+  const emailVerified = me?.emailVerified ?? false
+  const username = me?.username ?? ''
 
   const handleToggle = async () => {
     try {
@@ -31,8 +34,12 @@ export function useSettings() {
     isLoading,
     error,
     isPublic,
+    emailVerified,
+    username,
     isSaving,
     saveError,
     handleToggle,
-  }
+    resendVerification,
+    isResending,
+  };
 }

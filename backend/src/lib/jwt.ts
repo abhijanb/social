@@ -7,9 +7,9 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? "7d";
 
 export type JwtPayload = { id: string; username: string };
 
-export function signToken(payload: JwtPayload): string {
+export function signToken(payload: JwtPayload, expiresIn?: string): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
+    expiresIn: expiresIn ?? JWT_EXPIRES_IN,
   } as jwt.SignOptions);
 }
 

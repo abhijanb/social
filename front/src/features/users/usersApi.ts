@@ -8,6 +8,7 @@ export interface User {
   avatarUrl: string | null
   isPublic: boolean
   email?: string | null
+  emailVerified?: boolean
   name?: string | null
   createdAt: string
   updatedAt: string
@@ -50,6 +51,10 @@ export const usersApi = baseApi.injectEndpoints({
       query: (body) => ({ url: 'user', method: 'POST', body }),
       invalidatesTags: ['User'],
     }),
+    resendVerification: build.mutation<{ success: boolean }, { username: string }>({
+      query: (body) => ({ url: 'user/verify-email/resend', method: 'POST', body }),
+      invalidatesTags: ['User'],
+    }),
     updateUser: build.mutation<User, { patch: Partial<User> } | { form: FormData; hasAvatarChange: boolean }>({
       query: (arg) => {
         if ('form' in arg) return { url: `user/me`, method: 'PATCH', body: arg.form }
@@ -73,6 +78,7 @@ export const {
   useGetMeQuery,
   useGetProfileQuery,
   useRegisterUserMutation,
+  useResendVerificationMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
 } = usersApi

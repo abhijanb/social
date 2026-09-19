@@ -1,14 +1,14 @@
-import {  type Request, type Response } from "express";
+import { type Request, type Response } from "express";
 import { AppError } from "../../lib/errorHandler.js";
-import { verifyToken } from "../../lib/jwt.js";
+import { signToken, verifyToken } from "../../lib/jwt.js";
 import type { JwtPayload } from "../../lib/jwt.js";
 import {
   responseCreated,
   responseError,
   responseSuccess,
 } from "../../lib/response.js";
-import { findUserById, login, register } from "./auth.service.js";
-import { sendWelcomeEmail } from "../notification/mailNotification.js";
+import { findUserById, login, register, verifyEmail, resendVerification } from "./auth.service.js";
+import { sendVerificationEmail, sendWelcomeEmail } from "../notification/mailNotification.js";
 
 function getCurrentUser(req: Request): JwtPayload | null {
   const token =
@@ -51,8 +51,35 @@ export async function registerController(req: Request, res: Response) {
   try {
     const { user, token } = await register(req.body);
     setAuthCookie(res, token);
+    const verificationToken = signToken({ id: user.id, username: user.username }, "24h");
+    sendVerificationEmail(user.id, verificationToken).catch(console.error);
     sendWelcomeEmail(user.id, user.username).catch(console.error);
     return responseCreated(res, user, "Registered successfully");
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+// GET /user/verify-email — verify email via token.
+export async function verifyEmailController(req: Request, res: Response) {
+  try {
+    const token = (req.query.token as string) ?? "";
+    if (!token) throw new AppError("Token required", 400);
+    await verifyEmail(token);
+    return responseSuccess(res, null, "Email verified successfully");
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+// POST /user/verify-email/resend — resend verification email.
+// No auth required — username provided in body.
+export async function resendVerificationController(req: Request, res: Response) {
+  try {
+    const { username } = (req.body as { username?: string } | null) ?? {};
+    if (!username) throw new AppError("Username required", 400);
+    await resendVerification(username);
+    return responseSuccess(res, null, "Verification email sent");
   } catch (err) {
     return handleError(res, err);
   }

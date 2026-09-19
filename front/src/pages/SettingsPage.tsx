@@ -3,10 +3,10 @@ import VisibilityToggle from '../features/users/components/VisibilityToggle'
 import { useSettings } from '../features/users/hooks/useSettings'
 import { isUnauthorizedError } from '../app/apiError'
 
-// SettingsPage – thin shell for /settings: states + toggle card.
+// SettingsPage – thin shell for /settings: states + toggle card + email verify.
 // Auth is gated by ProtectedLayout; stale sessions log out via useSettings.
 export default function SettingsPage() {
-  const { isLoading, error, isPublic, isSaving, saveError, handleToggle } = useSettings()
+  const { isLoading, error, isPublic, emailVerified, username, isSaving, saveError, handleToggle, resendVerification, isResending } = useSettings()
 
   if (isLoading) return <SettingsLoading />
   if (error && !isUnauthorizedError(error)) return <SettingsError />
@@ -16,6 +16,19 @@ export default function SettingsPage() {
       <div className="mx-auto max-w-2xl">
         <h1 className="mb-6 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Settings</h1>
         <VisibilityToggle isPublic={isPublic} isSaving={isSaving} saveError={saveError} onToggle={handleToggle} />
+        {!emailVerified && (
+          <div className="mt-4 rounded-lg border border-yellow-500/50 bg-yellow-50 p-4 dark:border-yellow-500/30 dark:bg-yellow-500/10">
+            <p className="text-sm text-yellow-800 dark:text-yellow-200">Email not verified</p>
+            <button
+              type="button"
+              disabled={isResending}
+                  onClick={() => resendVerification({ username }).unwrap().catch(console.error)}
+              className="mt-2 rounded-lg bg-yellow-500 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-600 disabled:opacity-50"
+            >
+              {isResending ? 'Sending...' : 'Resend verification email'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

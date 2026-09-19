@@ -124,3 +124,14 @@ export async function sendPostCommentEmail(
     html: `<p>${name} commented on your post</p>`,
   }).catch(console.error);
 }
+
+export async function sendVerificationEmail(
+  userId: string,
+  token: string,
+): Promise<void> {
+  await sendMailToUser(userId, {
+    subject: "Verify your email",
+    text: `Verify your email by visiting: http://localhost:3000/user/verify-email?token=${token}`,
+    html: `<p>Verify your email by visiting: <a href="http://localhost:3000/user/verify-email?token=${token}">Verify Email</a></p>`,
+  }).catch(console.error);
+}
