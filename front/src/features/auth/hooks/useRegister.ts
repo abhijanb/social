@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAppDispatch } from '../../../app/hooks'
-import { login, setAvatarUrl, setUsername } from '../authSlice'
+import { login, setAvatarUrl, setUserId, setUsername } from '../authSlice'
 import { registerSchema, type RegisterFormData } from '../schema'
 import { useRegisterUserMutation } from '../../users/usersApi'
 import { useNavigate } from 'react-router-dom'
@@ -29,6 +29,7 @@ export function useRegister() {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       const user = await registerUser({ username: data.username, password: data.password }).unwrap()
+      dispatch(setUserId(user.id))
       dispatch(setUsername(user.username))
       dispatch(setAvatarUrl(user.avatarUrl ?? null))
       dispatch(login())

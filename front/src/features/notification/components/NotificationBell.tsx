@@ -14,7 +14,7 @@ const TYPE_LABELS: Record<NotificationType, string> = {
 }
 
 // NotificationBell – navbar bell with unread badge + dropdown panel, no page.
-// Data/actions come from useNotifications (plain REST, refetch on mount).
+// List data is lazy: fetched on first open, not on page load.
 export default function NotificationBell() {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -25,10 +25,15 @@ export default function NotificationBell() {
     error,
     isMarkingRead,
     isDeleting,
+    ensureList,
     markRead,
     remove,
-    refetch,
   } = useNotifications()
+
+  // Fetch the list on first open (no-op while subscribed).
+  useEffect(() => {
+    if (open) ensureList()
+  }, [open, ensureList])
 
   // Close on outside click or Escape.
   useEffect(() => {
@@ -85,7 +90,7 @@ export default function NotificationBell() {
               <p className="text-sm text-gray-500 dark:text-zinc-400">Couldn&apos;t load notifications.</p>
               <button
                 type="button"
-                onClick={() => refetch()}
+                onClick={() => ensureList()}
                 className="mt-2 rounded-full px-3 py-1 text-sm font-medium text-violet-700 hover:bg-violet-100 dark:text-violet-300 dark:hover:bg-violet-500/15"
               >
                 Retry

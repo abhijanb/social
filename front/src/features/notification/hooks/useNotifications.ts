@@ -1,28 +1,25 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useAppDispatch } from '../../../app/hooks'
 import { isUnauthorizedError } from '../../../app/apiError'
 import { logout } from '../../auth/authSlice'
 import {
-  useGetNotificationsQuery,
+  useLazyGetNotificationsQuery,
   useGetUnreadCountQuery,
   useMarkReadMutation,
   useDeleteNotificationMutation,
 } from '../notificationsApi'
 
 // useNotifications – data + actions for the navbar bell dropdown, no JSX.
-// Queries are skipped when logged out; a 401 logs out (stale cookie session),
-// same pattern as useFriendRequests. Plain REST: refetch on mount only.
+// The list is lazy (fetched on first bell open via ensureList, not on page
+// load); the unread badge stays eager. A 401 logs out (stale cookie
+// session), same pattern as useFriendRequests.
 export function useNotifications() {
   const { isAuthenticated } = useAuth()
   const dispatch = useAppDispatch()
 
-  const {
-    data: notifications,
-    isLoading,
-    error,
-    refetch,
-  } = useGetNotificationsQuery(undefined, { skip: !isAuthenticated })
+  const [fetchList, { data: notifications, isLoading, error }] =
+    useLazyGetNotificationsQuery()
 
   const { data: unread } = useGetUnreadCountQuery(undefined, {
     skip: !isAuthenticated,
@@ -33,6 +30,11 @@ export function useNotifications() {
       dispatch(logout())
     }
   }, [error, dispatch])
+
+  // Fire the list query once per mount (no-op while subscribed).
+  const ensureList = useCallback(() => {
+    if (isAuthenticated) void fetchList(undefined)
+  }, [isAuthenticated, fetchList])
 
   const [markReadRequest, { isLoading: isMarkingRead }] = useMarkReadMutation()
   const [deleteRequest, { isLoading: isDeleting }] = useDeleteNotificationMutation()
@@ -52,8 +54,8 @@ export function useNotifications() {
     error,
     isMarkingRead,
     isDeleting,
+    ensureList,
     markRead,
     remove,
-    refetch,
   }
 }
