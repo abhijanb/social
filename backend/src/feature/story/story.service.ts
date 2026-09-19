@@ -2,6 +2,7 @@ import { AppError } from "../../lib/errorHandler.js";
 import { ensureCanView, getFriendIds } from "../../lib/friends.js";
 import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
+import { notifyStoryView } from "../notification/notification.request.js";
 import { createStorySchema } from "./story.schema.js";
 
 const authorSelect = { id: true, username: true, avatarUrl: true } as const;
@@ -153,11 +154,19 @@ export async function markViewed(viewerId: string, storyId: string) {
   if (!story || story.deletedAt || story.expiresAt <= new Date())
     throw new AppError("Story not found", 404);
   await ensureCanView(viewerId, story.authorId);
+  // Notify only on first view (re-watches stay silent), never own stories.
+  const alreadyViewed = await prisma.storyView.findUnique({
+    where: { storyId_viewerId: { storyId, viewerId } },
+    select: { storyId: true },
+  });
   await prisma.storyView.upsert({
     where: { storyId_viewerId: { storyId, viewerId } },
     create: { storyId, viewerId },
     update: {},
   });
+  if (!alreadyViewed && story.authorId !== viewerId) {
+    await notifyStoryView(story.authorId, viewerId);
+  }
   return { id: storyId };
 }
 

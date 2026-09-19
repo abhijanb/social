@@ -2,6 +2,10 @@ import { AppError } from "../../lib/errorHandler.js";
 import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import {
+  notifyFriendAccepted,
+  notifyFriendRequest,
+} from "../notification/notification.request.js";
+import {
   acceptFriendshipSchema,
   createFriendshipSchema,
   updateFriendshipSchema,
@@ -59,13 +63,15 @@ export async function createFriendship(
   await assertUsersExist(requesterId, addresseeId);
   await assertNoDuplicateFriendship(requesterId, addresseeId);
 
-  return prisma.friendship.create({
+  const friendship = await prisma.friendship.create({
     data: {
       requesterId,
       addresseeId,
       status: "PENDING",
     },
   });
+  await notifyFriendRequest(addresseeId, requesterId);
+  return friendship;
 }
 
 // Port of FriendshipService.update — status change, 404 when missing.
@@ -91,10 +97,12 @@ export async function acceptFriendship(id: string, input: unknown) {
   if (friendship.status !== "PENDING") {
     throw new AppError("Friendship is not pending", 400);
   }
-  return prisma.friendship.update({
+  const updated = await prisma.friendship.update({
     where: { id },
     data: { status: "ACCEPTED" },
   });
+  await notifyFriendAccepted(friendship.requesterId, friendship.addresseeId);
+  return updated;
 }
 
 // Port of FriendshipService.remove — 404 when missing.

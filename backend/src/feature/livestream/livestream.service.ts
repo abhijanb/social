@@ -131,8 +131,9 @@ export async function sendComment(
   const dto = validateOrThrow(sendStreamCommentSchema, input);
   const stream = await getLiveStreamOrThrow(streamId);
   await ensureCanView(authorId, stream.hostId, "Not friends with the host");
-  return prisma.livestreamComment.create({
+  const comment = await prisma.livestreamComment.create({
     data: { streamId, authorId, text: dto.text },
     include: commentInclude,
   });
+  return comment;
 }

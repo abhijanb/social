@@ -3,6 +3,7 @@ import { listCommentsPage } from "../../lib/comments.js";
 import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import { ensureCanView } from "../../lib/friends.js";
+import { notifyPostComment } from "../notification/notification.request.js";
 import { createPostCommentSchema } from "./post.schema.js";
 
 const commentAuthorSelect = { id: true, username: true, avatarUrl: true } as const;
@@ -29,10 +30,15 @@ export async function createPostComment(
   const dto = validateOrThrow(createPostCommentSchema, input);
   const post = await getPostOrThrow(postId);
   await ensureCanView(authorId, post.authorId);
-  return prisma.postComment.create({
+  const comment = await prisma.postComment.create({
     data: { postId, authorId, text: dto.text },
     include: commentInclude,
   });
+  // Never notify for your own posts.
+  if (post.authorId !== authorId) {
+    await notifyPostComment(post.authorId, authorId, postId);
+  }
+  return comment;
 }
 
 // List comments on a post — friends-only. Without sinceId returns the

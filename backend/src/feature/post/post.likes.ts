@@ -1,6 +1,7 @@
 import { AppError } from "../../lib/errorHandler.js";
 import { prisma } from "../../lib/prisma.js";
 import { ensureCanView } from "../../lib/friends.js";
+import { notifyPostLike } from "../notification/notification.request.js";
 
 // Toggle the viewer's like on a post — friends-only (same guard as
 // viewing; liking your own posts is allowed). Idempotent: liking twice
@@ -20,6 +21,10 @@ export async function toggleLike(userId: string, postId: string) {
     await prisma.postLike.delete({ where: { id: existing.id } });
   } else {
     await prisma.postLike.create({ data: { postId, userId } });
+    // Notify on like only (not unlike), and never for your own posts.
+    if (post.authorId !== userId) {
+      await notifyPostLike(post.authorId, userId, postId);
+    }
   }
   const likesCount = await prisma.postLike.count({ where: { postId } });
   return { liked: !existing, likesCount };
