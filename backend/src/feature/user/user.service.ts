@@ -1,5 +1,6 @@
 import * as bcrypt from "bcrypt";
 import { AppError } from "../../lib/errorHandler.js";
+import { logger } from "../../lib/logger.js";
 import { getFriendIds } from "../../lib/friends.js";
 import { deleteUploadUrls } from "../../lib/uploads.js";
 import { Prisma } from "../../generated/prisma/client.js";
@@ -7,6 +8,8 @@ import { prisma } from "../../lib/prisma.js";
 import { stripPassword } from "../../lib/stripPassword.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import { updateUserSchema } from "./user.schema.js";
+
+const log = logger.child({ service: "user" });
 
 // Port of UserService.findAll — live user search with JWT-based exclusion:
 // skips self (by id + case-insensitive username) and ACCEPTED friends.
@@ -17,6 +20,7 @@ export async function findAll(
   search: string,
   currentUserId?: string,
 ) {
+  log.debug({ search, currentUserId }, "user search");
   let friendIds: string[] = [];
   if (currentUserId) {
     friendIds = await getFriendIds(currentUserId);
@@ -43,6 +47,7 @@ export async function findAll(
 
 // Port of UserService.findOne — null when missing so the route can 404.
 export async function findUserById(id: string) {
+  log.debug({ id }, "find user by id");
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return null;
   return stripPassword(user);
@@ -50,6 +55,7 @@ export async function findUserById(id: string) {
 
 // Case-insensitive lookup by username — backing GET /user/by-username/:username.
 export async function findUserByUsername(username: string) {
+  log.debug({ username }, "find user by username");
   const user = await prisma.user.findFirst({
     where: { username: { equals: username, mode: "insensitive" } },
   });
@@ -68,6 +74,7 @@ export type ProfileRelation = {
 // Private (isPublic=false) users hide counts from strangers; posts grid
 // itself stays guarded by GET /post?authorId= (403).
 export async function getProfile(viewerId: string, username: string) {
+  log.debug({ viewerId, username }, "profile lookup");
   const target = await prisma.user.findFirst({
     where: { username: { equals: username.trim(), mode: "insensitive" } },
   });
@@ -131,6 +138,7 @@ export async function updateUser(
   if (typeof data.password === "string") {
     data.password = await bcrypt.hash(data.password, 10);
   }
+  log.debug({ userId: id, avatarUrl: data.avatarUrl }, "update user");
   try {
     const user = await prisma.user.update({ where: { id }, data });
     return stripPassword(user);
@@ -147,6 +155,7 @@ export async function updateUser(
 // Port of UserService.remove — 404 when the user does not exist.
 // Unlinks a local avatar file so deleted users leave no orphans.
 export async function removeUser(id: string) {
+  log.debug({ userId: id }, "remove user");
   const existing = await prisma.user.findUnique({
     where: { id },
     select: { avatarUrl: true },

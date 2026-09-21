@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import { AppError } from "../../lib/errorHandler.js";
+import { logger } from "../../lib/logger.js";
 import { responseCreated, responseSuccess } from "../../lib/response.js";
 import {
   deleteUploadFiles,
@@ -31,6 +32,8 @@ import {
   postIdParamSchema,
 } from "./post.schema.js";
 
+const log = logger.child({ controller: "post" });
+
 // POST /post — multipart text + optional media attachments (up to 10,
 // any mix of images/videos, uploadImage runs first).
 // Port of PostController.create (behind requireAuth).
@@ -51,7 +54,9 @@ export async function createPostController(req: AuthRequest, res: Response) {
     url: uploadUrl(f.filename),
     kind: f.mimetype.startsWith("video/") ? "VIDEO" : "IMAGE",
   }));
+  log.info({ userId: req.user.id, mediaCount: media.length }, "post create");
   const post = await createPost(req.user.id, dto.text, media);
+  log.info({ postId: post.id, userId: req.user.id }, "post created");
   return responseCreated(res, post, "Post created");
 }
 
@@ -59,6 +64,7 @@ export async function createPostController(req: AuthRequest, res: Response) {
 export async function getFeedController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { page } = validateOrThrow(feedQuerySchema, req.query);
+  log.debug({ userId: req.user.id, page }, "feed fetch");
   return responseSuccess(res, await getFeed(req.user.id, Number(page)));
 }
 
@@ -67,6 +73,7 @@ export async function getFeedController(req: AuthRequest, res: Response) {
 export async function toggleLikeController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(postIdParamSchema, req.params);
+  log.debug({ userId: req.user.id, postId: id }, "like toggle");
   return responseSuccess(res, await toggleLike(req.user.id, id));
 }
 
@@ -76,6 +83,7 @@ export async function toggleLikeController(req: AuthRequest, res: Response) {
 export async function toggleSaveController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(postIdParamSchema, req.params);
+  log.debug({ userId: req.user.id, postId: id }, "save toggle");
   return responseSuccess(res, await toggleSave(req.user.id, id));
 }
 
@@ -83,6 +91,7 @@ export async function toggleSaveController(req: AuthRequest, res: Response) {
 export async function getSavedPostsController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { page } = validateOrThrow(feedQuerySchema, req.query);
+  log.debug({ userId: req.user.id, page }, "saved posts fetch");
   return responseSuccess(res, await getSavedPosts(req.user.id, Number(page)));
 }
 
@@ -94,6 +103,7 @@ export async function getByAuthorController(req: AuthRequest, res: Response) {
     authorPostsQuerySchema,
     req.query,
   );
+  log.debug({ viewerId: req.user.id, authorId, page }, "author timeline fetch");
   return responseSuccess(
     res,
     await getByAuthor(req.user.id, authorId.trim(), Number(page)),
@@ -107,6 +117,7 @@ export async function createPostCommentController(
 ) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(postIdParamSchema, req.params);
+  log.info({ userId: req.user.id, postId: id }, "comment create");
   return responseCreated(
     res,
     await createPostComment(req.user.id, id, req.body),
@@ -125,6 +136,7 @@ export async function listPostCommentsController(
     postCommentsQuerySchema,
     req.query,
   );
+  log.debug({ viewerId: req.user.id, postId: id, sinceId }, "comments list");
   return responseSuccess(
     res,
     await listPostComments(req.user.id, id, sinceId, Number(limit)),
@@ -138,6 +150,7 @@ export async function deletePostCommentController(
 ) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id, commentId } = validateOrThrow(postCommentParamSchema, req.params);
+  log.info({ userId: req.user.id, postId: id, commentId }, "comment delete");
   return responseSuccess(
     res,
     await deletePostComment(req.user.id, id, commentId),
@@ -149,6 +162,7 @@ export async function deletePostCommentController(
 export async function deletePostController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(postIdParamSchema, req.params);
+  log.info({ userId: req.user.id, postId: id }, "post delete");
   const { urls } = await deletePost(req.user.id, id);
   await deleteUploadUrls(urls);
   return responseSuccess(res, { id }, "Post deleted");
@@ -158,6 +172,7 @@ export async function deletePostController(req: AuthRequest, res: Response) {
 export async function getByHashtagController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { tag, page } = validateOrThrow(byHashtagQuerySchema, req.query);
+  log.debug({ viewerId: req.user.id, tag, page }, "hashtag feed fetch");
   return responseSuccess(res, await getByHashtag(req.user.id, tag, Number(page)));
 }
 
@@ -165,5 +180,6 @@ export async function getByHashtagController(req: AuthRequest, res: Response) {
 export async function searchHashtagsController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { q, limit } = validateOrThrow(hashtagSearchQuerySchema, req.query);
+  log.debug({ q, limit }, "hashtag search");
   return responseSuccess(res, await searchHashtags(q, Number(limit)));
 }

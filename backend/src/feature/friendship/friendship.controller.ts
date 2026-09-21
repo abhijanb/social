@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import { AppError } from "../../lib/errorHandler.js";
+import { logger } from "../../lib/logger.js";
 import { responseCreated, responseSuccess } from "../../lib/response.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import type { AuthRequest } from "../../middleware/auth.js";
@@ -22,6 +23,8 @@ import {
   createFriendshipSchema,
 } from "./friendship.schema.js";
 
+const log = logger.child({ controller: "friendship" });
+
 // POST /friendship — send a friend request. requireAuth; requesterId
 // is set from the authenticated user (never trusted from the client).
 export async function createFriendshipController(
@@ -30,6 +33,7 @@ export async function createFriendshipController(
 ) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { addresseeId } = validateOrThrow(createFriendshipSchema, req.body);
+  log.info({ requesterId: req.user.id, addresseeId }, "friend request");
   const friendship = await createFriendship(req.user.id, {
     addresseeId,
   });
@@ -45,6 +49,7 @@ export async function listFriendshipsController(
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { userId } = validateOrThrow(friendshipListQuerySchema, req.query);
   const target = userId || req.user.id;
+  log.debug({ requesterId: req.user.id, target }, "friends list");
   return responseSuccess(res, await findFriends(target));
 }
 
@@ -54,6 +59,7 @@ export async function listPendingController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { userId } = validateOrThrow(friendshipUserQuerySchema, req.query);
   const target = userId || req.user.id;
+  log.debug({ requesterId: req.user.id, target }, "pending list");
   return responseSuccess(res, await findPending(target));
 }
 
@@ -61,6 +67,7 @@ export async function listPendingController(req: AuthRequest, res: Response) {
 export async function getFriendshipController(req: AuthRequest, res: Response) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(friendshipIdParamSchema, req.params);
+  log.debug({ id }, "friendship lookup");
   return responseSuccess(res, await findFriendshipById(id));
 }
 
@@ -71,6 +78,7 @@ export async function updateFriendshipController(
 ) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(friendshipIdParamSchema, req.params);
+  log.info({ userId: req.user.id, id }, "friendship update");
   return responseSuccess(res, await updateFriendship(id, req.body));
 }
 
@@ -81,6 +89,7 @@ export async function acceptFriendshipController(
 ) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(friendshipIdParamSchema, req.params);
+  log.info({ userId: req.user.id, id }, "friend accept");
   return responseSuccess(res, await acceptFriendship(id, req.body));
 }
 
@@ -91,6 +100,7 @@ export async function deleteFriendshipController(
 ) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(friendshipIdParamSchema, req.params);
+  log.info({ userId: req.user.id, id }, "friend delete");
   await removeFriendship(id);
   return responseSuccess(res, null, "Friendship deleted");
 }

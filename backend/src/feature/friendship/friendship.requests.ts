@@ -1,4 +1,5 @@
 import { AppError } from "../../lib/errorHandler.js";
+import { logger } from "../../lib/logger.js";
 import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import {
@@ -14,6 +15,8 @@ import {
   createFriendshipSchema,
   updateFriendshipSchema,
 } from "./friendship.schema.js";
+
+const log = logger.child({ service: "friendship" });
 
 async function assertUsersExist(
   requesterId: string,
@@ -75,7 +78,8 @@ export async function createFriendship(
     },
   });
   await notifyFriendRequest(addresseeId, requesterId);
-  sendFriendRequestEmail(addresseeId, requesterId);
+  sendFriendRequestEmail(addresseeId, requesterId).catch(() => {});
+  log.info({ friendshipId: friendship.id, requesterId, addresseeId }, "friend request created");
   return friendship;
 }
 
@@ -84,7 +88,7 @@ export async function updateFriendship(id: string, input: unknown) {
   const dto = validateOrThrow(updateFriendshipSchema, input);
   const friendship = await prisma.friendship.findUnique({ where: { id } });
   if (!friendship) throw new AppError("Friendship not found", 404);
-
+  log.debug({ id, status: dto.status }, "friendship update");
   return prisma.friendship.update({
     where: { id },
     data: { status: dto.status },
@@ -107,13 +111,17 @@ export async function acceptFriendship(id: string, input: unknown) {
     data: { status: "ACCEPTED" },
   });
   await notifyFriendAccepted(friendship.requesterId, friendship.addresseeId);
-  sendFriendAcceptedEmail(friendship.requesterId, friendship.addresseeId);
+  sendFriendAcceptedEmail(friendship.requesterId, friendship.addresseeId).catch(() => {});
+  log.info({ friendshipId: id, requesterId: friendship.requesterId, addresseeId: friendship.addresseeId }, "friend accepted");
   return updated;
 }
 
 // Port of FriendshipService.remove — 404 when missing.
 export async function removeFriendship(id: string) {
+  log.debug({ id }, "friendship delete");
   const friendship = await prisma.friendship.findUnique({ where: { id } });
   if (!friendship) throw new AppError("Friendship not found", 404);
-  return prisma.friendship.delete({ where: { id } });
+  const deleted = await prisma.friendship.delete({ where: { id } });
+  log.info({ friendshipId: id }, "friendship deleted");
+  return deleted;
 }

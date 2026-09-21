@@ -130,7 +130,9 @@ export async function deleteUploadUrls(urls: string[]): Promise<void> {
 export async function deleteUploadFiles(filenames: string[]): Promise<void> {
   await Promise.allSettled(
     filenames.map((name) =>
-      unlink(join(process.cwd(), "uploads", name)),
+      unlink(join(process.cwd(), "uploads", name)).catch(() => {
+        // ignore cleanup failures
+      }),
     ),
   );
 }

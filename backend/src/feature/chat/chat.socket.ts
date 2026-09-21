@@ -1,8 +1,7 @@
 import type { Socket } from "socket.io";
-import { verifyToken } from "../../lib/jwt.js";
 import {
   getChatNamespace,
-  getTokenFromSocket,
+  authenticateSocket,
 } from "../../socket/socket.js";
 import { sendMessage } from "./chat.service.js";
 
@@ -10,26 +9,16 @@ type SendAck = (res:
   | { ok: true; message: unknown }
   | { ok: false; error: string }) => void;
 
-// Registers the /chat namespace handlers. Port of ChatGateway: each
-// authenticated socket joins its personal `user:<id>` room; chat:send
-// saves via the shared service and emits chat:receive to both the
-// receiver's and the sender's rooms (multi-tab echo). The ack mirrors
-// the Nest return value so the frontend REST-fallback logic is unchanged.
 export function registerChatHandlers(): void {
   const namespace = getChatNamespace();
 
   namespace.on("connection", (client: Socket) => {
-    const token = getTokenFromSocket(client);
-    if (!token) {
+    const auth = authenticateSocket(client);
+    if (!auth.authenticated) {
       client.disconnect();
       return;
     }
-    const payload = verifyToken(token);
-    if (!payload?.id) {
-      client.disconnect();
-      return;
-    }
-    const userId = payload.id;
+    const userId = auth.userId;
     (client.data as Record<string, unknown>).userId = userId;
     void client.join(`user:${userId}`);
 

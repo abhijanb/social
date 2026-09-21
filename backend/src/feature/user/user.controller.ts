@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import { AppError } from "../../lib/errorHandler.js";
+import { logger } from "../../lib/logger.js";
 import { prisma } from "../../lib/prisma.js";
 import { responseSuccess } from "../../lib/response.js";
 import {
@@ -22,6 +23,8 @@ import {
   usernameParamSchema,
 } from "./user.schema.js";
 
+const log = logger.child({ controller: "user" });
+
 // GET /user?search= — live search (auth required when searching) or
 // recent-users list. Port of UserController.findAll. Errors bubble to
 // the shared errorMiddleware.
@@ -30,6 +33,7 @@ export async function listUsersController(req: AuthRequest, res: Response) {
   const trimmed = search.trim();
   // Strict for search: must be authenticated to get self-excluded results.
   if (trimmed && !req.user) throw new AppError("Not authenticated", 401);
+  log.debug({ search: trimmed, userId: req.user?.id }, "user search");
   const users = await findAll(trimmed, req.user?.id);
   return responseSuccess(res, users);
 }
@@ -37,6 +41,7 @@ export async function listUsersController(req: AuthRequest, res: Response) {
 // GET /user/:id — single profile. Port of UserController.findOne.
 export async function getUserController(req: AuthRequest, res: Response) {
   const { id } = validateOrThrow(userIdParamSchema, req.params);
+  log.debug({ id }, "user lookup");
   const user = await findUserById(id);
   if (!user) throw new AppError("User not found", 404);
   return responseSuccess(res, user);
@@ -49,6 +54,7 @@ export async function getUserByUsernameController(
 ) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { username } = validateOrThrow(usernameParamSchema, req.params);
+  log.debug({ username, userId: req.user.id }, "profile lookup");
   return responseSuccess(res, await getProfile(req.user.id, username));
 }
 
@@ -89,6 +95,7 @@ export async function updateMeController(req: AuthRequest, res: Response) {
     throw new AppError("User not found", 404);
   }
 
+  log.info({ userId: req.user.id, hasAvatar: !!file }, "profile update");
   try {
     const user = await updateUser(
       req.user.id,
@@ -108,6 +115,7 @@ export async function updateMeController(req: AuthRequest, res: Response) {
     return responseSuccess(res, user);
   } catch (err) {
     await unlinkNew();
+    log.error({ err, userId: req.user.id }, "profile update failed");
     throw err;
   }
 }
@@ -117,6 +125,7 @@ export async function updateMeController(req: AuthRequest, res: Response) {
 export async function deleteUserController(req: AuthRequest, res: Response) {
   const { id } = validateOrThrow(userIdParamSchema, req.params);
   if (req.user?.id !== id) throw new AppError("Cannot delete other users", 403);
+  log.info({ userId: id }, "user delete");
   await removeUser(id);
   return responseSuccess(res, null, "User deleted");
 }

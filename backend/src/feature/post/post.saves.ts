@@ -1,13 +1,17 @@
 import { AppError } from "../../lib/errorHandler.js";
+import { logger } from "../../lib/logger.js";
 import { prisma } from "../../lib/prisma.js";
 import { ensureCanView, getFriendIds } from "../../lib/friends.js";
 import { postInclude, withViewerState } from "./post.feed.js";
 import { FEED_PAGE_SIZE, type FeedPage } from "./post.types.js";
 
+const log = logger.child({ service: "post" });
+
 // Toggle the viewer's save on a post — same visibility as viewing
 // (friends-only; saving your own posts is allowed). Idempotent: saving
 // twice unsaves. Saves are fully private: no count is ever exposed.
 export async function toggleSave(userId: string, postId: string) {
+  log.debug({ userId, postId }, "save toggle");
   const post = await prisma.post.findUnique({
     where: { id: postId },
     select: { id: true, authorId: true },
@@ -30,6 +34,7 @@ export async function toggleSave(userId: string, postId: string) {
 // first. Friends-only visibility still applies: saves of ex-friends' posts
 // simply don't appear (their rows survive for a future re-friend).
 export async function getSavedPosts(meId: string, page = 1): Promise<FeedPage> {
+  log.debug({ meId, page }, "saved posts fetch");
   const p = Math.max(1, Math.floor(page) || 1);
   const saves = await prisma.postSave.findMany({
     where: { userId: meId },

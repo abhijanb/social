@@ -1,6 +1,7 @@
 import type { Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
 import type { Namespace, Socket } from "socket.io";
+import { verifyToken } from "../lib/jwt.js";
 
 let io: Server | null = null;
 
@@ -67,4 +68,22 @@ export function getChatNamespace(): Namespace {
 // `stream:<id>` rooms; media itself is peer-to-peer.
 export function getLivestreamNamespace(): Namespace {
   return getIo().of("/livestream");
+}
+
+export function authenticateSocket(
+  client: Socket,
+): { userId: string; authenticated: true } | { userId: null; authenticated: false } {
+  const token = getTokenFromSocket(client);
+  if (!token) {
+    return { userId: null, authenticated: false };
+  }
+  try {
+    const payload = verifyToken(token);
+    if (!payload?.id) {
+      return { userId: null, authenticated: false };
+    }
+    return { userId: payload.id, authenticated: true };
+  } catch {
+    return { userId: null, authenticated: false };
+  }
 }

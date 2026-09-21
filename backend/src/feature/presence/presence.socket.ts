@@ -1,8 +1,7 @@
 import type { Socket } from "socket.io";
-import { verifyToken } from "../../lib/jwt.js";
 import {
   getPresenceNamespace,
-  getTokenFromSocket,
+  authenticateSocket,
 } from "../../socket/socket.js";
 import {
   getPresence,
@@ -11,24 +10,16 @@ import {
   touchPresence,
 } from "./presence.service.js";
 
-// Registers the /presence namespace handlers. Port of PresenceGateway:
-// authenticated sockets mark the user online and every connect/disconnect
-// broadcasts presence:update; heartbeat keeps lastSeen fresh.
 export function registerPresenceHandlers(): void {
   const namespace = getPresenceNamespace();
 
   namespace.on("connection", (client: Socket) => {
-    const token = getTokenFromSocket(client);
-    if (!token) {
+    const auth = authenticateSocket(client);
+    if (!auth.authenticated) {
       client.disconnect();
       return;
     }
-    const payload = verifyToken(token);
-    if (!payload?.id) {
-      client.disconnect();
-      return;
-    }
-    const userId = payload.id;
+    const userId = auth.userId;
     (client.data as Record<string, unknown>).userId = userId;
     setOnline(userId, client.id);
     void client.join(`user:${userId}`);

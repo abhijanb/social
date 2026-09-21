@@ -14,7 +14,6 @@ import {
   type LivestreamSocketData,
 } from "./livestream.socket.handlers.js";
 
-// Socket.IO room holding every peer watching/publishing one stream.
 export function streamRoom(streamId: string): string {
   return `stream:${streamId}`;
 }
@@ -40,9 +39,6 @@ export function isSignalKind(value: unknown): value is SignalKind {
   return value === "offer" || value === "answer" || value === "ice";
 }
 
-// Shared with the REST guards: the stream must be LIVE and the user must
-// be the host or an ACCEPTED friend of the host. Returns the username for
-// peer announcements.
 export async function getJoinContext(
   userId: string,
   streamId: string,
@@ -53,7 +49,6 @@ export async function getJoinContext(
   });
   if (!stream || stream.status !== "LIVE")
     throw new AppError("Stream ended or not found", 404);
-  // Host always passes (shared guard self-passes); friends need ACCEPTED.
   await ensureCanView(userId, stream.hostId, "Not friends with the host");
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -63,12 +58,6 @@ export async function getJoinContext(
   return { username: user.username };
 }
 
-// Registers the /livestream namespace handlers: WebRTC signaling relay
-// for live video rooms. The server never touches media — it authenticates
-// (cookie JWT, like /chat), authorizes (friends-only per stream), tracks
-// room membership, and forwards offers/answers/ICE between peers.
-// Mesh topology: every peer connects to every other peer.
-// Event logic lives in ./livestream.socket.handlers.js; this wires it.
 export function registerLivestreamHandlers(): void {
   const namespace = getLivestreamNamespace();
 
@@ -79,25 +68,25 @@ export function registerLivestreamHandlers(): void {
 
     client.on(
       "livestream:join",
-      (
-        msg: { streamId?: unknown; audio?: unknown; video?: unknown },
-        ack?: JoinAck,
-      ) => {
-        void handleJoin(namespace, client, data, userId, msg, ack);
-      },
-    );
+       (
+         msg: { streamId?: unknown; audio?: unknown; video?: unknown },
+         ack?: JoinAck,
+       ) => {
+         void handleJoin(namespace, client, data, userId, msg, ack);
+       },
+     );
 
     client.on(
       "livestream:signal",
       (msg: { to?: unknown; kind?: unknown; payload?: unknown }) => {
-        handleSignal(namespace, client, data, msg);
+        void handleSignal(namespace, client, data, msg);
       },
     );
 
     client.on(
       "livestream:media-update",
       (msg: { audio?: unknown; video?: unknown }) => {
-        handleMediaUpdate(client, data, msg);
+         void handleMediaUpdate(client, data, msg);
       },
     );
 
@@ -107,9 +96,6 @@ export function registerLivestreamHandlers(): void {
   });
 }
 
-// Tells every peer in a stream room that the host ended it so clients
-// tear down their peer connections (called from the REST end controller;
-// the 404 comment poll is the fallback signal).
 export function emitStreamEnded(streamId: string): void {
   getLivestreamNamespace()
     .to(streamRoom(streamId))

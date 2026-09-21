@@ -1,4 +1,5 @@
 import { AppError } from "../../lib/errorHandler.js";
+import { logger } from "../../lib/logger.js";
 import { extractHashtags } from "../../lib/hashtags.js";
 import { prisma } from "../../lib/prisma.js";
 import { postInclude, withViewerState } from "./post.feed.js";
@@ -6,6 +7,8 @@ import {
   MAX_POST_IMAGES,
   type PostMediaInput,
 } from "./post.types.js";
+
+const log = logger.child({ service: "post" });
 
 // Port of PostService.create — text, media, or both required.
 // Accepts up to MAX_POST_IMAGES attachments, any mix of images and
@@ -24,6 +27,7 @@ export async function createPost(
   if (!trimmed && media.length === 0)
     throw new AppError("Post needs text or at least one image or video", 400);
   const tags = extractHashtags(trimmed);
+  log.debug({ authorId, mediaCount: media.length, tagCount: tags.length }, "post create");
   const post = await prisma.post.create({
     data: {
       authorId,
@@ -40,12 +44,14 @@ export async function createPost(
     include: postInclude,
   });
   const [withLikes] = await withViewerState([post], authorId);
+  log.info({ postId: post.id, authorId }, "post created");
   return withLikes;
 }
 
 // Delete a post — author only. PostImage/PostLike/PostComment rows cascade
 // in the DB; returns file urls so the controller can unlink them from disk.
 export async function deletePost(userId: string, postId: string) {
+  log.debug({ userId, postId }, "post delete");
   const post = await prisma.post.findUnique({
     where: { id: postId },
     select: {
@@ -58,5 +64,6 @@ export async function deletePost(userId: string, postId: string) {
   if (post.authorId !== userId)
     throw new AppError("Not allowed to delete this post", 403);
   await prisma.post.delete({ where: { id: postId } });
+  log.info({ postId, userId }, "post deleted");
   return { id: postId, urls: post.images.map((i) => i.url) };
 }

@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import { AppError } from "../../lib/errorHandler.js";
+import { logger } from "../../lib/logger.js";
 import { responseSuccess } from "../../lib/response.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import type { AuthRequest } from "../../middleware/auth.js";
@@ -14,12 +15,15 @@ import {
 } from "./notification.request.js";
 import { notificationIdParamSchema } from "./notification.schema.js";
 
+const log = logger.child({ controller: "notification" });
+
 // GET /notification — own non-deleted, newest first. requireAuth.
 export async function listNotificationsController(
   req: AuthRequest,
   res: Response,
 ) {
   if (!req.user) throw new AppError("Not authenticated", 401);
+  log.debug({ userId: req.user.id }, "notifications list");
   return responseSuccess(res, await findNotifications(req.user.id));
 }
 
@@ -30,6 +34,7 @@ export async function getUnreadCountController(
 ) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const count = await countUnreadNotifications(req.user.id);
+  log.debug({ userId: req.user.id, count }, "unread count");
   return responseSuccess(res, { count });
 }
 
@@ -40,6 +45,7 @@ export async function markNotificationReadController(
 ) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(notificationIdParamSchema, req.params);
+  log.debug({ userId: req.user.id, id }, "mark read");
   return responseSuccess(res, await markNotificationAsRead(id, req.user.id));
 }
 
@@ -48,6 +54,7 @@ export async function markAllNotificationsReadController(
   res: Response,
 ) {
   if (!req.user) throw new AppError("Not authenticated", 401);
+  log.info({ userId: req.user.id }, "mark all read");
   return responseSuccess(res, await markAllNotificationsAsRead(req.user.id));
 }
 
@@ -58,6 +65,7 @@ export async function deleteNotificationController(
 ) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   const { id } = validateOrThrow(notificationIdParamSchema, req.params);
+  log.info({ userId: req.user.id, id }, "notification delete");
   await deleteNotification(id, req.user.id);
   return responseSuccess(res, null, "Notification deleted");
 }

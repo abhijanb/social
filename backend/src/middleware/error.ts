@@ -1,24 +1,25 @@
 import type { NextFunction, Request, Response } from "express";
 import { AppError } from "../lib/errorHandler.js";
+import { logger } from "../lib/logger.js";
 import { responseError } from "../lib/response.js";
 
-// Final error middleware — replaces every per-controller handleError.
-// AppError carries its own statusCode; anything else is a 500 with a
-// generic message (no internals leak). Must be registered after all
-// routers in index.ts. Express 5 forwards async throws here automatically.
+const log = logger.child({ middleware: "error" });
+
 export function errorMiddleware(
   err: unknown,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction,
 ): void {
   if (res.headersSent) {
-    console.error(err);
     return;
   }
   const statusCode = err instanceof AppError ? err.statusCode : 500;
+  log.error(
+    { err, path: req.path, method: req.method, ip: req.ip, statusCode },
+    "unhandled error",
+  );
   if (statusCode >= 500) {
-    console.error(err);
     responseError(res, undefined, "Internal server error", 500);
     return;
   }

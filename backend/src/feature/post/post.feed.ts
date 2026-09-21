@@ -1,6 +1,9 @@
 import { prisma } from "../../lib/prisma.js";
+import { logger } from "../../lib/logger.js";
 import { ensureCanView, getFriendIds } from "../../lib/friends.js";
 import { FEED_PAGE_SIZE, type FeedPage } from "./post.types.js";
+
+const log = logger.child({ service: "post" });
 
 const authorSelect = { id: true, username: true, avatarUrl: true } as const;
 const imagesOrderBy = { order: "asc" } as const;
@@ -68,6 +71,7 @@ async function findPage(
 
 // Port of PostService.getFeed — own + ACCEPTED friends' posts.
 export async function getFeed(meId: string, page = 1): Promise<FeedPage> {
+  log.debug({ meId, page }, "feed fetch");
   const friendIds = await getFriendIds(meId);
   return findPage(meId, [meId, ...friendIds], page);
 }
@@ -78,6 +82,7 @@ export async function getByAuthor(
   authorId: string,
   page = 1,
 ): Promise<FeedPage> {
+  log.debug({ meId, authorId, page }, "author timeline fetch");
   await ensureCanView(meId, authorId);
   return findPage(meId, [authorId], page);
 }

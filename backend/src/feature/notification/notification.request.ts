@@ -1,5 +1,8 @@
 import { AppError } from "../../lib/errorHandler.js";
+import { logger } from "../../lib/logger.js";
 import { prisma } from "../../lib/prisma.js";
+
+const log = logger.child({ service: "notification" });
 
 // Username for notification content ("alice liked your post").
 async function resolveUsername(userId: string) {
@@ -19,7 +22,7 @@ export async function notifyFriendRequest(
   requesterId: string,
 ) {
   const requester = await resolveUsername(requesterId);
-  return prisma.notification.create({
+  const notification = await prisma.notification.create({
     data: {
       userId: addresseeId,
       type: "FRIEND_REQUEST",
@@ -27,6 +30,8 @@ export async function notifyFriendRequest(
       relatedUser: requesterId,
     },
   });
+  log.debug({ notificationId: notification.id, addresseeId, requesterId }, "notify friend request");
+  return notification;
 }
 
 export async function notifyFriendAccepted(
@@ -34,7 +39,7 @@ export async function notifyFriendAccepted(
   addresseeId: string,
 ) {
   const addressee = await resolveUsername(addresseeId);
-  return prisma.notification.create({
+  const notification = await prisma.notification.create({
     data: {
       userId: requesterId,
       type: "FRIEND_ACCEPTED",
@@ -42,6 +47,8 @@ export async function notifyFriendAccepted(
       relatedUser: addresseeId,
     },
   });
+  log.debug({ notificationId: notification.id, requesterId, addresseeId }, "notify friend accepted");
+  return notification;
 }
 
 export async function notifyPostLike(
@@ -50,7 +57,7 @@ export async function notifyPostLike(
   postId: string,
 ) {
   const liker = await resolveUsername(likerId);
-  return prisma.notification.create({
+  const notification = await prisma.notification.create({
     data: {
       userId: authorId,
       type: "POST_LIKE",
@@ -59,6 +66,8 @@ export async function notifyPostLike(
       relatedUser: likerId,
     },
   });
+  log.debug({ notificationId: notification.id, authorId, likerId, postId }, "notify post like");
+  return notification;
 }
 
 export async function notifyPostComment(
@@ -67,7 +76,7 @@ export async function notifyPostComment(
   postId: string,
 ) {
   const commenter = await resolveUsername(commenterId);
-  return prisma.notification.create({
+  const notification = await prisma.notification.create({
     data: {
       userId: authorId,
       type: "POST_COMMENT",
@@ -76,11 +85,13 @@ export async function notifyPostComment(
       relatedUser: commenterId,
     },
   });
+  log.debug({ notificationId: notification.id, authorId, commenterId, postId }, "notify post comment");
+  return notification;
 }
 
 export async function notifyStoryView(authorId: string, viewerId: string) {
   const viewer = await resolveUsername(viewerId);
-  return prisma.notification.create({
+  const notification = await prisma.notification.create({
     data: {
       userId: authorId,
       type: "STORY_VIEW",
@@ -88,6 +99,8 @@ export async function notifyStoryView(authorId: string, viewerId: string) {
       relatedUser: viewerId,
     },
   });
+  log.debug({ notificationId: notification.id, authorId, viewerId }, "notify story view");
+  return notification;
 }
 
 async function assertOwnNotification(id: string, userId: string) {
@@ -104,24 +117,30 @@ async function assertOwnNotification(id: string, userId: string) {
 // Mark own notification as read. Missing/deleted → 404, another user's → 403.
 export async function markNotificationAsRead(id: string, userId: string) {
   await assertOwnNotification(id, userId);
-  return prisma.notification.update({
+  const notification = await prisma.notification.update({
     where: { id },
     data: { isRead: true },
   });
+  log.debug({ notificationId: id, userId }, "notification marked read");
+  return notification;
 }
 
 export async function markAllNotificationsAsRead(userId: string) {
-  return prisma.notification.updateMany({
+  const res = await prisma.notification.updateMany({
     where: { userId, isRead: false, isDeleted: false },
     data: { isRead: true },
   });
+  log.debug({ userId, count: res.count }, "all notifications marked read");
+  return res;
 }
 
 // Soft-delete own notification. Missing/deleted → 404, another user's → 403.
 export async function deleteNotification(id: string, userId: string) {
   await assertOwnNotification(id, userId);
-  return prisma.notification.update({
+  const notification = await prisma.notification.update({
     where: { id },
     data: { isDeleted: true },
   });
+  log.debug({ notificationId: id, userId }, "notification deleted");
+  return notification;
 }

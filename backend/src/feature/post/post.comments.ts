@@ -1,4 +1,5 @@
 import { AppError } from "../../lib/errorHandler.js";
+import { logger } from "../../lib/logger.js";
 import { listCommentsPage } from "../../lib/comments.js";
 import { prisma } from "../../lib/prisma.js";
 import { validateOrThrow } from "../../lib/validate.js";
@@ -6,6 +7,8 @@ import { ensureCanView } from "../../lib/friends.js";
 import { sendPostCommentEmail } from "../notification/mailNotification.js";
 import { notifyPostComment } from "../notification/notification.request.js";
 import { createPostCommentSchema } from "./post.schema.js";
+
+const log = logger.child({ service: "post" });
 
 const commentAuthorSelect = { id: true, username: true, avatarUrl: true } as const;
 const commentInclude = {
@@ -38,8 +41,9 @@ export async function createPostComment(
   // Never notify for your own posts.
   if (post.authorId !== authorId) {
     await notifyPostComment(post.authorId, authorId, postId);
-    sendPostCommentEmail(post.authorId, authorId);
+    sendPostCommentEmail(post.authorId, authorId).catch(() => {});
   }
+  log.info({ commentId: comment.id, postId, authorId }, "comment created");
   return comment;
 }
 
@@ -54,6 +58,7 @@ export async function listPostComments(
 ) {
   const post = await getPostOrThrow(postId);
   await ensureCanView(viewerId, post.authorId);
+  log.debug({ viewerId, postId, sinceId }, "comments list");
   const fetchLatest = (take: number) =>
     prisma.postComment.findMany({
       where: { postId, deletedAt: null },
@@ -97,6 +102,7 @@ export async function deletePostComment(
   postId: string,
   commentId: string,
 ) {
+  log.debug({ userId, postId, commentId }, "comment delete");
   const comment = await prisma.postComment.findUnique({
     where: { id: commentId },
     select: { id: true, postId: true, authorId: true, deletedAt: true },
@@ -110,6 +116,7 @@ export async function deletePostComment(
     where: { id: commentId },
     data: { deletedAt: new Date() },
   });
+  log.info({ commentId, postId, deletedBy: userId }, "comment deleted");
   return { id: commentId };
 }
 
@@ -120,9 +127,11 @@ export async function deletePostComment(
 export async function purgeDeletedComments(
   olderThanDays = 30,
 ): Promise<{ deleted: number }> {
+  log.debug({ olderThanDays }, "purge deleted comments");
   const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
   const res = await prisma.postComment.deleteMany({
     where: { deletedAt: { lte: cutoff } },
   });
+  log.info({ deleted: res.count }, "purge deleted comments done");
   return { deleted: res.count };
 }

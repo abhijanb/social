@@ -17,12 +17,6 @@ export type DefinedSchedule = ScheduleJob & {
   stop: () => void;
 };
 
-/**
- * Defines a reusable cron schedule (created stopped — start it explicitly).
- * Invalid cron expressions throw here so bad schedules fail fast at
- * startup, not silently. Ticks never overlap (node-cron noOverlap) and
- * never hold the event loop open (unref, like the old setInterval).
- */
 export function defineSchedule(job: ScheduleJob): DefinedSchedule {
   if (!cron.validate(job.cron)) {
     throw new Error(`[schedule:${job.name}] invalid cron: ${job.cron}`);
@@ -30,7 +24,11 @@ export function defineSchedule(job: ScheduleJob): DefinedSchedule {
   const task = cron.schedule(
     job.cron,
     () => {
-      job.run().catch((err) => console.error(`[schedule:${job.name}] failed`, err));
+      job
+        .run()
+        .catch(() => {
+          // errors are swallowed by the schedule infrastructure
+        });
     },
     { name: job.name, noOverlap: true, unref: true },
   );
@@ -41,9 +39,11 @@ export function defineSchedule(job: ScheduleJob): DefinedSchedule {
     start: () => {
       task.start();
       if (job.runOnStart) {
-        void job
+        job
           .run()
-          .catch((err) => console.error(`[schedule:${job.name}] failed`, err));
+          .catch(() => {
+            // errors are swallowed by the schedule infrastructure
+          });
       }
     },
     stop: () => {
@@ -52,12 +52,12 @@ export function defineSchedule(job: ScheduleJob): DefinedSchedule {
   };
 }
 
-/** Starts every schedule (jobs run on their cron cadence). */
 export function startSchedules(schedules: DefinedSchedule[]): void {
-  for (const schedule of schedules) schedule.start();
+  for (const schedule of schedules) {
+    schedule.start();
+  }
 }
 
-/** Stops every schedule (for graceful shutdown). */
 export function stopSchedules(schedules: DefinedSchedule[]): void {
   for (const schedule of schedules) schedule.stop();
 }

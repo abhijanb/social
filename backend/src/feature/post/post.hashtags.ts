@@ -1,8 +1,11 @@
 import { AppError } from "../../lib/errorHandler.js";
+import { logger } from "../../lib/logger.js";
 import { prisma } from "../../lib/prisma.js";
 import { getFriendIds } from "../../lib/friends.js";
 import { postInclude, withViewerState } from "./post.feed.js";
 import { FEED_PAGE_SIZE, type FeedPage } from "./post.types.js";
+
+const log = logger.child({ service: "post" });
 
 function normalizeTag(raw: string): string {
   return raw.trim().replace(/^#+/, "").toLowerCase();
@@ -17,6 +20,7 @@ export async function getByHashtag(
 ): Promise<FeedPage> {
   const tag = normalizeTag(rawTag);
   if (!tag) throw new AppError("tag required", 400);
+  log.debug({ meId, tag, page }, "hashtag feed fetch");
   const friendIds = await getFriendIds(meId);
   const authorIds = [meId, ...friendIds];
   const p = Math.max(1, Math.floor(page) || 1);
@@ -42,6 +46,7 @@ export async function searchHashtags(rawQ: string, limit = 10) {
   const q = normalizeTag(rawQ);
   if (!q) return [];
   const n = Math.min(20, Math.max(1, Math.floor(limit) || 10));
+  log.debug({ q, limit: n }, "hashtag search");
   const rows = await prisma.hashtag.findMany({
     where: { tag: { startsWith: q } },
     orderBy: [{ posts: { _count: "desc" } }, { tag: "asc" }],

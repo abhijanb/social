@@ -68,7 +68,7 @@ export async function sendWelcomeEmail(
     subject: "Welcome to Social",
     text: `Hi ${username}, welcome to our app!`,
     html: `<p>Hi ${username}, welcome to our app!</p>`,
-  }).catch(console.error);
+  });
 }
 
 function resolveUsername(userId: string): Promise<string> {
@@ -86,7 +86,7 @@ export async function sendFriendRequestEmail(
     subject: `${name} sent you a friend request`,
     text: `${name} sent you a friend request`,
     html: `<p>${name} sent you a friend request</p>`,
-  }).catch(console.error);
+  });
 }
 
 export async function sendFriendAcceptedEmail(
@@ -98,7 +98,7 @@ export async function sendFriendAcceptedEmail(
     subject: `${name} accepted your friend request`,
     text: `${name} accepted your friend request`,
     html: `<p>${name} accepted your friend request</p>`,
-  }).catch(console.error);
+  });
 }
 
 export async function sendPostLikeEmail(
@@ -110,7 +110,7 @@ export async function sendPostLikeEmail(
     subject: `${name} liked your post`,
     text: `${name} liked your post`,
     html: `<p>${name} liked your post</p>`,
-  }).catch(console.error);
+  });
 }
 
 export async function sendPostCommentEmail(
@@ -122,7 +122,7 @@ export async function sendPostCommentEmail(
     subject: `${name} commented on your post`,
     text: `${name} commented on your post`,
     html: `<p>${name} commented on your post</p>`,
-  }).catch(console.error);
+  });
 }
 
 export async function sendVerificationEmail(
@@ -135,5 +135,5 @@ export async function sendVerificationEmail(
     subject: "Verify your email",
     text: `Verify your email by visiting: ${link}`,
     html: `<p>Verify your email by visiting: <a href="${link}">Verify Email</a></p>`,
-  }).catch(console.error);
+  });
 }

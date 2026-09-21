@@ -45,12 +45,16 @@ export const storyViewDigest = defineSchedule({
 
         const count = viewers.length;
         const viewerList = viewers.join(", ");
-        await sendMailToUser(recipientId, {
-          subject: `${count} story ${count === 1 ? "view" : "views"} this hour`,
-          text: `${count} person${count === 1 ? "" : "s"} viewed your story in the last hour: ${viewerList}.`,
-          html: `<p>${count} person${count === 1 ? "" : "s"} viewed your story in the last hour: ${viewerList}.</p>`,
-        }).catch(console.error);
-        sent++;
+        try {
+          await sendMailToUser(recipientId, {
+            subject: `${count} story ${count === 1 ? "view" : "views"} this hour`,
+            text: `${count} person${count === 1 ? "" : "s"} viewed your story in the last hour: ${viewerList}.`,
+            html: `<p>${count} person${count === 1 ? "" : "s"} viewed your story in the last hour: ${viewerList}.</p>`,
+          });
+          sent++;
+        } catch {
+          // email failures are silently ignored
+        }
       }),
     );
 

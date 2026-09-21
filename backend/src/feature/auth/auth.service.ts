@@ -1,11 +1,14 @@
 import * as bcrypt from "bcrypt";
 import { AppError } from "../../lib/errorHandler.js";
+import { logger } from "../../lib/logger.js";
 import { signToken, verifyToken } from "../../lib/jwt.js";
 import { sendVerificationEmail } from "../notification/mailNotification.js";
 import { prisma } from "../../lib/prisma.js";
 import { stripPassword } from "../../lib/stripPassword.js";
 import { validateOrThrow } from "../../lib/validate.js";
 import { authSchema, registerSchema } from "./auth.schema.js";
+
+const log = logger.child({ service: "auth" });
 
 // Suggests available usernames by appending numbers (alex -> alex1, ...).
 // Port of UserService.suggestUsernames — the IB-highlight conflict UX:
@@ -35,10 +38,12 @@ export async function suggestUsernames(
 // and returns a signed JWT. Sends a welcome email on success.
 export async function register(input: unknown) {
   const dto = validateOrThrow(registerSchema, input);
+  log.debug({ username: dto.username }, "register attempt");
   const exists = await prisma.user.findUnique({
     where: { username: dto.username },
   });
   if (exists) {
+    log.warn({ username: dto.username }, "register conflict: username taken");
     throw Object.assign(
       new AppError(`Username "${dto.username}" is already taken`, 409),
       {
@@ -54,6 +59,7 @@ export async function register(input: unknown) {
       password: await bcrypt.hash(dto.password, 10),
     },
   });
+  log.info({ userId: user.id, username: user.username }, "user created");
   return {
     user: stripPassword(user),
     token: signToken({ id: user.id, username: user.username }),
@@ -64,15 +70,19 @@ export async function register(input: unknown) {
 // wrong password.
 export async function login(input: unknown) {
   const dto = validateOrThrow(authSchema, input);
+  log.debug({ username: dto.username }, "login attempt");
   const user = await prisma.user.findUnique({
     where: { username: dto.username },
   });
   if (!user || !(await bcrypt.compare(dto.password, user.password))) {
+    log.warn({ username: dto.username }, "login failed: invalid credentials");
     throw new AppError("Invalid credentials", 401);
   }
   if (!user.emailVerified) {
+    log.warn({ userId: user.id, username: user.username }, "login failed: email not verified");
     throw new AppError("Email not verified", 403);
   }
+  log.info({ userId: user.id, username: user.username }, "login success");
   return {
     user: stripPassword(user),
     token: signToken({ id: user.id, username: user.username }),
@@ -90,6 +100,7 @@ export async function verifyEmail(token: string) {
     where: { id: payload.id },
     data: { emailVerified: true },
   });
+  log.info({ userId: user.id }, "email verified");
   return { success: true };
 }
 
@@ -100,7 +111,8 @@ export async function resendVerification(username: string) {
   if (!user) throw new AppError("User not found", 404);
   if (user.emailVerified) throw new AppError("Email already verified", 400);
   const token = signToken({ id: user.id, username: user.username }, "24h");
-  await sendVerificationEmail(user.id, token).catch(console.error);
+  sendVerificationEmail(user.id, token).catch(() => {});
+  log.info({ userId: user.id, username: user.username }, "verification email resent");
   return { success: true };
 }
 

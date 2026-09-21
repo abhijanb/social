@@ -18,7 +18,7 @@ import { registerPresenceHandlers } from "./feature/presence/presence.socket.js"
 import { storyRouter } from "./feature/story/story.route.js";
 import { userRouter } from "./feature/user/user.route.js";
 import { errorMiddleware } from "./middleware/error.js";
-import { startSchedules } from "./schedule/core/scheduler.js";
+import { startSchedules, stopSchedules } from "./schedule/core/scheduler.js";
 import { schedules } from "./schedule/jobs/index.js";
 import {
   getChatNamespace,
@@ -26,6 +26,7 @@ import {
   getPresenceNamespace,
   initSocket,
 } from "./socket/socket.js";
+import { prisma } from "./lib/prisma.js";
 
 export const app = express();
 
@@ -89,5 +90,25 @@ const port =
     : 3000;
 
 httpServer.listen(port, "0.0.0.0", () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.info(`Server is running on port ${port}`);
 });
+
+function gracefulShutdown(signal: string): void {
+  stopSchedules(schedules);
+  try {
+    prisma.$disconnect();
+  } catch {
+    // ignore
+  }
+  io.close(() => {
+    httpServer.close(() => {
+      process.exit(0);
+    });
+  });
+  setTimeout(() => {
+    process.exit(1);
+  }, 10000);
+}
+
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
