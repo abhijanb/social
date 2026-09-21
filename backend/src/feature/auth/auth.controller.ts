@@ -41,8 +41,12 @@ export const registerController = withLogging(
     const { user } = await register(req.body);
     log.info({ userId: user.id }, "register success");
     const verificationToken = signToken({ id: user.id, username: user.username }, "24h");
-    sendVerificationEmail(user.id, verificationToken).catch(() => {});
-    sendWelcomeEmail(user.id, user.username).catch(() => {});
+    sendVerificationEmail(user.id, verificationToken).catch((err) =>
+      log.warn({ err, userId: user.id }, "verification email failed"),
+    );
+    sendWelcomeEmail(user.id, user.username).catch((err) =>
+      log.warn({ err, userId: user.id }, "welcome email failed"),
+    );
     return responseCreated(res, user, "Registered successfully");
   },
   "register",

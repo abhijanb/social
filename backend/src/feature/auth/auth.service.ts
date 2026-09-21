@@ -111,7 +111,9 @@ export async function resendVerification(username: string) {
   if (!user) throw new AppError("User not found", 404);
   if (user.emailVerified) throw new AppError("Email already verified", 400);
   const token = signToken({ id: user.id, username: user.username }, "24h");
-  sendVerificationEmail(user.id, token).catch(() => {});
+  sendVerificationEmail(user.id, token).catch((err) =>
+      log.warn({ err, userId: user.id }, "verification email failed"),
+    );
   log.info({ userId: user.id, username: user.username }, "verification email resent");
   return { success: true };
 }

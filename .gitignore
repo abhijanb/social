@@ -22,3 +22,4 @@ logs/
 *.sln
 *.sw?
 AGENTS.md
+.kilo/*
