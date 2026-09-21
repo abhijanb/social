@@ -21,3 +21,4 @@ logs/
 *.njsproj
 *.sln
 *.sw?
+AGENTS.md
