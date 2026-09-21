@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { AppError } from "../lib/errorHandler.js";
+import createHttpError from "http-errors";
 import { logger } from "../lib/logger.js";
 import { responseError } from "../lib/response.js";
 
@@ -14,7 +14,8 @@ export function errorMiddleware(
   if (res.headersSent) {
     return;
   }
-  const statusCode = err instanceof AppError ? err.statusCode : 500;
+  const isHttp = createHttpError.isHttpError(err);
+  const statusCode = isHttp ? err.statusCode : 500;
   log.error(
     { err, path: req.path, method: req.method, ip: req.ip, statusCode },
     "unhandled error",

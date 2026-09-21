@@ -1,31 +1,37 @@
+import createHttpError from "http-errors";
+
 export type ValidationIssue = {
   field: string;
   message: string;
   code: string;
 };
 
-// Base service error: message + HTTP status code. Routes let these bubble
-// to sendError, which maps them to responses. Default 500 for unexpected
-// failures (sendError answers those generically, same as Nest).
-export class AppError extends Error {
-  public statusCode: number;
-
-  constructor(message: string, statusCode: number = 500) {
-    super(message);
-    this.name = "AppError";
-    this.statusCode = statusCode;
-  }
+// Thin shim over http-errors that preserves the legacy
+// `new AppError(message, statusCode)` call sites (~100 across the
+// codebase). It produces a real HttpError — correct expose flags,
+// status, and named constructors — so the error middleware recognizes
+// it via createHttpError.isHttpError instead of a custom instanceof.
+interface AppErrorConstructor {
+  new (message: string, statusCode?: number): createHttpError.HttpError;
+  (message: string, statusCode?: number): createHttpError.HttpError;
 }
 
-// Thrown by validateOrThrow when a zod schema rejects the payload.
-// Carries the formatted issues as an own enumerable prop, so sendError
-// serializes it as 400 { message, errors } with no extra work.
-export class ValidationError extends AppError {
-  readonly errors: ValidationIssue[];
+export const AppError: AppErrorConstructor = function (
+  message: string,
+  statusCode = 500,
+) {
+  const err = createHttpError(statusCode, message);
+  err.name = "AppError";
+  return err;
+} as unknown as AppErrorConstructor;
 
-  constructor(errors: ValidationIssue[]) {
-    super("Validation failed", 400);
-    this.name = "ValidationError";
-    this.errors = errors;
-  }
+// ValidationError wraps zod issues — a 400 HttpError carrying the
+// formatted issues so the envelope serializes them as { message, errors }.
+export function ValidationError(
+  errors: ValidationIssue[],
+): createHttpError.HttpError<400> {
+  const err = createHttpError(400, "Validation failed");
+  err.name = "ValidationError";
+  (err as unknown as { errors: ValidationIssue[] }).errors = errors;
+  return err;
 }

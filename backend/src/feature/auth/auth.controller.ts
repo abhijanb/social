@@ -1,11 +1,11 @@
 import { type Request, type Response } from "express";
 import { AppError } from "../../lib/errorHandler.js";
 import { logger } from "../../lib/logger.js";
+import { withLogging } from "../../lib/asyncHandler.js";
 import { signToken, verifyToken } from "../../lib/jwt.js";
 import type { JwtPayload } from "../../lib/jwt.js";
 import {
   responseCreated,
-  responseError,
   responseSuccess,
 } from "../../lib/response.js";
 import { findUserById, login, register, verifyEmail, resendVerification } from "./auth.service.js";
@@ -31,82 +31,62 @@ function setAuthCookie(res: Response, token: string): void {
   });
 }
 
-// Maps service errors to the envelope error shape. AppError carries its
-// own statusCode; anything else is a 500 with a generic message.
-function handleError(res: Response, err: unknown) {
-  const statusCode = err instanceof AppError ? err.statusCode : 500;
-  if (statusCode >= 500) {
-    return responseError(res, undefined, "Internal server error", 500);
-  }
-  return responseError(
-    res,
-    err,
-    err instanceof Error ? err.message : "Error",
-    statusCode,
-  );
-}
-
 const log = logger.child({ controller: "auth" });
 
 // POST /user — register. Does NOT set the auth cookie; the user must
 // verify their email before logging in (login blocks unverified users).
-export async function registerController(req: Request, res: Response) {
-  log.info({ username: (req.body as { username?: string })?.username }, "register request");
-  try {
+export const registerController = withLogging(
+  async (req: Request, res: Response) => {
+    log.info({ username: (req.body as { username?: string })?.username }, "register request");
     const { user } = await register(req.body);
     log.info({ userId: user.id }, "register success");
     const verificationToken = signToken({ id: user.id, username: user.username }, "24h");
     sendVerificationEmail(user.id, verificationToken).catch(() => {});
     sendWelcomeEmail(user.id, user.username).catch(() => {});
     return responseCreated(res, user, "Registered successfully");
-  } catch (err) {
-    log.error({ err, username: (req.body as { username?: string })?.username }, "register failed");
-    return handleError(res, err);
-  }
-}
+  },
+  "register",
+  (req) => ({ username: (req.body as { username?: string })?.username }),
+);
 
 // GET /user/verify-email — verify email via token.
-export async function verifyEmailController(req: Request, res: Response) {
-  try {
+export const verifyEmailController = withLogging(
+  async (req: Request, res: Response) => {
     const token = (req.query.token as string) ?? "";
     if (!token) throw new AppError("Token required", 400);
     await verifyEmail(token);
     return responseSuccess(res, null, "Email verified successfully");
-  } catch (err) {
-    log.error({ err }, "verify email failed");
-    return handleError(res, err);
-  }
-}
+  },
+  "verify-email",
+);
 
 // POST /user/verify-email/resend — resend verification email.
 // No auth required — username provided in body.
-export async function resendVerificationController(req: Request, res: Response) {
-  const { username } = (req.body as { username?: string } | null) ?? {};
-  log.info({ username }, "resend verification request");
-  try {
+export const resendVerificationController = withLogging(
+  async (req: Request, res: Response) => {
+    const { username } = (req.body as { username?: string } | null) ?? {};
+    log.info({ username }, "resend verification request");
     if (!username) throw new AppError("Username required", 400);
     await resendVerification(username);
     return responseSuccess(res, null, "Verification email sent");
-  } catch (err) {
-    log.error({ err, username }, "resend verification failed");
-    return handleError(res, err);
-  }
-}
+  },
+  "resend-verification",
+  (req) => ({ username: (req.body as { username?: string })?.username }),
+);
 
 // POST /user/login — login, sets the token cookie.
-export async function loginController(req: Request, res: Response) {
-  const username = (req.body as { username?: string })?.username;
-  log.info({ username }, "login request");
-  try {
+export const loginController = withLogging(
+  async (req: Request, res: Response) => {
+    const username = (req.body as { username?: string })?.username;
+    log.info({ username }, "login request");
     const { user, token } = await login(req.body);
     setAuthCookie(res, token);
     log.info({ userId: user.id }, "login success");
     return responseSuccess(res, user, "Logged in successfully");
-  } catch (err) {
-    log.warn({ err, username }, "login failed");
-    return handleError(res, err);
-  }
-}
+  },
+  "login",
+  (req) => ({ username: (req.body as { username?: string })?.username }),
+);
 
 // POST /user/logout — clears the token cookie.
 export function logoutController(_req: Request, res: Response) {
@@ -115,16 +95,15 @@ export function logoutController(_req: Request, res: Response) {
 }
 
 // GET /user/me — current user from the JWT, 401 without one.
-export async function meController(req: Request, res: Response) {
-  try {
+export const meController = withLogging(
+  async (req: Request, res: Response) => {
     const current = getCurrentUser(req);
     if (!current) throw new AppError("Not authenticated", 401);
     const user = await findUserById(current.id);
     if (!user) throw new AppError("User not found", 401);
     log.debug({ userId: current.id }, "me lookup success");
     return responseSuccess(res, user);
-  } catch (err) {
-    log.error({ err }, "me lookup failed");
-    return handleError(res, err);
-  }
-}
+  },
+  "me",
+  (req) => ({ userId: getCurrentUser(req)?.id }),
+);

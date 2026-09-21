@@ -1,18 +1,17 @@
 import { z } from "zod";
 import type { ZodTypeAny } from "zod";
-import { ValidationError } from "./errorHandler.js";
-import type { ValidationIssue } from "./errorHandler.js";
+import { ValidationError, type ValidationIssue } from "./errorHandler.js";
 
 // Validates data against a zod schema or throws ValidationError (400).
 // Single validation path for all routes: parse input with this inside
-// try/catch and let sendError map the failure to the response.
+// try/catch and let the error middleware map the failure to the response.
 export function validateOrThrow<T extends ZodTypeAny>(
   schema: T,
   data: unknown,
 ): z.infer<T> {
   const result = schema.safeParse(data);
   if (!result.success) {
-    throw new ValidationError(formatZodErrors(result.error.issues));
+    throw ValidationError(formatZodErrors(result.error.issues));
   }
   return result.data;
 }
