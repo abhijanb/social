@@ -10,7 +10,7 @@ const log = logger.child({ service: "post" });
 // Toggle the viewer's like on a post — friends-only (same guard as
 // viewing; liking your own posts is allowed). Idempotent: liking twice
 // unlikes. Returns the new state plus the fresh count.
-export async function toggleLike(userId: string, postId: string) {
+export async function toggleLike(userId: string, postId: string, idempotencyKey?: string) {
   log.debug({ userId, postId }, "like toggle");
   const post = await prisma.post.findUnique({
     where: { id: postId },
@@ -18,6 +18,19 @@ export async function toggleLike(userId: string, postId: string) {
   });
   if (!post) throw new AppError("Post not found", 404);
   await ensureCanView(userId, post.authorId);
+
+  if (idempotencyKey) {
+    const existing = await prisma.postLike.findFirst({
+      where: { postId, userId, idempotencyKey },
+      select: { id: true },
+    });
+    if (existing) {
+      log.info({ likeId: existing.id, postId, userId }, "like idempotency hit");
+      const likesCount = await prisma.postLike.count({ where: { postId } });
+      return { liked: true, likesCount };
+    }
+  }
+
   const existing = await prisma.postLike.findUnique({
     where: { postId_userId: { postId, userId } },
     select: { id: true },
@@ -25,7 +38,7 @@ export async function toggleLike(userId: string, postId: string) {
   if (existing) {
     await prisma.postLike.delete({ where: { id: existing.id } });
   } else {
-    await prisma.postLike.create({ data: { postId, userId } });
+    await prisma.postLike.create({ data: { postId, userId, idempotencyKey: idempotencyKey ?? null } });
     // Notify on like only (not unlike), and never for your own posts.
     if (post.authorId !== userId) {
       await notifyPostLike(post.authorId, userId, postId);

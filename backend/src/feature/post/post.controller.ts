@@ -84,8 +84,9 @@ export const toggleLikeController = withLogging(
   async (req: AuthRequest, res: Response) => {
     if (!req.user) throw new AppError("Not authenticated", 401);
     const { id } = validateOrThrow(postIdParamSchema, req.params);
+    const idempotencyKey = req.headers["idempotency-key"] as string | undefined;
     log.debug({ userId: req.user.id, postId: id }, "like toggle");
-    return responseSuccess(res, await toggleLike(req.user.id, id));
+    return responseSuccess(res, await toggleLike(req.user.id, id, idempotencyKey));
   },
   "toggle-like",
   (req) => ({ userId: req.user?.id, postId: req.params.id }),
