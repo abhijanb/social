@@ -49,7 +49,7 @@ export function useComments({
     const trimmed = draft.trim()
     if (!trimmed || isSending) return
     try {
-      await createComment({ postId, text: trimmed.slice(0, 500) }).unwrap()
+      await createComment({ postId, text: trimmed.slice(0, 500), idempotencyKey: crypto.randomUUID() }).unwrap()
       setDraft('')
       onCommentAdded?.(postId)
     } catch {

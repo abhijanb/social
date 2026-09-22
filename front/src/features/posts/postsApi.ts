@@ -62,8 +62,12 @@ export const postsApi = baseApi.injectEndpoints({
       query: ({ postId }) => `post/${postId}/comments`,
       providesTags: (_result, _error, arg) => [{ type: 'Post', id: `comments-${arg.postId}` }],
     }),
-    createComment: build.mutation<PostComment, { postId: string; text: string }>({
-      query: ({ postId, text }) => ({ url: `post/${postId}/comments`, method: 'POST', body: { text } }),
+    createComment: build.mutation<PostComment, { postId: string; text: string; idempotencyKey?: string }>({
+      query: ({ postId, text, idempotencyKey }) => {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+        return { url: `post/${postId}/comments`, method: 'POST', body: { text }, headers };
+      },
       invalidatesTags: (_result, _error, arg) => [{ type: 'Post', id: `comments-${arg.postId}` }],
     }),
     // Delete filters the cached list optimistically — no refetch GET.

@@ -146,9 +146,10 @@ export const createPostCommentController = withLogging(
     if (!req.user) throw new AppError("Not authenticated", 401);
     const { id } = validateOrThrow(postIdParamSchema, req.params);
     log.info({ userId: req.user.id, postId: id }, "comment create");
+    const idempotencyKey = req.headers["idempotency-key"] as string | undefined;
     return responseCreated(
       res,
-      await createPostComment(req.user.id, id, req.body),
+      await createPostComment(req.user.id, id, req.body, idempotencyKey),
       "Comment created",
     );
   },

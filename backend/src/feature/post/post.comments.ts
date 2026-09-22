@@ -30,12 +30,23 @@ export async function createPostComment(
   authorId: string,
   postId: string,
   input: unknown,
+  idempotencyKey?: string,
 ) {
   const dto = validateOrThrow(createPostCommentSchema, input);
   const post = await getPostOrThrow(postId);
   await ensureCanView(authorId, post.authorId);
+  if (idempotencyKey) {
+    const existing = await prisma.postComment.findFirst({
+      where: { postId, authorId, idempotencyKey, deletedAt: null },
+      include: commentInclude,
+    });
+    if (existing) {
+      log.info({ commentId: existing.id, postId, authorId }, "comment idempotency hit");
+      return existing;
+    }
+  }
   const comment = await prisma.postComment.create({
-    data: { postId, authorId, text: dto.text },
+    data: { postId, authorId, text: dto.text, idempotencyKey: idempotencyKey ?? null },
     include: commentInclude,
   });
   // Never notify for your own posts.
