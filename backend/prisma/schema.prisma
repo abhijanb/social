@@ -58,6 +58,7 @@ model Post {
   createdAt DateTime @default(now())
 
   author User        @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  idempotencyKey String?
   images PostImage[]
   likes  PostLike[]
   comments PostComment[]
@@ -66,6 +67,7 @@ model Post {
 
   @@index([authorId, createdAt])
   @@index([createdAt])
+  @@unique([authorId, idempotencyKey])
 }
 
 model Hashtag {

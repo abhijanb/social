@@ -18,6 +18,7 @@ export async function createPost(
   authorId: string,
   text: string,
   media: PostMediaInput[] = [],
+  idempotencyKey?: string,
 ) {
   const trimmed = text.trim();
   if (trimmed.length > 2200)
@@ -26,12 +27,24 @@ export async function createPost(
     throw new AppError(`Max ${MAX_POST_IMAGES} attachments per post`, 400);
   if (!trimmed && media.length === 0)
     throw new AppError("Post needs text or at least one image or video", 400);
+  if (idempotencyKey) {
+    const existing = await prisma.post.findFirst({
+      where: { authorId, idempotencyKey },
+      include: postInclude,
+    });
+    if (existing) {
+      const [withLikes] = await withViewerState([existing], authorId);
+      log.info({ postId: existing.id, authorId }, "post idempotency hit");
+      return withLikes;
+    }
+  }
   const tags = extractHashtags(trimmed);
   log.debug({ authorId, mediaCount: media.length, tagCount: tags.length }, "post create");
   const post = await prisma.post.create({
     data: {
       authorId,
       text: trimmed,
+      idempotencyKey: idempotencyKey ?? null,
       images: {
         create: media.map((m, i) => ({ url: m.url, kind: m.kind, order: i })),
       },

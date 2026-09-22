@@ -74,7 +74,7 @@ export function usePostComposer({ onCreated }: { onCreated?: () => void }) {
   const handlePost = async () => {
     if (!canPost) return
     try {
-      await createPost({ text: trimmed, images }).unwrap()
+      await createPost({ text: trimmed, images, idempotencyKey: crypto.randomUUID() }).unwrap()
       setText('')
       handleClearImages()
       onCreated?.()

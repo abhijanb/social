@@ -57,7 +57,8 @@ export const createPostController = withLogging(
       kind: f.mimetype.startsWith("video/") ? "VIDEO" : "IMAGE",
     }));
     log.info({ userId: req.user.id, mediaCount: media.length }, "post create");
-    const post = await createPost(req.user.id, dto.text, media);
+    const idempotencyKey = req.headers["idempotency-key"] as string | undefined;
+    const post = await createPost(req.user.id, dto.text, media, idempotencyKey);
     log.info({ postId: post.id, userId: req.user.id }, "post created");
     return responseCreated(res, post, "Post created");
   },

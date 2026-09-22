@@ -24,12 +24,14 @@ export const postsApi = baseApi.injectEndpoints({
       },
       providesTags: ['Post'],
     }),
-    createPost: build.mutation<Post, { text: string; images?: File[] | null }>({
-      query: ({ text, images }) => {
-        const form = new FormData()
-        form.set('text', text)
-        for (const file of (images ?? []).slice(0, MAX_POST_IMAGES)) form.append('images', file)
-        return { url: 'post', method: 'POST', body: form }
+    createPost: build.mutation<Post, { text: string; images?: File[] | null; idempotencyKey?: string }>({
+      query: ({ text, images, idempotencyKey }) => {
+        const form = new FormData();
+        form.set('text', text);
+        for (const file of (images ?? []).slice(0, MAX_POST_IMAGES)) form.append('images', file);
+        const headers: Record<string, string> = {};
+        if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+        return { url: 'post', method: 'POST', body: form, headers };
       },
       invalidatesTags: ['Post'],
     }),
