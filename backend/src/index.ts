@@ -18,6 +18,7 @@ import { registerPresenceHandlers } from "./feature/presence/presence.socket.js"
 import { storyRouter } from "./feature/story/story.route.js";
 import { userRouter } from "./feature/user/user.route.js";
 import { errorMiddleware } from "./middleware/error.js";
+import { globalLimiter } from "./middleware/rateLimit.js";
 import { startSchedules, stopSchedules } from "./schedule/core/scheduler.js";
 import { schedules } from "./schedule/jobs/index.js";
 import {
@@ -30,9 +31,16 @@ import { prisma } from "./lib/prisma.js";
 
 export const app = express();
 
+// One-hop proxy (nginx/render) so req.ip is the real client, not the proxy.
+// NOTE: never "true" — express-rate-limit rejects permissive trust proxy.
+app.set("trust proxy", 1);
+
 app.use(cookieParser());
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+
+// Global safety net (300/15min per IP) — per-route tiers are stricter.
+app.use(globalLimiter);
 
 // Uploaded post images live in backend/uploads/ and are served at /uploads/*
 // (same contract as back/src/main.ts).

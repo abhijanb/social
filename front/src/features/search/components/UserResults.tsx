@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import Avatar from '../../../components/Avatar'
-import { isUnauthorizedError } from '../../../app/apiError'
+import { isRateLimitedError, isUnauthorizedError } from '../../../app/apiError'
 import type { FriendshipPending } from '../../friendship/friendshipApi'
 import type { User } from '../../users/usersApi'
 
@@ -113,7 +113,11 @@ export default function UserResults({
                     Decline
                   </button>
                 </>
-              ) : (
+        ) : isRateLimitedError(error) ? (
+          <p className="mt-6 text-center text-sm text-amber-600 dark:text-amber-400">
+            Searching too fast — slow down and try again shortly
+          </p>
+        ) : (
                 <button
                   onClick={() => onSend(u.id)}
                   disabled={!currentUserId || isSending}
