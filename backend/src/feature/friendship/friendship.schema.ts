@@ -40,10 +40,5 @@ export const friendshipUserQuerySchema = z.object({
 
 export type FriendshipUserQueryDto = z.infer<typeof friendshipUserQuerySchema>;
 
-// Used by the PATCH /friendship/:id/accept body { userId } — only the
-// addressee may accept, enforced in the service.
-export const acceptFriendshipSchema = z.object({
-  userId: z.string().cuid(),
-});
-
-export type AcceptFriendshipDto = z.infer<typeof acceptFriendshipSchema>;
+// PATCH /friendship/:id/accept takes no body — the addressee is derived
+// from the JWT in the controller/service, never trusted from the client.

@@ -151,7 +151,7 @@ social/
 | GET | /friendship?userId= | cookie | friends list |
 | GET | /friendship/pending?userId= | cookie | pending both directions |
 | PATCH | /friendship/:id | cookie | update status |
-| PATCH | /friendship/:id/accept | body `userId` | accept |
+| PATCH | /friendship/:id/accept | cookie (no body, addressee from JWT) | accept |
 | DELETE | /friendship/:id | cookie | remove |
 | GET | /presence?ids= | cookie | online status for friends |
 | WS | /presence | cookie | `presence:update`, `presence:heartbeat` – instant online/offline |

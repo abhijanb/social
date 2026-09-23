@@ -37,8 +37,8 @@ export const friendshipApi = baseApi.injectEndpoints({
       query: (body) => ({ url: 'friendship', method: 'POST', body }),
       invalidatesTags: ['Friendship'],
     }),
-    acceptRequest: build.mutation<FriendshipPending, { id: string; userId: string }>({
-      query: ({ id, userId }) => ({ url: `friendship/${id}/accept`, method: 'PATCH', body: { userId } }),
+    acceptRequest: build.mutation<FriendshipPending, string>({
+      query: (id) => ({ url: `friendship/${id}/accept`, method: 'PATCH' }),
       invalidatesTags: ['Friendship'],
     }),
     removeRequest: build.mutation<void, string>({

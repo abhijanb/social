@@ -11,7 +11,6 @@ import {
   notifyFriendRequest,
 } from "../notification/notification.request.js";
 import {
-  acceptFriendshipSchema,
   createFriendshipSchema,
   updateFriendshipSchema,
 } from "./friendship.schema.js";
@@ -84,10 +83,26 @@ export async function createFriendship(
 }
 
 // Port of FriendshipService.update — status change, 404 when missing.
-export async function updateFriendship(id: string, input: unknown) {
+// Only participants (requester or addressee) may update; ACCEPTED via this
+// route is addressee-only so it cannot bypass the accept rule. actorId comes
+// from the authenticated user (never trusted from the client).
+export async function updateFriendship(
+  id: string,
+  input: unknown,
+  actorId: string,
+) {
   const dto = validateOrThrow(updateFriendshipSchema, input);
   const friendship = await prisma.friendship.findUnique({ where: { id } });
   if (!friendship) throw new AppError("Friendship not found", 404);
+  if (
+    friendship.requesterId !== actorId &&
+    friendship.addresseeId !== actorId
+  ) {
+    throw new AppError("Only participants can update friendship", 400);
+  }
+  if (dto.status === "ACCEPTED" && friendship.addresseeId !== actorId) {
+    throw new AppError("Only addressee can accept request", 400);
+  }
   log.debug({ id, status: dto.status }, "friendship update");
   return prisma.friendship.update({
     where: { id },
@@ -95,12 +110,13 @@ export async function updateFriendship(id: string, input: unknown) {
   });
 }
 
-// Port of FriendshipService.accept — addressee-only, PENDING-only.
-export async function acceptFriendship(id: string, input: unknown) {
-  const { userId } = validateOrThrow(acceptFriendshipSchema, input);
+// Port of FriendshipService.accept — addressee-only, PENDING-only. actorId
+// comes from the authenticated user (never trusted from the client body,
+// which this endpoint no longer reads).
+export async function acceptFriendship(id: string, actorId: string) {
   const friendship = await prisma.friendship.findUnique({ where: { id } });
   if (!friendship) throw new AppError("Friendship not found", 404);
-  if (friendship.addresseeId !== userId) {
+  if (friendship.addresseeId !== actorId) {
     throw new AppError("Only addressee can accept request", 400);
   }
   if (friendship.status !== "PENDING") {
@@ -116,11 +132,18 @@ export async function acceptFriendship(id: string, input: unknown) {
   return updated;
 }
 
-// Port of FriendshipService.remove — 404 when missing.
-export async function removeFriendship(id: string) {
+// Port of FriendshipService.remove — 404 when missing, participant-only.
+// actorId comes from the authenticated user (never trusted from the client).
+export async function removeFriendship(id: string, actorId: string) {
   log.debug({ id }, "friendship delete");
   const friendship = await prisma.friendship.findUnique({ where: { id } });
   if (!friendship) throw new AppError("Friendship not found", 404);
+  if (
+    friendship.requesterId !== actorId &&
+    friendship.addresseeId !== actorId
+  ) {
+    throw new AppError("Only participants can delete friendship", 400);
+  }
   const deleted = await prisma.friendship.delete({ where: { id } });
   log.info({ friendshipId: id }, "friendship deleted");
   return deleted;

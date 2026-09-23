@@ -86,36 +86,39 @@ export const getFriendshipController = withLogging(
 );
 
 // PATCH /friendship/:id — status change. Port of FriendshipController.update.
+// actorId is the authenticated user (never trusted from the client).
 export const updateFriendshipController = withLogging(
   async (req: AuthRequest, res: Response) => {
     if (!req.user) throw new AppError("Not authenticated", 401);
     const { id } = validateOrThrow(friendshipIdParamSchema, req.params);
     log.info({ userId: req.user.id, id }, "friendship update");
-    return responseSuccess(res, await updateFriendship(id, req.body));
+    return responseSuccess(res, await updateFriendship(id, req.body, req.user.id));
   },
   "update-friendship",
   (req) => ({ requesterId: req.user?.id, id: req.params.id }),
 );
 
 // PATCH /friendship/:id/accept — addressee accepts. Port of FriendshipController.accept.
+// actorId is the authenticated user (never trusted from the client body,
+// which this endpoint no longer reads).
 export const acceptFriendshipController = withLogging(
   async (req: AuthRequest, res: Response) => {
     if (!req.user) throw new AppError("Not authenticated", 401);
     const { id } = validateOrThrow(friendshipIdParamSchema, req.params);
     log.info({ userId: req.user.id, id }, "friend accept");
-    return responseSuccess(res, await acceptFriendship(id, req.body));
+    return responseSuccess(res, await acceptFriendship(id, req.user.id));
   },
   "accept-friendship",
   (req) => ({ requesterId: req.user?.id, id: req.params.id }),
 );
 
-// DELETE /friendship/:id — remove. Port of FriendshipController.remove.
+// DELETE /friendship/:id — remove, participant-only.
 export const deleteFriendshipController = withLogging(
   async (req: AuthRequest, res: Response) => {
     if (!req.user) throw new AppError("Not authenticated", 401);
     const { id } = validateOrThrow(friendshipIdParamSchema, req.params);
     log.info({ userId: req.user.id, id }, "friend delete");
-    await removeFriendship(id);
+    await removeFriendship(id, req.user.id);
     return responseSuccess(res, null, "Friendship deleted");
   },
   "delete-friendship",

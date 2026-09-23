@@ -54,8 +54,7 @@ export function useFriendRequests() {
   const isLoading = isResolvingUser || isLoadingPending || isFetching
 
   const accept = async (id: string) => {
-    if (!userId) return
-    await acceptRequest({ id, userId }).unwrap()
+    await acceptRequest(id).unwrap()
   }
 
   const cancel = async (id: string) => {
