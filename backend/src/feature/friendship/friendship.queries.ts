@@ -15,10 +15,18 @@ export async function findAllFriendships() {
 }
 
 // Port of FriendshipService.findOne — throws 404 when missing.
-export async function findFriendshipById(id: string) {
+// Participant-only: non-participants get 404 (same as missing) so row
+// existence isn't leaked. actorId comes from the authenticated user.
+export async function findFriendshipById(id: string, actorId: string) {
   log.debug({ id }, "find friendship by id");
   const friendship = await prisma.friendship.findUnique({ where: { id } });
   if (!friendship) throw new AppError("Friendship not found", 404);
+  if (
+    friendship.requesterId !== actorId &&
+    friendship.addresseeId !== actorId
+  ) {
+    throw new AppError("Friendship not found", 404);
+  }
   return friendship;
 }
 

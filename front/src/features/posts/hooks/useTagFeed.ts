@@ -42,9 +42,16 @@ export function useTagFeed(rawTag: string) {
     if (isUnauthorizedError(error)) dispatch(logoutAndReset())
   }, [error, dispatch])
 
-  // Each page is cached separately by RTK Query; collect fetched pages here.
+  // Each page is cached separately by RTK Query; collect fetched pages here
+  // (render-time adjustment, not an effect, so no flash of uncollected data).
+  // The guard lives inside the functional updater: a double-invoked render
+  // sees the same stale `chunks` in both passes, but the updaters run
+  // sequentially — the second sees the first's append and returns prev, so
+  // a page can never be collected twice (no duplicated posts/keys).
   if (data && !chunks.some((c) => c.page === page)) {
-    setChunks([...chunks, { page, posts: data.posts, nextPage: data.nextPage }])
+    setChunks((prev) =>
+      prev.some((c) => c.page === page) ? prev : [...prev, { page, posts: data.posts, nextPage: data.nextPage }],
+    )
   }
 
   const posts = chunks.flatMap((c) => c.posts)

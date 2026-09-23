@@ -59,8 +59,12 @@ export function useProfilePage(username: string) {
   }, [profileError, dispatch])
 
   // Each page cached separately by RTK Query; collect here (same pattern as useFeed).
+  // Guard inside the functional updater so a double-invoked render can't
+  // append the page twice (updaters run sequentially; the second returns prev).
   if (postsData && !chunks.some((c) => c.page === page)) {
-    setChunks([...chunks, { page, posts: postsData.posts }])
+    setChunks((prev) =>
+      prev.some((c) => c.page === page) ? prev : [...prev, { page, posts: postsData.posts }],
+    )
   }
   const posts = chunks.flatMap((c) => c.posts)
   // Show current page data immediately while chunks catch up.

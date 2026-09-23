@@ -45,12 +45,15 @@ export const createFriendshipController = withLogging(
   }),
 );
 
-// GET /friendship?userId= — accepted friends, or own recent 50 without userId.
-// Port of FriendshipController.findAll.
+// GET /friendship?userId= — own accepted friends. userId must be omitted
+// or self: any other id is someone else's graph (400), never served.
 export const listFriendshipsController = withLogging(
   async (req: AuthRequest, res: Response) => {
     if (!req.user) throw new AppError("Not authenticated", 401);
     const { userId } = validateOrThrow(friendshipListQuerySchema, req.query);
+    if (userId && userId !== req.user.id) {
+      throw new AppError("Can only view own friendships", 400);
+    }
     const target = userId || req.user.id;
     log.debug({ requesterId: req.user.id, target }, "friends list");
     return responseSuccess(res, await findFriends(target));
@@ -59,12 +62,15 @@ export const listFriendshipsController = withLogging(
   (req) => ({ requesterId: req.user?.id, userId: req.query.userId }),
 );
 
-// GET /friendship/pending?userId= — pending both directions.
-// Port of FriendshipController.findPending.
+// GET /friendship/pending?userId= — own pending both directions.
+// userId must be self: anyone else's pending queue is theirs (400).
 export const listPendingController = withLogging(
   async (req: AuthRequest, res: Response) => {
     if (!req.user) throw new AppError("Not authenticated", 401);
     const { userId } = validateOrThrow(friendshipUserQuerySchema, req.query);
+    if (userId && userId !== req.user.id) {
+      throw new AppError("Can only view own friendships", 400);
+    }
     const target = userId || req.user.id;
     log.debug({ requesterId: req.user.id, target }, "pending list");
     return responseSuccess(res, await findPending(target));
@@ -73,13 +79,14 @@ export const listPendingController = withLogging(
   (req) => ({ requesterId: req.user?.id, userId: req.query.userId }),
 );
 
-// GET /friendship/:id — single row. Port of FriendshipController.findOne.
+// GET /friendship/:id — single row, participant-only (404 otherwise,
+// same as missing, so row existence isn't leaked).
 export const getFriendshipController = withLogging(
   async (req: AuthRequest, res: Response) => {
     if (!req.user) throw new AppError("Not authenticated", 401);
     const { id } = validateOrThrow(friendshipIdParamSchema, req.params);
     log.debug({ id }, "friendship lookup");
-    return responseSuccess(res, await findFriendshipById(id));
+    return responseSuccess(res, await findFriendshipById(id, req.user.id));
   },
   "get-friendship",
   (req) => ({ requesterId: req.user?.id, id: req.params.id }),
