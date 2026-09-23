@@ -33,9 +33,10 @@ export const friendshipListQuerySchema = z.object({
 
 export type FriendshipListQueryDto = z.infer<typeof friendshipListQuerySchema>;
 
-// Used by GET /friendship/pending?userId=.
+// Used by GET /friendship/pending?userId= — userId optional (omitted =
+// own pending queue, kept consistent with the list query).
 export const friendshipUserQuerySchema = z.object({
-  userId: z.string().cuid(),
+  userId: z.string().cuid().optional(),
 });
 
 export type FriendshipUserQueryDto = z.infer<typeof friendshipUserQuerySchema>;
