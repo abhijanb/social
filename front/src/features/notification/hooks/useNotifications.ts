@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useAppDispatch } from '../../../app/hooks'
 import { isUnauthorizedError } from '../../../app/apiError'
-import { logout } from '../../auth/authSlice'
+import { logoutAndReset } from '../../auth/authSlice'
 import {
   useLazyGetNotificationsQuery,
   useGetUnreadCountQuery,
@@ -31,7 +31,7 @@ export function useNotifications() {
 
   useEffect(() => {
     if (isUnauthorizedError(error)) {
-      dispatch(logout())
+      dispatch(logoutAndReset())
     }
   }, [error, dispatch])
 

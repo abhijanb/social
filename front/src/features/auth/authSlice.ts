@@ -1,4 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
+import { baseApi } from '../../app/baseApi'
+import type { AppDispatch } from '../../app/store'
 
 interface AuthState {
   userId: string
@@ -65,3 +67,12 @@ export const authSlice = createSlice({
 
 export const { setUserId, setUsername, setAvatarUrl, login, logout } = authSlice.actions
 export default authSlice.reducer
+
+// Full logout: clears the auth mirror + wipes the RTK Query cache (which
+// also aborts in-flight queries). Every logout path must use this instead
+// of bare logout() — otherwise the next login flashes the prior account's
+// cached data (getMe and other same-arg queries resolve stale instantly).
+export const logoutAndReset = () => (dispatch: AppDispatch) => {
+  dispatch(logout())
+  dispatch(baseApi.util.resetApiState())
+}

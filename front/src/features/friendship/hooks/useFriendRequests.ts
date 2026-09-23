@@ -8,7 +8,7 @@ import {
 } from '../friendshipApi'
 import { useAppDispatch, useAppSelector } from '../../../app/hooks'
 import { isUnauthorizedError } from '../../../app/apiError'
-import { logout } from '../../auth/authSlice'
+import { logoutAndReset } from '../../auth/authSlice'
 
 export function useFriendRequests() {
   const { isAuthenticated } = useAuth()
@@ -20,7 +20,7 @@ export function useFriendRequests() {
 
   useEffect(() => {
     if (isUnauthorizedError(meError)) {
-      dispatch(logout())
+      dispatch(logoutAndReset())
     }
   }, [meError, dispatch])
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAppDispatch } from '../../../app/hooks'
 import { isUnauthorizedError } from '../../../app/apiError'
-import { logout } from '../../auth/authSlice'
+import { logoutAndReset } from '../../auth/authSlice'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useGetMeQuery } from '../../users/usersApi'
 import { useGetLiveStreamsQuery } from '../livestreamApi'
@@ -27,7 +27,7 @@ export function useLivestreamPage() {
 
   // Stale session: first 401 logs out, ProtectedLayout redirects — replaces the page-level guard.
   useEffect(() => {
-    if (isUnauthorizedError(meError) || isUnauthorizedError(streamsError)) dispatch(logout())
+    if (isUnauthorizedError(meError) || isUnauthorizedError(streamsError)) dispatch(logoutAndReset())
   }, [meError, streamsError, dispatch])
 
   const myStream = streams.find((s) => s.hostId === me?.id) ?? null

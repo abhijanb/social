@@ -6,7 +6,7 @@ import { LogoutIcon, SettingsIcon } from './NavbarIcons'
 import NotificationBell from '../features/notification/components/NotificationBell'
 import { useNavbarBadges } from './hooks/useNavbarBadges'
 import { useAppDispatch } from '../app/hooks'
-import { logout } from '../features/auth/authSlice'
+import { logoutAndReset } from '../features/auth/authSlice'
 
 // Navbar – thin app navigation shell: brand + desktop pills + profile
 // actions on top, bottom tab bar on mobile. Icons, links, badges, and
@@ -57,7 +57,7 @@ export default function Navbar() {
                 <SettingsIcon className="h-5 w-5" />
               </Link>
               <button
-                onClick={() => dispatch(logout())}
+                onClick={() => dispatch(logoutAndReset())}
                 aria-label="Logout"
                 title="Logout"
                 className="rounded-full p-2 text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"

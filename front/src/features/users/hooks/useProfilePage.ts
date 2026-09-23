@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAppDispatch } from '../../../app/hooks'
-import { logout } from '../../auth/authSlice'
+import { logoutAndReset } from '../../auth/authSlice'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useGetUserPostsQuery, type Post } from '../../posts/postsApi'
 import { useGetProfileQuery } from '../usersApi'
@@ -51,7 +51,7 @@ export function useProfilePage(username: string) {
   })
 
   if (isUnauthorizedError(profileError)) {
-    dispatch(logout())
+    dispatch(logoutAndReset())
   }
 
   // Each page cached separately by RTK Query; collect here (same pattern as useFeed).

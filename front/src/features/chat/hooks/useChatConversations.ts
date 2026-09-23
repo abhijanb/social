@@ -5,7 +5,7 @@ import { usePresence } from '../../presence/hooks/usePresence'
 import { useAppDispatch } from '../../../app/hooks'
 import { isUnauthorizedError } from '../../../app/apiError'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { logout } from '../../auth/authSlice'
+import { logoutAndReset } from '../../auth/authSlice'
 import type { Conversation } from '../types'
 
 export function useChatConversations() {
@@ -18,7 +18,7 @@ export function useChatConversations() {
   const currentUserId = me?.id
 
   useEffect(() => {
-    if (isUnauthorizedError(meError)) dispatch(logout())
+    if (isUnauthorizedError(meError)) dispatch(logoutAndReset())
   }, [meError, dispatch])
 
   const { data: friends, isLoading: isLoadingFriends, error: friendsError } = useGetFriendsQuery(currentUserId!, {
@@ -26,7 +26,7 @@ export function useChatConversations() {
   })
 
   useEffect(() => {
-    if (isUnauthorizedError(friendsError)) dispatch(logout())
+    if (isUnauthorizedError(friendsError)) dispatch(logoutAndReset())
   }, [friendsError, dispatch])
 
   const conversations: Conversation[] = useMemo(() => {

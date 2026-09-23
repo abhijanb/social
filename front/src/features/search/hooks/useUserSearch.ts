@@ -4,7 +4,7 @@ import { useDebounce } from './useDebounce'
 import type { User } from '../../users/usersApi'
 import { useAppDispatch } from '../../../app/hooks'
 import { isUnauthorizedError } from '../../../app/apiError'
-import { logout } from '../../auth/authSlice'
+import { logoutAndReset } from '../../auth/authSlice'
 
 export function useUserSearch() {
   const dispatch = useAppDispatch()
@@ -17,7 +17,7 @@ export function useUserSearch() {
 
   useEffect(() => {
     if (isSessionExpired) {
-      dispatch(logout())
+      dispatch(logoutAndReset())
     }
   }, [isSessionExpired, dispatch])
 

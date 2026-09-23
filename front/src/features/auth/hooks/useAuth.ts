@@ -1,5 +1,5 @@
 import { useAppDispatch, useAppSelector } from '../../../app/hooks'
-import { logout } from '../authSlice'
+import { logoutAndReset } from '../authSlice'
 
 export function useAuth() {
   const username = useAppSelector((s) => s.auth.username)
@@ -9,6 +9,6 @@ export function useAuth() {
   return {
     username,
     isAuthenticated,
-    logout: () => dispatch(logout()),
+    logout: () => dispatch(logoutAndReset()),
   }
 }

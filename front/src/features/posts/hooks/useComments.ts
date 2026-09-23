@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAppDispatch } from '../../../app/hooks'
-import { logout } from '../../auth/authSlice'
+import { logoutAndReset } from '../../auth/authSlice'
 import { useGetMeQuery } from '../../users/usersApi'
 import { useCreateCommentMutation, useDeleteCommentMutation, useGetCommentsQuery } from '../postsApi'
 import { isUnauthorizedError } from '../../../app/apiError'
@@ -42,7 +42,7 @@ export function useComments({
 
   const sessionExpired = isUnauthorizedError(error)
   useEffect(() => {
-    if (sessionExpired) dispatch(logout())
+    if (sessionExpired) dispatch(logoutAndReset())
   }, [sessionExpired, dispatch])
 
   const handleSend = async () => {

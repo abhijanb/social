@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAppDispatch } from '../../../app/hooks'
 import { isUnauthorizedError } from '../../../app/apiError'
-import { logout } from '../../auth/authSlice'
+import { logoutAndReset } from '../../auth/authSlice'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useGetTagPostsQuery } from '../hashtagsApi'
 import { useDeletePostMutation, useToggleLikeMutation, useToggleSaveMutation, type Post } from '../postsApi'
@@ -39,7 +39,7 @@ export function useTagFeed(rawTag: string) {
 
   // Stale session: first 401 logs out, ProtectedLayout redirects — replaces the page-level guard.
   useEffect(() => {
-    if (isUnauthorizedError(error)) dispatch(logout())
+    if (isUnauthorizedError(error)) dispatch(logoutAndReset())
   }, [error, dispatch])
 
   // Each page is cached separately by RTK Query; collect fetched pages here.

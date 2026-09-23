@@ -6,7 +6,7 @@ import { useAuth } from '../../auth/hooks/useAuth'
 import { useGetMeQuery } from '../../users/usersApi'
 import { useAppDispatch } from '../../../app/hooks'
 import { isUnauthorizedError } from '../../../app/apiError'
-import { logout } from '../../auth/authSlice'
+import { logoutAndReset } from '../../auth/authSlice'
 
 export function useChat(friendId: string | null) {
   const { isAuthenticated } = useAuth()
@@ -20,7 +20,7 @@ export function useChat(friendId: string | null) {
   )
 
   useEffect(() => {
-    if (isUnauthorizedError(historyError)) dispatch(logout())
+    if (isUnauthorizedError(historyError)) dispatch(logoutAndReset())
   }, [historyError, dispatch])
 
   const [messages, setMessages] = useState<ChatMessage[]>([])

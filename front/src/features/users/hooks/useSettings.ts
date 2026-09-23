@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useAppDispatch } from '../../../app/hooks'
 import { isUnauthorizedError } from '../../../app/apiError'
-import { logout } from '../../auth/authSlice'
+import { logoutAndReset } from '../../auth/authSlice'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useGetMeQuery, useResendVerificationMutation, useUpdateUserMutation } from '../usersApi'
 
@@ -15,7 +15,7 @@ export function useSettings() {
   const [resendVerification, { isLoading: isResending }] = useResendVerificationMutation()
 
   useEffect(() => {
-    if (isUnauthorizedError(error)) dispatch(logout())
+    if (isUnauthorizedError(error)) dispatch(logoutAndReset())
   }, [error, dispatch])
 
   const isPublic = me?.isPublic ?? true
