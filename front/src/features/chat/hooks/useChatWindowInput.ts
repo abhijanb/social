@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { MAX_MESSAGE_LENGTH } from '../schema'
 import type { Message } from '../types'
 
 // useChatWindowInput – draft + autoscroll + send for ChatWindow, no JSX.
@@ -15,7 +16,7 @@ export function useChatWindowInput(messages: Message[], onSend: (text: string) =
 
   const handleSend = async () => {
     const trimmed = input.trim()
-    if (!trimmed || sending) return
+    if (!trimmed || trimmed.length > MAX_MESSAGE_LENGTH || sending) return
     setSending(true)
     try {
       const delivered = await onSend(trimmed)
@@ -25,5 +26,7 @@ export function useChatWindowInput(messages: Message[], onSend: (text: string) =
     }
   }
 
-  return { input, setInput, bottomRef, handleSend, canSend: !!input.trim() && !sending }
+  const overLimit = input.trim().length > MAX_MESSAGE_LENGTH
+
+  return { input, setInput, bottomRef, handleSend, overLimit, canSend: !!input.trim() && !overLimit && !sending }
 }

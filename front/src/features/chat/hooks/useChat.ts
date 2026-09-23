@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useGetHistoryQuery, useSendMessageMutation, type ChatMessage } from '../chatApi'
+import { sendMessageSchema } from '../schema'
 import { getChatSocket, disconnectChatSocket } from '../socket'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useGetMeQuery } from '../../users/usersApi'
@@ -64,14 +65,18 @@ export function useChat(friendId: string | null) {
 
   const send = useCallback(
     async (text: string) => {
-      if (!friendId || !text.trim()) return null
-      const trimmed = text.trim()
+      // Pre-flight gate mirroring the server schema — invalid payloads
+      // (empty, over-long) return null before touching socket or REST,
+      // so no doomed network call is made.
+      const parsed = sendMessageSchema.safeParse({ receiverId: friendId, text })
+      if (!parsed.success) return null
+      const { receiverId, text: trimmed } = parsed.data
       const idempotencyKey = crypto.randomUUID()
       // try socket first
       const socket = getChatSocket()
       if (socket.connected) {
         const ack: { ok: boolean; error?: string; message?: ChatMessage } = await new Promise((resolve) => {
-          socket.emit('chat:send', { to: friendId, text: trimmed, idempotencyKey }, (res: unknown) => resolve(res as never))
+          socket.emit('chat:send', { to: receiverId, text: trimmed, idempotencyKey }, (res: unknown) => resolve(res as never))
           setTimeout(() => resolve({ ok: false, error: 'timeout' }), 3000)
         })
         if (ack?.ok && ack.message) {
@@ -81,7 +86,7 @@ export function useChat(friendId: string | null) {
         // fallback to REST on socket failure
       }
       try {
-        const msg = await sendMessageMutation({ receiverId: friendId, text: trimmed, idempotencyKey }).unwrap()
+        const msg = await sendMessageMutation({ receiverId, text: trimmed, idempotencyKey }).unwrap()
         appendIfRelevant(msg)
         return msg
       } catch {

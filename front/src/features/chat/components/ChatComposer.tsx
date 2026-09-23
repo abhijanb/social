@@ -1,13 +1,16 @@
 // ChatComposer – dumb message input for ChatWindow: Enter-to-send + button. No hooks here.
+import { MAX_MESSAGE_LENGTH } from '../schema'
 export default function ChatComposer({
   input,
   setInput,
   canSend,
+  overLimit,
   onSend,
 }: {
   input: string
   setInput: (v: string) => void
   canSend: boolean
+  overLimit: boolean
   onSend: () => void
 }) {
   return (
@@ -36,6 +39,11 @@ export default function ChatComposer({
           </svg>
         </button>
       </div>
+      {overLimit && (
+        <p className="mt-1.5 pl-1 text-xs text-red-600 dark:text-red-400">
+          Message too long (max {MAX_MESSAGE_LENGTH} characters)
+        </p>
+      )}
     </div>
   )
 }
