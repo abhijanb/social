@@ -4,7 +4,15 @@ import { setAvatarUrl } from '../../auth/authSlice'
 import { resolveImageUrl } from '../../posts/resolvePostImage'
 import { useUpdateUserMutation } from '../usersApi'
 
-export const ACCEPT_AVATAR = 'image/jpeg,image/png,image/webp,image/gif'
+export const ACCEPT_AVATAR_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+])
+// Mirrors backend ALLOWED_IMAGE_TYPES (backend/src/lib/uploads.ts) — keep in
+// sync; the fileFilter there 400s anything else.
+export const ACCEPT_AVATAR = [...ACCEPT_AVATAR_TYPES].join(',')
 export const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 
 // useEditProfile – all form + avatar logic for the edit-profile modal, no
@@ -50,7 +58,7 @@ export function useEditProfile({
   const handlePick = (files: FileList | undefined) => {
     if (!files || files.length === 0) return
     const picked = files[0]
-    if (!picked.type.startsWith('image/')) {
+    if (!ACCEPT_AVATAR_TYPES.has(picked.type)) {
       setPickError('Only JPEG, PNG, WebP, GIF images are allowed')
       return
     }
