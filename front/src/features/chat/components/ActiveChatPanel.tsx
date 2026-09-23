@@ -9,6 +9,7 @@ export default function ActiveChatPanel({
   conversation,
   messages,
   onSend,
+  sendError,
   isOnline,
   lastSeen,
 }: {
@@ -16,7 +17,8 @@ export default function ActiveChatPanel({
   isLoading: boolean
   conversation: Conversation | null
   messages: Message[]
-  onSend: (text: string) => void
+  onSend: (text: string) => Promise<boolean>
+  sendError?: unknown
   isOnline?: boolean
   lastSeen?: string | null
 }) {
@@ -32,6 +34,7 @@ export default function ActiveChatPanel({
       conversation={conversation}
       messages={messages}
       onSend={onSend}
+      sendError={sendError}
       isOnline={isOnline}
       lastSeen={lastSeen}
     />

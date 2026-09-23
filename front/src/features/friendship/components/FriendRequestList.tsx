@@ -1,6 +1,8 @@
 import type { FriendshipPending } from '../friendshipApi'
 import FriendRequestItem from './FriendRequestItem'
 import FriendRequestListStates from './FriendRequestListStates'
+import ActionErrorBanner from '../../../components/ActionErrorBanner'
+import { friendshipActionErrorMessage } from './friendshipActionError'
 
 type Props = {
   title: string
@@ -8,6 +10,7 @@ type Props = {
   type: 'sent' | 'received'
   isLoading?: boolean
   error?: unknown
+  actionError?: unknown
   isAccepting?: boolean
   isRemoving?: boolean
   onAccept?: (id: string) => void
@@ -17,6 +20,8 @@ type Props = {
 }
 
 // FriendRequestList – thin shell: titled card + status screens + rows.
+// `error` is the list-query error (replaces the list); `actionError` is a
+// mutation error from accept/cancel/decline (banner above the rows).
 // States live in FriendRequestListStates, rows in FriendRequestItem.
 export default function FriendRequestList({
   title,
@@ -24,6 +29,7 @@ export default function FriendRequestList({
   type,
   isLoading,
   error,
+  actionError,
   isAccepting,
   isRemoving,
   onAccept,
@@ -36,6 +42,12 @@ export default function FriendRequestList({
       <h2 className="mb-3 text-base font-semibold text-gray-900 dark:text-white">
         {title} <span className="font-normal text-gray-500 dark:text-zinc-400">({items.length})</span>
       </h2>
+
+      <ActionErrorBanner
+        error={actionError}
+        getMessage={friendshipActionErrorMessage}
+        className="mb-2 text-sm text-red-600 dark:text-red-400"
+      />
 
       {isLoading ? (
         <FriendRequestListStates status="loading" />

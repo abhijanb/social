@@ -23,6 +23,9 @@ export default function UserSearchPage() {
     isRemoving,
     isAccepting,
     isSending,
+    acceptError,
+    removeError,
+    sendError,
     accept,
     cancel,
     decline,
@@ -43,6 +46,7 @@ export default function UserSearchPage() {
             users={users}
             isLoading={isLoading}
             error={error}
+            actionError={acceptError ?? removeError ?? sendError}
             currentUserId={currentUserId}
             pending={pending}
             isRemoving={isRemoving}

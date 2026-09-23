@@ -23,7 +23,7 @@ export function useChat(friendId: string | null) {
   }, [historyError, dispatch])
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [sendMessageMutation, { isLoading: isSending }] = useSendMessageMutation()
+  const [sendMessageMutation, { isLoading: isSending, error: sendError }] = useSendMessageMutation()
 
   useEffect(() => {
     if (history) setMessages(history)
@@ -64,7 +64,7 @@ export function useChat(friendId: string | null) {
 
   const send = useCallback(
     async (text: string) => {
-      if (!friendId || !text.trim()) return
+      if (!friendId || !text.trim()) return null
       const trimmed = text.trim()
       const idempotencyKey = crypto.randomUUID()
       // try socket first
@@ -80,12 +80,17 @@ export function useChat(friendId: string | null) {
         }
         // fallback to REST on socket failure
       }
-      const msg = await sendMessageMutation({ receiverId: friendId, text: trimmed, idempotencyKey }).unwrap()
-      appendIfRelevant(msg)
-      return msg
+      try {
+        const msg = await sendMessageMutation({ receiverId: friendId, text: trimmed, idempotencyKey }).unwrap()
+        appendIfRelevant(msg)
+        return msg
+      } catch {
+        // surfaced via sendError below; callers keep the draft for retry
+        return null
+      }
     },
     [friendId, appendIfRelevant, sendMessageMutation],
   )
 
-  return { messages, isLoading, isSending, send, refetch, currentUserId }
+  return { messages, isLoading, isSending, sendError, send, refetch, currentUserId }
 }

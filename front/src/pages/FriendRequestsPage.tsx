@@ -10,6 +10,8 @@ export default function FriendRequestsPage() {
     received,
     isLoading,
     error,
+    acceptError,
+    removeError,
     isAccepting,
     isRemoving,
     accept,
@@ -36,6 +38,7 @@ export default function FriendRequestsPage() {
           type="received"
           isLoading={isLoading}
           error={error}
+          actionError={acceptError ?? removeError}
           isAccepting={isAccepting}
           isRemoving={isRemoving}
           onAccept={accept}
@@ -49,6 +52,7 @@ export default function FriendRequestsPage() {
           type="sent"
           isLoading={isLoading}
           error={error}
+          actionError={removeError}
           isRemoving={isRemoving}
           onCancel={cancel}
           emptyMessage="No sent requests"

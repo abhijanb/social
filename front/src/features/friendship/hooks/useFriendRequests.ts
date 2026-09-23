@@ -38,8 +38,8 @@ export function useFriendRequests() {
     isFetching,
   } = useGetPendingQuery(userId!, { skip: !userId })
 
-  const [acceptRequest, { isLoading: isAccepting }] = useAcceptRequestMutation()
-  const [removeRequest, { isLoading: isRemoving }] = useRemoveRequestMutation()
+  const [acceptRequest, { isLoading: isAccepting, error: acceptError }] = useAcceptRequestMutation()
+  const [removeRequest, { isLoading: isRemoving, error: removeError }] = useRemoveRequestMutation()
 
   const sent = useMemo(() => {
     if (!pending || !userId) return []
@@ -54,11 +54,19 @@ export function useFriendRequests() {
   const isLoading = isResolvingUser || isLoadingPending || isFetching
 
   const accept = async (id: string) => {
-    await acceptRequest(id).unwrap()
+    try {
+      await acceptRequest(id).unwrap()
+    } catch {
+      // surfaced via acceptError below
+    }
   }
 
   const cancel = async (id: string) => {
-    await removeRequest(id).unwrap()
+    try {
+      await removeRequest(id).unwrap()
+    } catch {
+      // surfaced via removeError below
+    }
   }
 
   const decline = cancel
@@ -71,6 +79,8 @@ export function useFriendRequests() {
     received,
     isLoading,
     error: pendingError,
+    acceptError,
+    removeError,
     isAccepting,
     isRemoving,
     accept,

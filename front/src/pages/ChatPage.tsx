@@ -18,7 +18,7 @@ export default function ChatPage() {
     lastSeen,
     isLoadingFriends,
   } = useChatConversations()
-  const { uiMessages, isLoadingChat, handleSend } = useActiveChat(activeId, currentUserId)
+  const { uiMessages, isLoadingChat, sendError, handleSend } = useActiveChat(activeId, currentUserId)
 
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null
   const isLoading = (isLoadingFriends && !conversations.length) || isLoadingChat
@@ -51,6 +51,7 @@ export default function ChatPage() {
           conversation={activeConversation}
           messages={uiMessages}
           onSend={handleSend}
+          sendError={sendError}
           isOnline={activeId ? isOnline(activeId) : undefined}
           lastSeen={activeId ? lastSeen(activeId) : null}
         />

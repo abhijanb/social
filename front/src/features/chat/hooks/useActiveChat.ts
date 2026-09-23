@@ -3,7 +3,7 @@ import { useChat } from './useChat'
 import type { Message } from '../types'
 
 export function useActiveChat(activeId: string | null, currentUserId?: string) {
-  const { messages: chatMessages, isLoading: isLoadingChat, send } = useChat(activeId)
+  const { messages: chatMessages, isLoading: isLoadingChat, isSending, sendError, send } = useChat(activeId)
 
   const uiMessages: Message[] = useMemo(() => {
     if (!currentUserId) return []
@@ -15,9 +15,12 @@ export function useActiveChat(activeId: string | null, currentUserId?: string) {
     }))
   }, [chatMessages, currentUserId])
 
-  const handleSend = (text: string) => {
-    void send(text)
+  // Returns true when the message was delivered; false keeps the caller's
+  // draft so a failed send can be retried instead of retyped.
+  const handleSend = async (text: string) => {
+    const msg = await send(text)
+    return msg !== null
   }
 
-  return { uiMessages, isLoadingChat, handleSend }
+  return { uiMessages, isLoadingChat, isSending, sendError, handleSend }
 }

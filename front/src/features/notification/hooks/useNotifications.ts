@@ -40,21 +40,33 @@ export function useNotifications() {
     if (isAuthenticated) void fetchList(undefined)
   }, [isAuthenticated, fetchList])
 
-  const [markReadRequest, { isLoading: isMarkingRead }] = useMarkReadMutation()
-  const [markAllReadRequest, { isLoading: isMarkingAllRead }] =
+  const [markReadRequest, { isLoading: isMarkingRead, error: markReadError }] = useMarkReadMutation()
+  const [markAllReadRequest, { isLoading: isMarkingAllRead, error: markAllReadError }] =
     useMarkAllReadMutation()
-  const [deleteRequest, { isLoading: isDeleting }] = useDeleteNotificationMutation()
+  const [deleteRequest, { isLoading: isDeleting, error: removeError }] = useDeleteNotificationMutation()
 
   const markRead = async (id: string) => {
-    await markReadRequest(id).unwrap()
+    try {
+      await markReadRequest(id).unwrap()
+    } catch {
+      // surfaced via actionError below
+    }
   }
 
   const markAllRead = async () => {
-    await markAllReadRequest().unwrap()
+    try {
+      await markAllReadRequest().unwrap()
+    } catch {
+      // surfaced via actionError below
+    }
   }
 
   const remove = async (id: string) => {
-    await deleteRequest(id).unwrap()
+    try {
+      await deleteRequest(id).unwrap()
+    } catch {
+      // surfaced via actionError below
+    }
   }
 
   return {
@@ -62,6 +74,7 @@ export function useNotifications() {
     unreadCount: unread?.count ?? 0,
     isLoading,
     error,
+    actionError: markReadError ?? markAllReadError ?? removeError,
     isMarkingRead,
     isMarkingAllRead,
     isDeleting,

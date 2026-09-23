@@ -1,16 +1,21 @@
 import { Link } from 'react-router-dom'
 import Avatar from '../../../components/Avatar'
-import { isRateLimitedError, isUnauthorizedError } from '../../../app/apiError'
+import ActionErrorBanner from '../../../components/ActionErrorBanner'
+import { isUnauthorizedError } from '../../../app/apiError'
+import { friendshipActionErrorMessage } from '../../friendship/components/friendshipActionError'
 import type { FriendshipPending } from '../../friendship/friendshipApi'
 import type { User } from '../../users/usersApi'
 
 // UserResults – dumb list for the People tab: loading / error / empty / rows
 // with friendship actions. All data + callbacks come from the page.
+// `actionError` is a friendship mutation error (accept/cancel/decline/send),
+// shown as a banner above the rows; `error` is the search-query error.
 export default function UserResults({
   query,
   users,
   isLoading,
   error,
+  actionError,
   currentUserId,
   pending,
   isRemoving,
@@ -25,6 +30,7 @@ export default function UserResults({
   users: User[] | undefined
   isLoading: boolean
   error: unknown
+  actionError?: unknown
   currentUserId: string | undefined
   pending: FriendshipPending[] | undefined
   isRemoving: boolean
@@ -64,6 +70,12 @@ export default function UserResults({
     )
   }
   return (
+    <>
+      <ActionErrorBanner
+        error={actionError}
+        getMessage={friendshipActionErrorMessage}
+        className="mt-6 text-center text-sm text-red-600 dark:text-red-400"
+      />
     <ul className="mt-6 space-y-2">
       {users.map((u) => {
         const sent = pending?.find((p) => p.requesterId === currentUserId && p.addresseeId === u.id)
@@ -113,11 +125,7 @@ export default function UserResults({
                     Decline
                   </button>
                 </>
-        ) : isRateLimitedError(error) ? (
-          <p className="mt-6 text-center text-sm text-amber-600 dark:text-amber-400">
-            Searching too fast — slow down and try again shortly
-          </p>
-        ) : (
+              ) : (
                 <button
                   onClick={() => onSend(u.id)}
                   disabled={!currentUserId || isSending}
@@ -131,5 +139,6 @@ export default function UserResults({
         )
       })}
     </ul>
+    </>
   )
 }

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { BellIcon } from '../../../components/NavbarIcons'
+import ActionErrorBanner from '../../../components/ActionErrorBanner'
+import { notificationActionErrorMessage } from './notificationActionError'
 import { useNotifications } from '../hooks/useNotifications'
 import type { NotificationType } from '../types'
 
@@ -23,6 +25,7 @@ export default function NotificationBell() {
     unreadCount,
     isLoading,
     error,
+    actionError,
     isMarkingRead,
     isDeleting,
     isMarkingAllRead,
@@ -94,6 +97,12 @@ export default function NotificationBell() {
               </button>
             )}
           </div>
+
+          <ActionErrorBanner
+            error={actionError}
+            getMessage={notificationActionErrorMessage}
+            className="px-4 pt-2 text-center text-sm text-red-600 dark:text-red-400"
+          />
 
           {isLoading ? (
             <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-zinc-400">Loading...</p>
