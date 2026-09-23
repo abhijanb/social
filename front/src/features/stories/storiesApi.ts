@@ -37,12 +37,14 @@ export const storiesApi = baseApi.injectEndpoints({
       },
       providesTags: ['Story'],
     }),
-    createStory: build.mutation<Story, { text?: string; media: File }>({
-      query: ({ text, media }) => {
+    createStory: build.mutation<Story, { text?: string; media: File; idempotencyKey?: string }>({
+      query: ({ text, media, idempotencyKey }) => {
         const form = new FormData()
         form.set('text', text ?? '')
         form.set('media', media)
-        return { url: 'story', method: 'POST', body: form }
+        const headers: Record<string, string> = {}
+        if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey
+        return { url: 'story', method: 'POST', body: form, headers }
       },
       invalidatesTags: ['Story'],
     }),

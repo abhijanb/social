@@ -70,7 +70,7 @@ export function useLivestreamComments(streamId: string, enabled: boolean) {
   const handleSend = async (text: string) => {
     const trimmed = text.trim()
     if (!trimmed || isSending || streamEnded) return
-    const created = await sendComment({ streamId, text: trimmed }).unwrap()
+    const created = await sendComment({ streamId, text: trimmed, idempotencyKey: crypto.randomUUID() }).unwrap()
     // Instant local echo; the poller dedupes by id on arrival.
     setComments((prev) => mergeById(prev, [created]))
     setSinceId(created.id)

@@ -51,12 +51,17 @@ export const livestreamApi = baseApi.injectEndpoints({
         return `livestream/${streamId}/comments?${params.toString()}`
       },
     }),
-    sendComment: build.mutation<LivestreamComment, { streamId: string; text: string }>({
-      query: ({ streamId, text }) => ({
-        url: `livestream/${streamId}/comments`,
-        method: 'POST',
-        body: { text },
-      }),
+    sendComment: build.mutation<LivestreamComment, { streamId: string; text: string; idempotencyKey?: string }>({
+      query: ({ streamId, text, idempotencyKey }) => {
+        const headers: Record<string, string> = {}
+        if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey
+        return {
+          url: `livestream/${streamId}/comments`,
+          method: 'POST',
+          body: { text },
+          headers,
+        }
+      },
     }),
   }),
 })

@@ -24,7 +24,10 @@ export function registerChatHandlers(): void {
 
     client.on(
       "chat:send",
-      async (data: { to?: unknown; text?: unknown }, ack?: SendAck) => {
+      async (
+        data: { to?: unknown; text?: unknown; idempotencyKey?: unknown },
+        ack?: SendAck,
+      ) => {
         const senderId = (client.data as Record<string, unknown>).userId as
           | string
           | undefined;
@@ -41,10 +44,12 @@ export function registerChatHandlers(): void {
           return;
         }
         try {
+          const idempotencyKey =
+            typeof data?.idempotencyKey === "string" ? data.idempotencyKey : undefined;
           const message = await sendMessage(senderId, {
             receiverId: to,
             text,
-          });
+          }, idempotencyKey);
           namespace.to(`user:${to}`).emit("chat:receive", { message });
           namespace.to(`user:${senderId}`).emit("chat:receive", { message });
           if (typeof ack === "function") ack({ ok: true, message });

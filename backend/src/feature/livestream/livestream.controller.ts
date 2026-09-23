@@ -80,9 +80,10 @@ export const sendCommentController = withLogging(
     if (!req.user) throw new AppError("Not authenticated", 401);
     const { id } = validateOrThrow(streamIdParamSchema, req.params);
     log.debug({ userId: req.user.id, streamId: id }, "comment send");
+    const idempotencyKey = req.headers["idempotency-key"] as string | undefined;
     return responseCreated(
       res,
-      await sendComment(req.user.id, id, req.body),
+      await sendComment(req.user.id, id, req.body, idempotencyKey),
       "Comment sent",
     );
   },

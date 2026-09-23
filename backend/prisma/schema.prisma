@@ -37,11 +37,12 @@ model User {
 }
 
 model Message {
-  id         String   @id @default(cuid())
-  senderId   String
-  receiverId String
-  text       String
-  createdAt  DateTime @default(now())
+  id             String   @id @default(cuid())
+  senderId       String
+  receiverId     String
+  text           String
+  createdAt      DateTime @default(now())
+  idempotencyKey String?
 
   sender   User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
@@ -49,6 +50,7 @@ model Message {
   @@index([senderId, receiverId, createdAt])
   @@index([receiverId])
   @@index([createdAt])
+  @@unique([senderId, receiverId, idempotencyKey])
 }
 
 model Post {
@@ -155,14 +157,15 @@ enum PostMediaKind {
 }
 
 model Story {
-  id        String        @id @default(cuid())
-  authorId  String
-  url       String
-  kind      PostMediaKind @default(IMAGE)
-  text      String        @default("")
-  expiresAt DateTime
-  createdAt DateTime      @default(now())
-  deletedAt DateTime?
+  id             String        @id @default(cuid())
+  authorId       String
+  url            String
+  kind           PostMediaKind @default(IMAGE)
+  text           String        @default("")
+  expiresAt      DateTime
+  createdAt      DateTime      @default(now())
+  deletedAt      DateTime?
+  idempotencyKey String?
 
   author User        @relation("UserStories", fields: [authorId], references: [id], onDelete: Cascade)
   views  StoryView[]
@@ -170,6 +173,7 @@ model Story {
   @@index([authorId, expiresAt])
   @@index([expiresAt])
   @@index([deletedAt])
+  @@unique([authorId, idempotencyKey])
 }
 
 model StoryView {
@@ -201,17 +205,19 @@ model Livestream {
 }
 
 model LivestreamComment {
-  id        String   @id @default(cuid())
-  streamId  String
-  authorId  String
-  text      String
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  streamId       String
+  authorId       String
+  text           String
+  createdAt      DateTime @default(now())
+  idempotencyKey String?
 
   stream Livestream @relation(fields: [streamId], references: [id], onDelete: Cascade)
   author User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([streamId, createdAt])
   @@index([streamId, id])
+  @@unique([streamId, authorId, idempotencyKey])
 }
 
 enum LivestreamStatus {

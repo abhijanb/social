@@ -39,7 +39,8 @@ export const sendMessageController = withLogging(
   async (req: AuthRequest, res: Response) => {
     if (!req.user) throw new AppError("Not authenticated", 401);
     log.debug({ userId: req.user.id }, "chat send");
-    const message = await sendMessage(req.user.id, req.body);
+    const idempotencyKey = req.headers["idempotency-key"] as string | undefined;
+    const message = await sendMessage(req.user.id, req.body, idempotencyKey);
     return responseCreated(res, message, "Message sent");
   },
   "chat-send",

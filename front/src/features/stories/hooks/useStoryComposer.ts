@@ -50,7 +50,7 @@ export function useStoryComposer({ onClose, onCreated }: { onClose: () => void; 
   const handlePost = async () => {
     if (!file || isLoading) return
     try {
-      await createStory({ text: text.trim(), media: file }).unwrap()
+      await createStory({ text: text.trim(), media: file, idempotencyKey: crypto.randomUUID() }).unwrap()
       if (preview) URL.revokeObjectURL(preview)
       onCreated?.()
       onClose()

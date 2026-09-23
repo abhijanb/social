@@ -72,8 +72,19 @@ export async function createStory(
   authorId: string,
   text: string,
   media: { url: string; kind: StoryMediaKindDto },
+  idempotencyKey?: string,
 ) {
   const dto = validateOrThrow(createStorySchema, { text });
+  if (idempotencyKey) {
+    const existing = await prisma.story.findFirst({
+      where: { authorId, idempotencyKey },
+      include: storyInclude,
+    });
+    if (existing) {
+      const [withViewed] = await withViewedState([existing], authorId);
+      return withViewed;
+    }
+  }
   const activeCount = await prisma.story.count({
     where: { authorId, expiresAt: { gt: new Date() }, deletedAt: null },
   });
@@ -86,6 +97,7 @@ export async function createStory(
       kind: media.kind,
       text: dto.text.trim(),
       expiresAt: new Date(Date.now() + STORY_TTL_MS),
+      idempotencyKey: idempotencyKey ?? null,
     },
     include: storyInclude,
   });

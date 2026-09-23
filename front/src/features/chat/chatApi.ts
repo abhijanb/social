@@ -18,8 +18,12 @@ export const chatApi = baseApi.injectEndpoints({
       },
       providesTags: ['Chat'],
     }),
-    sendMessage: build.mutation<ChatMessage, { receiverId: string; text: string }>({
-      query: (body) => ({ url: 'chat/send', method: 'POST', body }),
+    sendMessage: build.mutation<ChatMessage, { receiverId: string; text: string; idempotencyKey?: string }>({
+      query: ({ receiverId, text, idempotencyKey }) => {
+        const headers: Record<string, string> = {};
+        if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+        return { url: 'chat/send', method: 'POST', body: { receiverId, text }, headers }
+      },
       invalidatesTags: ['Chat'],
     }),
   }),

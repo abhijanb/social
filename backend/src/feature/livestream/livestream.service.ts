@@ -127,12 +127,27 @@ export async function sendComment(
   authorId: string,
   streamId: string,
   input: unknown,
+  idempotencyKey?: string,
 ) {
   const dto = validateOrThrow(sendStreamCommentSchema, input);
   const stream = await getLiveStreamOrThrow(streamId);
   await ensureCanView(authorId, stream.hostId, "Not friends with the host");
+  if (idempotencyKey) {
+    const existing = await prisma.livestreamComment.findFirst({
+      where: { streamId, authorId, idempotencyKey },
+      include: commentInclude,
+    });
+    if (existing) {
+      return existing;
+    }
+  }
   const comment = await prisma.livestreamComment.create({
-    data: { streamId, authorId, text: dto.text },
+    data: {
+      streamId,
+      authorId,
+      text: dto.text,
+      idempotencyKey: idempotencyKey ?? null,
+    },
     include: commentInclude,
   });
   return comment;

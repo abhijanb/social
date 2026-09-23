@@ -43,7 +43,11 @@ export const createStoryController = withCleanup(
         ? "VIDEO"
         : "IMAGE") as StoryMediaKindDto,
     };
-    const story = await createStory(req.user.id, dto.text, media);
+    const idempotencyKey = req.headers["idempotency-key"] as string | undefined;
+    const story = await createStory(req.user.id, dto.text, media, idempotencyKey);
+    if (idempotencyKey && story.url !== media.url) {
+      await deleteUploadFiles([file.filename]);
+    }
     return responseCreated(res, story, "Story created");
   },
   "create-story",

@@ -66,11 +66,12 @@ export function useChat(friendId: string | null) {
     async (text: string) => {
       if (!friendId || !text.trim()) return
       const trimmed = text.trim()
+      const idempotencyKey = crypto.randomUUID()
       // try socket first
       const socket = getChatSocket()
       if (socket.connected) {
         const ack: { ok: boolean; error?: string; message?: ChatMessage } = await new Promise((resolve) => {
-          socket.emit('chat:send', { to: friendId, text: trimmed }, (res: unknown) => resolve(res as never))
+          socket.emit('chat:send', { to: friendId, text: trimmed, idempotencyKey }, (res: unknown) => resolve(res as never))
           setTimeout(() => resolve({ ok: false, error: 'timeout' }), 3000)
         })
         if (ack?.ok && ack.message) {
@@ -79,7 +80,7 @@ export function useChat(friendId: string | null) {
         }
         // fallback to REST on socket failure
       }
-      const msg = await sendMessageMutation({ receiverId: friendId, text: trimmed }).unwrap()
+      const msg = await sendMessageMutation({ receiverId: friendId, text: trimmed, idempotencyKey }).unwrap()
       appendIfRelevant(msg)
       return msg
     },

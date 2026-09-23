@@ -27,14 +27,29 @@ async function ensureFriends(
 export async function sendMessage(
   senderId: string,
   input: unknown,
+  idempotencyKey?: string,
 ) {
   const dto = validateOrThrow(sendMessageSchema, input);
   const trimmed = dto.text.trim();
   if (!trimmed) throw new AppError("Message cannot be empty", 400);
   if (trimmed.length > 1000) throw new AppError("Message too long", 400);
   await ensureFriends(senderId, dto.receiverId);
+  if (idempotencyKey) {
+    const existing = await prisma.message.findFirst({
+      where: { senderId, receiverId: dto.receiverId, idempotencyKey },
+    });
+    if (existing) {
+      log.info({ messageId: existing.id, senderId, receiverId: dto.receiverId }, "message idempotency hit");
+      return existing;
+    }
+  }
   const message = await prisma.message.create({
-    data: { senderId, receiverId: dto.receiverId, text: trimmed },
+    data: {
+      senderId,
+      receiverId: dto.receiverId,
+      text: trimmed,
+      idempotencyKey: idempotencyKey ?? null,
+    },
   });
   log.info({ messageId: message.id, senderId, receiverId: dto.receiverId }, "message sent");
   return message;
