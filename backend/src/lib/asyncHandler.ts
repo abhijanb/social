@@ -1,4 +1,5 @@
 import { type Request, type Response, type NextFunction } from "express";
+import { isClientClosed } from "./clientClosed.js";
 import { logger } from "./logger.js";
 
 type AsyncHandler<T extends Request = Request> = (
@@ -18,7 +19,12 @@ export function withLogging<T extends Request = Request>(
       await handler(req, res, next);
     } catch (err) {
       const extra = logContext ? logContext(req) : {};
-      log.error({ err, ...extra }, `${context} failed`);
+      // Aborted by frontend (next keystroke, unmount) — not a real failure.
+      if (isClientClosed(req, res)) {
+        log.debug({ err, ...extra }, `${context} aborted by client`);
+      } else {
+        log.error({ err, ...extra }, `${context} failed`);
+      }
       throw err;
     }
   };
@@ -36,7 +42,11 @@ export function withCleanup<T extends Request = Request>(
       await handler(req, res, next);
     } catch (err) {
       const extra = logContext ? logContext(req) : {};
-      log.error({ err, ...extra }, `${context} failed`);
+      if (isClientClosed(req, res)) {
+        log.debug({ err, ...extra }, `${context} aborted by client`);
+      } else {
+        log.error({ err, ...extra }, `${context} failed`);
+      }
       if (cleanup) await cleanup(req);
       throw err;
     }

@@ -19,11 +19,19 @@ const log = logger.child({ service: "user" });
 export async function findAll(
   search: string,
   currentUserId?: string,
+  opts?: { isAborted?: () => boolean },
 ) {
   log.debug({ search, currentUserId }, "user search");
   let friendIds: string[] = [];
   if (currentUserId) {
     friendIds = await getFriendIds(currentUserId);
+  }
+
+  // Frontend cancelled (next keystroke aborted this request, tab closed).
+  // Skip the 2nd DB trip — nobody listens for the response anymore.
+  if (opts?.isAborted?.()) {
+    log.debug({ search }, "user search aborted, skipping findMany");
+    return null;
   }
 
   const excludeIds = [...(currentUserId ? [currentUserId] : []), ...friendIds];

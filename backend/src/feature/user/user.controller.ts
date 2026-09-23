@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import { AppError } from "../../lib/errorHandler.js";
+import { isClientClosed } from "../../lib/clientClosed.js";
 import { logger } from "../../lib/logger.js";
 import { prisma } from "../../lib/prisma.js";
 import { withLogging, withCleanup } from "../../lib/asyncHandler.js";
@@ -28,7 +29,9 @@ const log = logger.child({ controller: "user" });
 
 // GET /user?search= — live search (auth required when searching) or
 // recent-users list. Port of UserController.findAll. Errors bubble to
-// the shared errorMiddleware.
+// the shared errorMiddleware. Aborted requests (next keystroke, tab
+// closed) return early without a response — cooperative cancel since
+// Prisma has no AbortSignal.
 export const listUsersController = withLogging(
   async (req: AuthRequest, res: Response) => {
     const { search } = validateOrThrow(userSearchSchema, req.query);
@@ -36,7 +39,10 @@ export const listUsersController = withLogging(
     // Strict for search: must be authenticated to get self-excluded results.
     if (trimmed && !req.user) throw new AppError("Not authenticated", 401);
     log.debug({ search: trimmed, userId: req.user?.id }, "user search");
-    const users = await findAll(trimmed, req.user?.id);
+    const users = await findAll(trimmed, req.user?.id, {
+      isAborted: () => isClientClosed(req, res),
+    });
+    if (users === null || isClientClosed(req, res)) return;
     return responseSuccess(res, users);
   },
   "list-users",
