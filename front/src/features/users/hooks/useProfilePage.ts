@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppDispatch } from '../../../app/hooks'
 import { logoutAndReset } from '../../auth/authSlice'
 import { useAuth } from '../../auth/hooks/useAuth'
@@ -50,9 +50,13 @@ export function useProfilePage(username: string) {
     skip: !isAuthenticated || !authorId || !canView,
   })
 
-  if (isUnauthorizedError(profileError)) {
-    dispatch(logoutAndReset())
-  }
+  // Stale session: 401 logs out (effect, not render — dispatching during
+  // render is impure and loops under StrictMode double-render).
+  useEffect(() => {
+    if (isUnauthorizedError(profileError)) {
+      dispatch(logoutAndReset())
+    }
+  }, [profileError, dispatch])
 
   // Each page cached separately by RTK Query; collect here (same pattern as useFeed).
   if (postsData && !chunks.some((c) => c.page === page)) {
