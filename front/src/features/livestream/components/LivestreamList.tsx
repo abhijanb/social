@@ -1,4 +1,5 @@
 import Avatar from '../../../components/Avatar'
+import { isUnauthorizedError } from '../../../app/apiError'
 import type { Livestream } from '../livestreamApi'
 
 type Props = {
@@ -7,13 +8,20 @@ type Props = {
   activeId: string | null
   onSelect: (id: string) => void
   isLoading: boolean
+  error?: unknown
 }
 
 // LivestreamList – live streams from self + friends with LIVE badge.
-// The host's own stream is marked "You".
-export default function LivestreamList({ streams, currentUserId, activeId, onSelect, isLoading }: Props) {
+// The host's own stream is marked "You". A (non-401) query failure renders
+// an error instead of the "No one is live" empty state; 401 logs out via
+// the page hook, so it falls through to empty during redirect.
+export default function LivestreamList({ streams, currentUserId, activeId, onSelect, isLoading, error }: Props) {
   if (isLoading && streams.length === 0) {
     return <p className="py-6 text-center text-sm text-gray-500 dark:text-zinc-400">Loading live streams...</p>
+  }
+
+  if (error && !isUnauthorizedError(error)) {
+    return <p className="py-6 text-center text-sm text-red-600 dark:text-red-400">Couldn&apos;t load live streams.</p>
   }
 
   if (streams.length === 0) {

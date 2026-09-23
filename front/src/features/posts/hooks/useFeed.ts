@@ -30,15 +30,15 @@ export function useFeed() {
   })
   // Own identity paints instantly from localStorage cache, reconciled by getMe.
   const { me, username: ownUsername, avatarUrl: ownAvatarUrl } = useOwnProfile()
-  const { data: storyGroups, isLoading: storiesLoading } = useGetStoryFeedQuery(undefined, {
+  const { data: storyGroups, isLoading: storiesLoading, error: storiesError } = useGetStoryFeedQuery(undefined, {
     skip: !isAuthenticated,
   })
 
   // Stale session (cookie gone but local mirror true): first 401 logs out,
   // ProtectedLayout redirects on re-render — replaces the page-level guard.
   useEffect(() => {
-    if (isUnauthorizedError(error)) dispatch(logout())
-  }, [error, dispatch])
+    if (isUnauthorizedError(error) || isUnauthorizedError(storiesError)) dispatch(logout())
+  }, [error, storiesError, dispatch])
 
   // Each page is cached separately by RTK Query; collect fetched pages here.
   // Guarded so each page is added once (render-time adjustment, not an effect).
@@ -169,6 +169,7 @@ export function useFeed() {
     savePending,
     storyGroups,
     storiesLoading,
+    storiesError,
     me,
     ownUsername,
     ownAvatarUrl,

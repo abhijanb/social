@@ -8,6 +8,7 @@ export default function ActiveChatPanel({
   isLoading,
   conversation,
   messages,
+  historyError,
   onSend,
   sendError,
   isOnline,
@@ -17,6 +18,7 @@ export default function ActiveChatPanel({
   isLoading: boolean
   conversation: Conversation | null
   messages: Message[]
+  historyError?: unknown
   onSend: (text: string) => Promise<boolean>
   sendError?: unknown
   isOnline?: boolean
@@ -33,6 +35,7 @@ export default function ActiveChatPanel({
     <ChatWindow
       conversation={conversation}
       messages={messages}
+      historyError={historyError}
       onSend={onSend}
       sendError={sendError}
       isOnline={isOnline}

@@ -1,5 +1,6 @@
 import type { StoryFeedGroup } from '../storiesApi'
 import { useStoriesBar } from '../hooks/useStoriesBar'
+import { isUnauthorizedError } from '../../../app/apiError'
 import StoriesBarSkeleton from './StoriesBarSkeleton'
 import StoryComposer from './StoryComposer'
 import StoryTile from './StoryTile'
@@ -7,23 +8,29 @@ import StoryViewer from './StoryViewer'
 
 // StoriesBar – thin shell: Instagram-style horizontal tray above the feed.
 // State + derivations live in useStoriesBar, tiles in StoryTile.
+// A (non-401) feed failure shows an inline error instead of the "Share a
+// moment" hint so it doesn't look like there are simply no stories.
 export default function StoriesBar({
   groups,
   meId,
   meUsername,
   meAvatarUrl,
   isLoading,
+  storiesError,
 }: {
   groups: StoryFeedGroup[] | undefined
   meId: string | undefined
   meUsername: string | undefined
   meAvatarUrl?: string | null
   isLoading: boolean
+  storiesError?: unknown
 }) {
   const { composerOpen, viewing, mine, others, openMine, openGroup, openComposer, closeComposer, closeViewer } =
     useStoriesBar(groups, meId)
 
   if (isLoading) return <StoriesBarSkeleton />
+
+  const showStoriesError = !!storiesError && !isUnauthorizedError(storiesError)
 
   const mineRing =
     mine && mine.stories.length > 0 ? (mine.hasUnseen ? 'gradient' : 'muted') : ('empty' as const)
@@ -53,10 +60,16 @@ export default function StoriesBar({
             />
           ))}
 
-          {(!groups || groups.length <= 1) && (
-            <p className="self-center whitespace-nowrap text-xs text-gray-400 dark:text-zinc-500">
-              {others.length === 0 ? 'Share a moment — lasts 24h' : ''}
+          {showStoriesError ? (
+            <p className="self-center whitespace-nowrap text-xs text-red-600 dark:text-red-400">
+              Couldn&apos;t load stories.
             </p>
+          ) : (
+            (!groups || groups.length <= 1) && (
+              <p className="self-center whitespace-nowrap text-xs text-gray-400 dark:text-zinc-500">
+                {others.length === 0 ? 'Share a moment — lasts 24h' : ''}
+              </p>
+            )
           )}
         </div>
       </div>

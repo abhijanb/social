@@ -1,22 +1,28 @@
 import type { Conversation } from '../types'
+import { isUnauthorizedError } from '../../../app/apiError'
 
 // ChatConversationSelect – dumb mobile <select> for /chat:
-// loading / empty / conversation options. No hooks here.
+// loading / error / empty / conversation options. No hooks here.
 export default function ChatConversationSelect({
   conversations,
   activeId,
   isLoadingFriends,
+  friendsError,
   onChange,
 }: {
   conversations: Conversation[]
   activeId: string | null
   isLoadingFriends: boolean
+  friendsError?: unknown
   onChange: (id: string | null) => void
 }) {
   if (isLoadingFriends && !conversations.length) {
     return <p className="py-2 text-center text-sm text-gray-500 dark:text-zinc-400">Loading...</p>
   }
   if (conversations.length === 0) {
+    if (friendsError && !isUnauthorizedError(friendsError)) {
+      return <p className="py-2 text-center text-sm text-red-600 dark:text-red-400">Couldn&apos;t load chats.</p>
+    }
     return <p className="py-2 text-center text-sm text-gray-500 dark:text-zinc-400">No friends yet</p>
   }
   return (

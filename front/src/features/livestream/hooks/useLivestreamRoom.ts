@@ -6,7 +6,7 @@ import { useLivestreamVideo } from './useLivestreamVideo'
 // useLivestreamRoom – orchestration for one live room, no JSX: comments
 // polling + video state + draft + auto-scroll + leave cleanup + send.
 export function useLivestreamRoom(streamId: string) {
-  const { comments, isLoading, streamEnded, isSending, handleSend } = useLivestreamComments(streamId, true)
+  const { comments, isLoading, streamEnded, isSending, error: commentsError, sendError, handleSend } = useLivestreamComments(streamId, true)
   const video = useLivestreamVideo()
   const [draft, setDraft] = useState('')
   const bottomRef = useRef<HTMLDivElement | null>(null)
@@ -34,13 +34,15 @@ export function useLivestreamRoom(streamId: string) {
       await handleSend(trimmed)
       setDraft('')
     } catch {
-      // errors surface via the room error line below
+      // surfaced via sendError below; the draft is kept for retry
     }
   }
 
   return {
     comments,
     commentsLoading: isLoading,
+    commentsError,
+    sendError,
     streamEnded,
     isSending,
     video,

@@ -97,5 +97,5 @@ export function useChat(friendId: string | null) {
     [friendId, appendIfRelevant, sendMessageMutation],
   )
 
-  return { messages, isLoading, isSending, sendError, send, refetch, currentUserId }
+  return { messages, isLoading, historyError, isSending, sendError, send, refetch, currentUserId }
 }

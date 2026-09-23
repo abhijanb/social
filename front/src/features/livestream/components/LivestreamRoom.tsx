@@ -1,5 +1,7 @@
 import type { Livestream } from '../livestreamApi'
 import { useLivestreamRoom } from '../hooks/useLivestreamRoom'
+import ActionErrorBanner from '../../../components/ActionErrorBanner'
+import { livestreamActionErrorMessage } from './livestreamActionError'
 import LivestreamComments from './LivestreamComments'
 import LivestreamComposer from './LivestreamComposer'
 import LivestreamHeader from './LivestreamHeader'
@@ -13,6 +15,8 @@ export default function LivestreamRoom({ stream, username }: { stream: Livestrea
   const {
     comments,
     commentsLoading,
+    commentsError,
+    sendError,
     streamEnded,
     isSending,
     video,
@@ -52,7 +56,13 @@ export default function LivestreamRoom({ stream, username }: { stream: Livestrea
         )}
       </div>
 
-      <LivestreamComments comments={comments} isLoading={commentsLoading} bottomRef={bottomRef} />
+      <LivestreamComments comments={comments} isLoading={commentsLoading} error={commentsError} bottomRef={bottomRef} />
+
+      <ActionErrorBanner
+        error={sendError}
+        getMessage={livestreamActionErrorMessage}
+        className="border-t border-gray-200 px-3 pt-2 text-center text-sm text-red-600 dark:border-zinc-700 dark:text-red-400"
+      />
 
       {streamEnded ? (
         <p className="border-t border-gray-200 p-3 text-center text-sm font-medium text-gray-500 dark:border-zinc-700 dark:text-zinc-400">

@@ -41,6 +41,7 @@ export function useLivestreamPage() {
     me,
     streams,
     isLoading,
+    streamsError,
     myStream,
     activeStream,
     activeId,

@@ -1,0 +1,10 @@
+import { isRateLimitedError, isUnauthorizedError } from '../../../app/apiError'
+
+// livestreamActionError – message mapper for livestream comment send
+// failures. 401 never logs out here — callers show the session message
+// only, like PostComposer.
+export function livestreamActionErrorMessage(error: unknown): string {
+  if (isUnauthorizedError(error)) return 'Session expired, please login again'
+  if (isRateLimitedError(error)) return 'Too many requests — slow down and try again shortly'
+  return 'Failed to send comment'
+}

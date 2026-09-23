@@ -151,6 +151,7 @@ export function useTagFeed(rawTag: string) {
     nextPage,
     isLoading,
     isFetching,
+    error,
     likePending,
     savePending,
     handleLoadMore,

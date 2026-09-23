@@ -60,5 +60,6 @@ export function useChatConversations() {
     isOnline,
     lastSeen,
     isLoadingFriends,
+    friendsError,
   }
 }

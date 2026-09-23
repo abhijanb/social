@@ -3,7 +3,7 @@ import { useChat } from './useChat'
 import type { Message } from '../types'
 
 export function useActiveChat(activeId: string | null, currentUserId?: string) {
-  const { messages: chatMessages, isLoading: isLoadingChat, isSending, sendError, send } = useChat(activeId)
+  const { messages: chatMessages, isLoading: isLoadingChat, historyError, isSending, sendError, send } = useChat(activeId)
 
   const uiMessages: Message[] = useMemo(() => {
     if (!currentUserId) return []
@@ -22,5 +22,5 @@ export function useActiveChat(activeId: string | null, currentUserId?: string) {
     return msg !== null
   }
 
-  return { uiMessages, isLoadingChat, isSending, sendError, handleSend }
+  return { uiMessages, isLoadingChat, historyError, isSending, sendError, handleSend }
 }

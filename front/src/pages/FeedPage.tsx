@@ -18,6 +18,7 @@ export default function FeedPage() {
     savePending,
     storyGroups,
     storiesLoading,
+    storiesError,
     me,
     ownUsername,
     ownAvatarUrl,
@@ -33,7 +34,7 @@ export default function FeedPage() {
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-6 dark:bg-[#16171d]">
       <div className="mx-auto max-w-xl">
-        <StoriesBar groups={storyGroups} meId={me?.id} meUsername={ownUsername} meAvatarUrl={ownAvatarUrl} isLoading={storiesLoading} />
+        <StoriesBar groups={storyGroups} meId={me?.id} meUsername={ownUsername} meAvatarUrl={ownAvatarUrl} isLoading={storiesLoading} storiesError={storiesError} />
         {/* PostComposer – avatar + input row for writing a new post. */}
         <PostComposer onCreated={handleCreated} username={ownUsername} avatarUrl={ownAvatarUrl} />
         {error && !isUnauthorizedError(error) && (

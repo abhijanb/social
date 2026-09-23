@@ -10,6 +10,7 @@ import MessageList from './MessageList'
 type Props = {
   conversation: Conversation | null
   messages: Message[]
+  historyError?: unknown
   onSend: (text: string) => Promise<boolean>
   sendError?: unknown
   isOnline?: boolean
@@ -18,7 +19,7 @@ type Props = {
 
 // ChatWindow – thin shell: empty state or header + list + composer.
 // Input + autoscroll live in useChatWindowInput, regions in parts.
-export default function ChatWindow({ conversation, messages, onSend, sendError, isOnline, lastSeen }: Props) {
+export default function ChatWindow({ conversation, messages, historyError, onSend, sendError, isOnline, lastSeen }: Props) {
   const { input, setInput, bottomRef, handleSend, overLimit, canSend } = useChatWindowInput(messages, onSend)
 
   if (!conversation) return <ChatEmptyState />
@@ -26,7 +27,7 @@ export default function ChatWindow({ conversation, messages, onSend, sendError, 
   return (
     <div className="flex flex-1 flex-col bg-gray-50 dark:bg-[#16171d]">
       <ChatWindowHeader conversation={conversation} isOnline={isOnline} lastSeen={lastSeen} />
-      <MessageList messages={messages} bottomRef={bottomRef} />
+      <MessageList messages={messages} historyError={historyError} bottomRef={bottomRef} />
       <ActionErrorBanner
         error={sendError}
         getMessage={chatActionErrorMessage}

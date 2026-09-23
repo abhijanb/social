@@ -17,8 +17,9 @@ export default function ChatPage() {
     isOnline,
     lastSeen,
     isLoadingFriends,
+    friendsError,
   } = useChatConversations()
-  const { uiMessages, isLoadingChat, sendError, handleSend } = useActiveChat(activeId, currentUserId)
+  const { uiMessages, isLoadingChat, historyError, sendError, handleSend } = useActiveChat(activeId, currentUserId)
 
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null
   const isLoading = (isLoadingFriends && !conversations.length) || isLoadingChat
@@ -29,6 +30,7 @@ export default function ChatPage() {
         <ChatSidebarPanel
           conversations={conversations}
           isLoadingFriends={isLoadingFriends}
+          friendsError={friendsError}
           activeId={activeId}
           onSelect={setActiveId}
           filter={filter}
@@ -42,6 +44,7 @@ export default function ChatPage() {
             conversations={conversations}
             activeId={activeId}
             isLoadingFriends={isLoadingFriends}
+            friendsError={friendsError}
             onChange={setActiveId}
           />
         </div>
@@ -50,6 +53,7 @@ export default function ChatPage() {
           isLoading={isLoading}
           conversation={activeConversation}
           messages={uiMessages}
+          historyError={historyError}
           onSend={handleSend}
           sendError={sendError}
           isOnline={activeId ? isOnline(activeId) : undefined}

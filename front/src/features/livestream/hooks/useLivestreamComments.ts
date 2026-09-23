@@ -30,7 +30,7 @@ function mergeById(prev: LivestreamComment[], next: LivestreamComment[]): Livest
 export function useLivestreamComments(streamId: string, enabled: boolean) {
   const [comments, setComments] = useState<LivestreamComment[]>([])
   const [sinceId, setSinceId] = useState<string | null>(null)
-  const [sendComment, { isLoading: isSending }] = useSendCommentMutation()
+  const [sendComment, { isLoading: isSending, error: sendError }] = useSendCommentMutation()
 
   const initial = useGetCommentsQuery({ streamId }, { skip: !enabled })
   const endedByInitial = hasStatus(initial.error, 404)
@@ -83,6 +83,7 @@ export function useLivestreamComments(streamId: string, enabled: boolean) {
     streamEnded,
     isSending,
     error: initial.error && !endedByInitial ? initial.error : undefined,
+    sendError,
     handleSend,
   }
 }

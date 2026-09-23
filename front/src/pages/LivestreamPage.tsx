@@ -12,6 +12,7 @@ export default function LivestreamPage() {
     me,
     streams,
     isLoading,
+    streamsError,
     myStream,
     activeStream,
     activeId,
@@ -35,6 +36,7 @@ export default function LivestreamPage() {
                 activeId={activeId}
                 onSelect={handleSelect}
                 isLoading={isLoading}
+                error={streamsError}
               />
             </div>
           </div>
@@ -43,7 +45,7 @@ export default function LivestreamPage() {
             {activeStream ? (
               <LivestreamRoom key={activeStream.id} stream={activeStream} username={me?.username ?? '?'} />
             ) : (
-              <LivestreamEmptyState hasStreams={streams.length > 0} />
+              <LivestreamEmptyState hasStreams={streams.length > 0} error={streamsError} />
             )}
           </div>
         </div>
