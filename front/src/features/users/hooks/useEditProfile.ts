@@ -81,7 +81,7 @@ export function useEditProfile({
         await updateUser({
           patch: {
             bio: bio.trim(),
-            displayName: displayName.trim() ? displayName.trim() : null,
+            displayName: displayName.trim(),
           },
         }).unwrap()
       } else {
