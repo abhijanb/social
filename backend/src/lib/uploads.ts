@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import multer from "multer";
 import { unlink } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { extname, join } from "node:path";
+import { join } from "node:path";
 import { AppError } from "./errorHandler.js";
 
 /** Max image file size — multer caps at the video limit; the tighter image
@@ -19,12 +19,29 @@ export const ALLOWED_IMAGE_TYPES = new Set([
 ]);
 export const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
 
+/**
+ * Server-derived extension per validated mimetype. Stored filenames use
+ * this — NEVER extname(originalname), which is attacker-controlled and
+ * allowed storing uuid.html served as HTML (stored XSS). The fileFilter
+ * below guarantees mimetype is allowlisted before storage runs, so the
+ * lookup always hits; unknown mimetypes fall back to no extension
+ * (served as octet-stream, never executed).
+ */
+const EXT_BY_MIMETYPE: Record<string, string> = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "image/gif": ".gif",
+  "video/mp4": ".mp4",
+  "video/webm": ".webm",
+};
+
 /** Shared disk storage: backend/uploads/ with uuid filenames. */
 export function makeDiskStorage() {
   return multer.diskStorage({
     destination: join(process.cwd(), "uploads"),
     filename: (_req, file, cb) =>
-      cb(null, `${randomUUID()}${extname(file.originalname).toLowerCase()}`),
+      cb(null, `${randomUUID()}${EXT_BY_MIMETYPE[file.mimetype] ?? ""}`),
   });
 }
 

@@ -43,9 +43,17 @@ app.use(express.json());
 app.use(globalLimiter);
 
 // Uploaded post images live in backend/uploads/ and are served at /uploads/*
-// (same contract as back/src/main.ts).
+// (same contract as back/src/main.ts). nosniff blocks MIME-sniffing
+// execution as a second layer behind the server-derived stored extensions.
 mkdirSync(join(process.cwd(), "uploads"), { recursive: true });
-app.use("/uploads", express.static(join(process.cwd(), "uploads")));
+app.use(
+  "/uploads",
+  express.static(join(process.cwd(), "uploads"), {
+    setHeaders: (res) => {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+    },
+  }),
+);
 
 app.get("/", (_req, res) => {
   res.json({ message: "hello from express" });
