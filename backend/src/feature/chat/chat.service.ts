@@ -55,7 +55,9 @@ export async function sendMessage(
   return message;
 }
 
-// Port of ChatService.getHistory — both directions, oldest first.
+// Port of ChatService.getHistory — both directions, latest page oldest first.
+// Newest-first take + reverse (same pattern as listCommentsPage) so long
+// threads return recent messages; id breaks createdAt ties deterministically.
 export async function getHistory(
   meId: string,
   friendId: string,
@@ -63,14 +65,15 @@ export async function getHistory(
 ) {
   await ensureFriends(meId, friendId);
   log.debug({ meId, friendId, limit }, "chat history fetch");
-  return prisma.message.findMany({
+  const latest = await prisma.message.findMany({
     where: {
       OR: [
         { senderId: meId, receiverId: friendId },
         { senderId: friendId, receiverId: meId },
       ],
     },
-    orderBy: { createdAt: "asc" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: limit,
   });
+  return latest.reverse();
 }
