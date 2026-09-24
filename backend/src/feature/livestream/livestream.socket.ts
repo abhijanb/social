@@ -63,8 +63,9 @@ export function registerLivestreamHandlers(): void {
 
   namespace.on("connection", (client: Socket) => {
     const data = client.data as LivestreamSocketData;
-    const userId = authenticateClient(client, data);
-    if (!userId) return;
+    void (async () => {
+      const userId = await authenticateClient(client, data);
+      if (!userId) return;
 
     client.on(
       "livestream:join",
@@ -90,9 +91,10 @@ export function registerLivestreamHandlers(): void {
       },
     );
 
-    client.on("disconnect", () => {
-      handleDisconnect(namespace, client, data);
-    });
+      client.on("disconnect", () => {
+        handleDisconnect(namespace, client, data);
+      });
+    })();
   });
 }
 

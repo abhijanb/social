@@ -3,13 +3,30 @@ import { env } from "../../config/env.js";
 import { AppError } from "../../lib/errorHandler.js";
 import { logger } from "../../lib/logger.js";
 import { withLogging } from "../../lib/asyncHandler.js";
-import { signVerifyToken, verifyAuthToken } from "../../lib/jwt.js";
+import { validateOrThrow } from "../../lib/validate.js";
+import { userIdParamSchema } from "../user/user.schema.js";
+import {
+  authTokenExpiryMs,
+  signVerifyToken,
+  verifyAuthToken,
+} from "../../lib/jwt.js";
 import type { JwtPayload } from "../../lib/jwt.js";
 import {
   responseCreated,
   responseSuccess,
 } from "../../lib/response.js";
-import { findUserById, login, register, verifyEmail, resendVerification } from "./auth.service.js";
+import {
+  findUserById,
+  listSessions,
+  login,
+  logout,
+  logoutAll,
+  register,
+  resendVerification,
+  revokeSession,
+  verifyEmail,
+} from "./auth.service.js";
+import type { AuthRequest } from "../../middleware/auth.js";
 import { sendVerificationEmail, sendWelcomeEmail } from "../notification/mailNotification.js";
 
 function getCurrentUser(req: Request): JwtPayload | null {
@@ -22,14 +39,30 @@ function getCurrentUser(req: Request): JwtPayload | null {
   return payload;
 }
 
+const authCookieAttrs = {
+  httpOnly: true as const,
+  sameSite: "lax" as const,
+  secure: env.NODE_ENV === "production",
+  path: "/",
+};
+
 function setAuthCookie(res: Response, token: string): void {
   res.cookie("token", token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: env.NODE_ENV === "production",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: "/",
+    ...authCookieAttrs,
+    maxAge: authTokenExpiryMs(),
   });
+}
+
+function clearAuthCookie(res: Response): void {
+  res.clearCookie("token", { ...authCookieAttrs });
+}
+
+function getRequestMeta(req: Request): { userAgent?: string; ip?: string } {
+  const userAgent =
+    typeof req.headers["user-agent"] === "string"
+      ? req.headers["user-agent"]
+      : undefined;
+  return { userAgent, ip: req.ip };
 }
 
 const log = logger.child({ controller: "auth" });
@@ -79,12 +112,12 @@ export const resendVerificationController = withLogging(
   (req) => ({ username: (req.body as { username?: string })?.username }),
 );
 
-// POST /user/login — login, sets the token cookie.
+// POST /user/login — login, creates a Session row and sets the token cookie.
 export const loginController = withLogging(
   async (req: Request, res: Response) => {
     const username = (req.body as { username?: string })?.username;
     log.info({ username }, "login request");
-    const { user, token } = await login(req.body);
+    const { user, token } = await login(req.body, getRequestMeta(req));
     setAuthCookie(res, token);
     log.info({ userId: user.id }, "login success");
     return responseSuccess(res, user, "Logged in successfully");
@@ -93,16 +126,58 @@ export const loginController = withLogging(
   (req) => ({ username: (req.body as { username?: string })?.username }),
 );
 
-// POST /user/logout — clears the token cookie.
-export function logoutController(_req: Request, res: Response) {
-  res.clearCookie("token", { path: "/" });
-  return responseSuccess(res, null, "Logged out");
-}
-
-// GET /user/me — current user from the JWT, 401 without one.
-export const meController = withLogging(
+// POST /user/logout — revokes the current session and clears the cookie.
+// Idempotent: missing/invalid tokens still clear the cookie.
+export const logoutController = withLogging(
   async (req: Request, res: Response) => {
-    const current = getCurrentUser(req);
+    const token =
+      (req.cookies as Record<string, string> | undefined)?.token ?? null;
+    await logout(token);
+    clearAuthCookie(res);
+    return responseSuccess(res, null, "Logged out");
+  },
+  "logout",
+);
+
+// POST /user/logout-all — revokes every session except the current one.
+export const logoutAllController = withLogging(
+  async (req: AuthRequest, res: Response) => {
+    const user = req.user;
+    if (!user?.jti) throw new AppError("Not authenticated", 401);
+    const result = await logoutAll(user.id, user.jti);
+    return responseSuccess(res, result, "Logged out of all other devices");
+  },
+  "logout-all",
+);
+
+// GET /user/sessions — lists the caller's own sessions, current first-flagged.
+export const listSessionsController = withLogging(
+  async (req: AuthRequest, res: Response) => {
+    const user = req.user;
+    if (!user?.jti) throw new AppError("Not authenticated", 401);
+    const sessions = await listSessions(user.id, user.jti);
+    return responseSuccess(res, sessions);
+  },
+  "list-sessions",
+);
+
+// DELETE /user/sessions/:id — revokes one owned session (not the current).
+export const revokeSessionController = withLogging(
+  async (req: AuthRequest, res: Response) => {
+    const user = req.user;
+    if (!user?.jti) throw new AppError("Not authenticated", 401);
+    const { id } = validateOrThrow(userIdParamSchema, req.params);
+    await revokeSession(user.id, id, user.jti);
+    return responseSuccess(res, null, "Session revoked");
+  },
+  "revoke-session",
+);
+
+// GET /user/me — current user from the session-checked JWT, 401 without one.
+// Route runs behind requireAuth, so req.user is already verified live.
+export const meController = withLogging(
+  async (req: AuthRequest, res: Response) => {
+    const current = req.user ?? getCurrentUser(req);
     if (!current) throw new AppError("Not authenticated", 401);
     const user = await findUserById(current.id);
     if (!user) throw new AppError("User not found", 401);
@@ -110,5 +185,5 @@ export const meController = withLogging(
     return responseSuccess(res, user);
   },
   "me",
-  (req) => ({ userId: getCurrentUser(req)?.id }),
+  (req: AuthRequest) => ({ userId: req.user?.id ?? getCurrentUser(req)?.id }),
 );

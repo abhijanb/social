@@ -13,14 +13,15 @@ export function registerChatHandlers(): void {
   const namespace = getChatNamespace();
 
   namespace.on("connection", (client: Socket) => {
-    const auth = authenticateSocket(client);
-    if (!auth.authenticated) {
-      client.disconnect();
-      return;
-    }
-    const userId = auth.userId;
-    (client.data as Record<string, unknown>).userId = userId;
-    void client.join(`user:${userId}`);
+    void (async () => {
+      const auth = await authenticateSocket(client);
+      if (!auth.authenticated) {
+        client.disconnect();
+        return;
+      }
+      const userId = auth.userId;
+      (client.data as Record<string, unknown>).userId = userId;
+      void client.join(`user:${userId}`);
 
     client.on(
       "chat:send",
@@ -62,5 +63,6 @@ export function registerChatHandlers(): void {
         }
       },
     );
+    })();
   });
 }

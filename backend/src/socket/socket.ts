@@ -2,6 +2,7 @@ import type { Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
 import type { Namespace, Socket } from "socket.io";
 import { verifyAuthToken } from "../lib/jwt.js";
+import { getLiveSession } from "../lib/sessions.js";
 
 let io: Server | null = null;
 
@@ -70,16 +71,20 @@ export function getLivestreamNamespace(): Namespace {
   return getIo().of("/livestream");
 }
 
-export function authenticateSocket(
+export async function authenticateSocket(
   client: Socket,
-): { userId: string; authenticated: true } | { userId: null; authenticated: false } {
+): Promise<{ userId: string; authenticated: true } | { userId: null; authenticated: false }> {
   const token = getTokenFromSocket(client);
   if (!token) {
     return { userId: null, authenticated: false };
   }
   try {
     const payload = verifyAuthToken(token);
-    if (!payload?.id) {
+    if (!payload?.id || !payload?.jti) {
+      return { userId: null, authenticated: false };
+    }
+    const session = await getLiveSession(payload.jti, payload.id);
+    if (!session) {
       return { userId: null, authenticated: false };
     }
     return { userId: payload.id, authenticated: true };

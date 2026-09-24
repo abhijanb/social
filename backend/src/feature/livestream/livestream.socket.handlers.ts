@@ -1,6 +1,7 @@
 import type { Namespace, Socket } from "socket.io";
 import { getTokenFromSocket } from "../../socket/socket.js";
 import { verifyAuthToken } from "../../lib/jwt.js";
+import { getLiveSession } from "../../lib/sessions.js";
 import {
   getJoinContext,
   isSignalKind,
@@ -19,18 +20,23 @@ export type LivestreamSocketData = {
 };
 
 // Cookie-JWT auth preamble (like /chat). Stamps data.userId, disconnects
-// and returns null on any failure.
-export function authenticateClient(
+// and returns null on any failure. Async: rejects revoked/expired sessions.
+export async function authenticateClient(
   client: Socket,
   data: LivestreamSocketData,
-): string | null {
+): Promise<string | null> {
   const token = getTokenFromSocket(client);
   if (!token) {
     client.disconnect();
     return null;
   }
   const payload = verifyAuthToken(token);
-  if (!payload?.id) {
+  if (!payload?.id || !payload?.jti) {
+    client.disconnect();
+    return null;
+  }
+  const session = await getLiveSession(payload.jti, payload.id);
+  if (!session) {
     client.disconnect();
     return null;
   }
