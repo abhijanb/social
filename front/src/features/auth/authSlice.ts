@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import { baseApi } from '../../app/baseApi'
 import type { AppDispatch } from '../../app/store'
+import { authApi } from './authApi'
 
 interface AuthState {
   userId: string
@@ -68,11 +69,20 @@ export const authSlice = createSlice({
 export const { setUserId, setUsername, setAvatarUrl, login, logout } = authSlice.actions
 export default authSlice.reducer
 
-// Full logout: clears the auth mirror + wipes the RTK Query cache (which
-// also aborts in-flight queries). Every logout path must use this instead
-// of bare logout() — otherwise the next login flashes the prior account's
-// cached data (getMe and other same-arg queries resolve stale instantly).
-export const logoutAndReset = () => (dispatch: AppDispatch) => {
+// Full logout: revokes the server Session via the RTK logoutUser mutation,
+// then clears the auth mirror + wipes the RTK Query cache (which also
+// aborts in-flight queries — hence the sequencing: reset runs only after
+// the logout POST settles, otherwise it would cancel it). Best-effort:
+// offline logout still clears locally via the catch fallthrough. Every
+// logout path must use this instead of bare logout() — otherwise the
+// next login flashes the prior account's cached data (getMe and other
+// same-arg queries resolve stale instantly).
+export const logoutAndReset = () => async (dispatch: AppDispatch) => {
+  try {
+    await dispatch(authApi.endpoints.logoutUser.initiate()).unwrap()
+  } catch {
+    // best-effort: local state clears regardless
+  }
   dispatch(logout())
   dispatch(baseApi.util.resetApiState())
 }
