@@ -36,7 +36,7 @@ export const app = express();
 app.set("trust proxy", 1);
 
 app.use(cookieParser());
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({ origin: env.APP_URL, credentials: true }));
 app.use(express.json());
 
 // Global safety net (300/15min per IP) — per-route tiers are stricter.

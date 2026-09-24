@@ -38,7 +38,7 @@ const envSchema = z
         .string()
         .trim()
         .url("APP_URL must be a valid URL")
-        .default("http://localhost:3000"),
+        .default("http://localhost:5173"),
     ),
 
     SMTP_HOST: z.preprocess(

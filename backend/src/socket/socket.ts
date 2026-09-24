@@ -3,13 +3,14 @@ import { Server } from "socket.io";
 import type { Namespace, Socket } from "socket.io";
 import { verifyAuthToken } from "../lib/jwt.js";
 import { getLiveSession } from "../lib/sessions.js";
+import { env } from "../config/env.js";
 
 let io: Server | null = null;
 
 export function initSocket(httpServer: HttpServer): Server {
   if (io) return io;
   io = new Server(httpServer, {
-    cors: { origin: true, credentials: true },
+    cors: { origin: env.APP_URL, credentials: true },
   });
   return io;
 }

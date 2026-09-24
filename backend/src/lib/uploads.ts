@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import multer from "multer";
 import { unlink } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { AppError } from "./errorHandler.js";
 
 /** Max image file size — multer caps at the video limit; the tighter image
@@ -139,7 +139,9 @@ export async function deleteUploadUrls(urls: string[]): Promise<void> {
   await Promise.allSettled(
     urls
       .filter((url) => url.startsWith("/uploads/"))
-      .map((url) => unlink(join(process.cwd(), url.slice(1)))),
+      .map((url) =>
+        unlink(join(process.cwd(), "uploads", basename(url.slice("/uploads/".length)))),
+      ),
   );
 }
 
