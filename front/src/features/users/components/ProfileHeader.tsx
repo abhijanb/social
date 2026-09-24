@@ -37,13 +37,13 @@ export default function ProfileHeader({
           )}
           <div className="mt-3 flex gap-5 text-sm">
             <span className="text-gray-600 dark:text-zinc-300">
-              <strong className="font-bold text-gray-900 dark:text-white">{stats?.posts ?? '…'}</strong> posts
+              <strong className="font-bold text-gray-900 dark:text-white">{stats?.posts ?? <span aria-hidden="true" className="inline-block h-4 w-6 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" />}</strong> posts
             </span>
             <span className="text-gray-600 dark:text-zinc-300">
-              <strong className="font-bold text-gray-900 dark:text-white">{stats?.friends ?? '…'}</strong> friends
+              <strong className="font-bold text-gray-900 dark:text-white">{stats?.friends ?? <span aria-hidden="true" className="inline-block h-4 w-6 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" />}</strong> friends
             </span>
             <span className="text-gray-600 dark:text-zinc-300">
-              <strong className="font-bold text-gray-900 dark:text-white">{stats?.storiesActive ?? '…'}</strong> stories
+              <strong className="font-bold text-gray-900 dark:text-white">{stats?.storiesActive ?? <span aria-hidden="true" className="inline-block h-4 w-6 animate-pulse rounded bg-gray-200 dark:bg-zinc-700" />}</strong> stories
             </span>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">

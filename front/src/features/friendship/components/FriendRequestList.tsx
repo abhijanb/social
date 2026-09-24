@@ -40,7 +40,7 @@ export default function FriendRequestList({
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
       <h2 className="mb-3 text-base font-semibold text-gray-900 dark:text-white">
-        {title} <span className="font-normal text-gray-500 dark:text-zinc-400">({items.length})</span>
+        {title} {!isLoading && <span className="font-normal text-gray-500 dark:text-zinc-400">({items.length})</span>}
       </h2>
 
       <ActionErrorBanner

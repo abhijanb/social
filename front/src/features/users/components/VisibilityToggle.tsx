@@ -3,11 +3,13 @@
 export default function VisibilityToggle({
   isPublic,
   isSaving,
+  isLoading,
   saveError,
   onToggle,
 }: {
   isPublic: boolean
   isSaving: boolean
+  isLoading: boolean
   saveError: unknown
   onToggle: () => void
 }) {
@@ -30,7 +32,7 @@ export default function VisibilityToggle({
           aria-checked={isPublic}
           aria-label="Toggle profile visibility"
           onClick={onToggle}
-          disabled={isSaving}
+          disabled={isSaving || isLoading}
           className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 disabled:opacity-50 ${isPublic ? 'bg-violet-600' : 'bg-gray-200 dark:bg-zinc-700'}`}
         >
           <span
@@ -40,7 +42,7 @@ export default function VisibilityToggle({
       </div>
       <div className="mt-4 flex items-center gap-3 text-sm">
         <span className={`font-medium ${isPublic ? 'text-violet-600 dark:text-violet-400' : 'text-gray-500 dark:text-zinc-400'}`}>
-          {isPublic ? 'Public' : 'Private'}
+          {isLoading ? 'Loading…' : isPublic ? 'Public' : 'Private'}
         </span>
         {isSaving && <span className="text-gray-500 dark:text-zinc-400">Saving...</span>}
       </div>

@@ -29,9 +29,11 @@ export default function SessionsSection({
         <div>
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Active sessions</h2>
           <p className="mt-1 max-w-md text-sm text-gray-500 dark:text-zinc-400">
-            {isEmpty
-              ? 'No active sessions.'
-              : `${activeSessions.length} active session${activeSessions.length === 1 ? '' : 's'} — revoke any device you don't recognize.`}
+            {isLoading
+              ? 'Checking your devices…'
+              : isEmpty
+                ? 'No active sessions.'
+                : `${activeSessions.length} active session${activeSessions.length === 1 ? '' : 's'} — revoke any device you don't recognize.`}
           </p>
         </div>
         {otherCount > 0 && (

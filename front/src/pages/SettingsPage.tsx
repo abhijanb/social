@@ -18,7 +18,7 @@ export default function SettingsPage() {
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 px-4 py-8 dark:bg-[#16171d]">
       <div className="mx-auto max-w-2xl">
         <h1 className="mb-6 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Settings</h1>
-        <VisibilityToggle isPublic={isPublic} isSaving={isSaving} saveError={saveError} onToggle={handleToggle} />
+        <VisibilityToggle isPublic={isPublic} isSaving={isSaving} isLoading={isLoading} saveError={saveError} onToggle={handleToggle} />
         <SessionsSection
           sessions={sessions}
           isLoading={sessionsLoading}
