@@ -27,6 +27,7 @@ import {
   verifyEmail,
 } from "./auth.service.js";
 import type { AuthRequest } from "../../middleware/auth.js";
+import { disconnectSessionSockets } from "../../socket/socket.js";
 import { sendVerificationEmail, sendWelcomeEmail } from "../notification/mailNotification.js";
 
 function getCurrentUser(req: Request): JwtPayload | null {
@@ -132,7 +133,11 @@ export const logoutController = withLogging(
   async (req: Request, res: Response) => {
     const token =
       (req.cookies as Record<string, string> | undefined)?.token ?? null;
+    const payload = token ? verifyAuthToken(token) : null;
     await logout(token);
+    // Push-kill this session's sockets so revocation is instant —
+    // the cookie clear alone leaves live sockets connected.
+    if (payload?.jti) disconnectSessionSockets(payload.jti);
     clearAuthCookie(res);
     return responseSuccess(res, null, "Logged out");
   },
@@ -145,6 +150,7 @@ export const logoutAllController = withLogging(
     const user = req.user;
     if (!user?.jti) throw new AppError("Not authenticated", 401);
     const result = await logoutAll(user.id, user.jti);
+    for (const id of result.ids) disconnectSessionSockets(id);
     return responseSuccess(res, result, "Logged out of all other devices");
   },
   "logout-all",
@@ -168,6 +174,7 @@ export const revokeSessionController = withLogging(
     if (!user?.jti) throw new AppError("Not authenticated", 401);
     const { id } = validateOrThrow(userIdParamSchema, req.params);
     await revokeSession(user.id, id, user.jti);
+    disconnectSessionSockets(id);
     return responseSuccess(res, null, "Session revoked");
   },
   "revoke-session",

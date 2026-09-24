@@ -2,7 +2,9 @@ import type { Socket } from "socket.io";
 import {
   getChatNamespace,
   authenticateSocket,
+  sessionRoom,
 } from "../../socket/socket.js";
+import { getLiveSession } from "../../lib/sessions.js";
 import { sendMessage } from "./chat.service.js";
 
 type SendAck = (res:
@@ -21,7 +23,9 @@ export function registerChatHandlers(): void {
       }
       const userId = auth.userId;
       (client.data as Record<string, unknown>).userId = userId;
+      (client.data as Record<string, unknown>).jti = auth.jti;
       void client.join(`user:${userId}`);
+      void client.join(sessionRoom(auth.jti));
 
     client.on(
       "chat:send",
@@ -29,12 +33,21 @@ export function registerChatHandlers(): void {
         data: { to?: unknown; text?: unknown; idempotencyKey?: unknown },
         ack?: SendAck,
       ) => {
-        const senderId = (client.data as Record<string, unknown>).userId as
-          | string
-          | undefined;
-        if (!senderId) {
+        const data0 = client.data as Record<string, unknown>;
+        const senderId = data0.userId as string | undefined;
+        const senderJti = data0.jti as string | undefined;
+        if (!senderId || !senderJti) {
           if (typeof ack === "function")
             ack({ ok: false, error: "Not authenticated" });
+          return;
+        }
+        // Re-validate per message — a session revoked after connect must
+        // not keep sending. Cheap (one indexed lookup per user action).
+        const live = await getLiveSession(senderJti, senderId);
+        if (!live) {
+          if (typeof ack === "function")
+            ack({ ok: false, error: "Not authenticated" });
+          client.disconnect();
           return;
         }
         const to = typeof data?.to === "string" ? data.to.trim() : "";

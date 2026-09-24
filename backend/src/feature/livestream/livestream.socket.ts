@@ -4,6 +4,7 @@ import { ensureCanView } from "../../lib/friends.js";
 import { prisma } from "../../lib/prisma.js";
 import {
   getLivestreamNamespace,
+  sessionRoom,
 } from "../../socket/socket.js";
 import {
   authenticateClient,
@@ -64,8 +65,10 @@ export function registerLivestreamHandlers(): void {
   namespace.on("connection", (client: Socket) => {
     const data = client.data as LivestreamSocketData;
     void (async () => {
-      const userId = await authenticateClient(client, data);
-      if (!userId) return;
+      const auth = await authenticateClient(client, data);
+      if (!auth) return;
+      const userId = auth.userId;
+      void client.join(sessionRoom(auth.jti));
 
     client.on(
       "livestream:join",

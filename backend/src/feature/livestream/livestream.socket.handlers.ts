@@ -19,12 +19,13 @@ export type LivestreamSocketData = {
   video?: unknown;
 };
 
-// Cookie-JWT auth preamble (like /chat). Stamps data.userId, disconnects
-// and returns null on any failure. Async: rejects revoked/expired sessions.
+// Cookie-JWT auth preamble (like /chat). Stamps data.userId + data.jti,
+// disconnects and returns null on any failure. Async: rejects
+// revoked/expired sessions.
 export async function authenticateClient(
   client: Socket,
   data: LivestreamSocketData,
-): Promise<string | null> {
+): Promise<{ userId: string; jti: string } | null> {
   const token = getTokenFromSocket(client);
   if (!token) {
     client.disconnect();
@@ -41,7 +42,8 @@ export async function authenticateClient(
     return null;
   }
   data.userId = payload.id;
-  return payload.id;
+  (data as Record<string, unknown>).jti = payload.jti;
+  return { userId: payload.id, jti: payload.jti };
 }
 
 export async function handleJoin(
@@ -58,6 +60,19 @@ export async function handleJoin(
     if (typeof ack === "function")
       ack({ ok: false, error: "streamId required" });
     return;
+  }
+  // Re-validate the session at join — join is user-initiated (not a hot
+  // path like ICE), so one lookup here keeps revoked peers out of rooms.
+  // Signal/media-update rely on push-kill (see disconnectSessionSockets).
+  const jti = (data as Record<string, unknown>).jti;
+  if (typeof jti === "string" && jti) {
+    const live = await getLiveSession(jti, userId);
+    if (!live) {
+      if (typeof ack === "function")
+        ack({ ok: false, error: "Not authenticated" });
+      client.disconnect();
+      return;
+    }
   }
   // Initial mic/cam state so new peers render correct tiles
   // immediately (later flips arrive via livestream:media-update).

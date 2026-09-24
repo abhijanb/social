@@ -121,14 +121,21 @@ export async function logout(token: string | null | undefined) {
 }
 
 // Revokes every session except the current one — "logout of all devices"
-// keeps the caller logged in. Returns the revoked count.
+// keeps the caller logged in. Returns ids so the controller can push-kill
+// their sockets (per-user session lists are tiny; two queries are fine).
 export async function logoutAll(userId: string, currentJti: string) {
-  const result = await prisma.session.updateMany({
+  const rows = await prisma.session.findMany({
     where: { userId, revokedAt: null, id: { not: currentJti } },
-    data: { revokedAt: new Date() },
+    select: { id: true },
   });
+  if (rows.length > 0) {
+    await prisma.session.updateMany({
+      where: { userId, revokedAt: null, id: { not: currentJti } },
+      data: { revokedAt: new Date() },
+    });
+  }
   log.info({ userId }, "logout-all success");
-  return { success: true, revoked: result.count };
+  return { success: true, revoked: rows.length, ids: rows.map((r) => r.id) };
 }
 
 export type SessionListItem = {

@@ -71,24 +71,44 @@ export function getLivestreamNamespace(): Namespace {
   return getIo().of("/livestream");
 }
 
-export async function authenticateSocket(
-  client: Socket,
-): Promise<{ userId: string; authenticated: true } | { userId: null; authenticated: false }> {
+export type SocketAuth =
+  | { userId: string; jti: string; authenticated: true }
+  | { userId: null; jti: null; authenticated: false };
+
+export async function authenticateSocket(client: Socket): Promise<SocketAuth> {
   const token = getTokenFromSocket(client);
   if (!token) {
-    return { userId: null, authenticated: false };
+    return { userId: null, jti: null, authenticated: false };
   }
   try {
     const payload = verifyAuthToken(token);
     if (!payload?.id || !payload?.jti) {
-      return { userId: null, authenticated: false };
+      return { userId: null, jti: null, authenticated: false };
     }
     const session = await getLiveSession(payload.jti, payload.id);
     if (!session) {
-      return { userId: null, authenticated: false };
+      return { userId: null, jti: null, authenticated: false };
     }
-    return { userId: payload.id, authenticated: true };
+    return { userId: payload.id, jti: payload.jti, authenticated: true };
   } catch {
-    return { userId: null, authenticated: false };
+    return { userId: null, jti: null, authenticated: false };
+  }
+}
+
+// Per-session room so revocation can target one login across every
+// namespace. Sockets join it alongside `user:<id>` at connect time.
+export function sessionRoom(jti: string): string {
+  return `session:${jti}`;
+}
+
+// Push-kill: notify + disconnect every socket of one session on all
+// namespaces. Called by revoke controllers after the DB revoke lands.
+// The `auth:revoked` event lets clients log out proactively instead of
+// reconnect-looping into another disconnect.
+export function disconnectSessionSockets(jti: string): void {
+  if (!io) return;
+  for (const ns of [getPresenceNamespace(), getChatNamespace(), getLivestreamNamespace()]) {
+    ns.in(sessionRoom(jti)).emit("auth:revoked", { sessionId: jti });
+    void ns.in(sessionRoom(jti)).disconnectSockets(true);
   }
 }

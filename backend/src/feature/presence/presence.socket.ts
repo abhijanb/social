@@ -2,8 +2,10 @@ import type { Socket } from "socket.io";
 import {
   getPresenceNamespace,
   authenticateSocket,
+  sessionRoom,
 } from "../../socket/socket.js";
 import { getFriendIds } from "../../lib/friends.js";
+import { getLiveSession } from "../../lib/sessions.js";
 import {
   getPresence,
   setOfflineBySocket,
@@ -43,8 +45,10 @@ export function registerPresenceHandlers(): void {
       }
       const userId = auth.userId;
       (client.data as Record<string, unknown>).userId = userId;
+      (client.data as Record<string, unknown>).jti = auth.jti;
       setOnline(userId, client.id);
       void client.join(`user:${userId}`);
+      void client.join(sessionRoom(auth.jti));
       void emitScoped(namespace, userId, {
         userId,
         online: true,
@@ -58,16 +62,28 @@ export function registerPresenceHandlers(): void {
         }
       });
 
-      client.on(
-        "presence:heartbeat",
-        (ack?: (res: { ok: boolean }) => void) => {
-          const id = (client.data as Record<string, unknown>).userId as
-            | string
-            | undefined;
+      client.on("presence:heartbeat", (ack?: (res: { ok: boolean }) => void) => {
+        void (async () => {
+          const data = client.data as Record<string, unknown>;
+          const id = data.userId as string | undefined;
+          const jti = data.jti as string | undefined;
+          // Re-validate the session on heartbeat — a revoked session must
+          // not linger as online forever between push-kill and reconnect.
+          if (id && jti) {
+            const session = await getLiveSession(jti, id);
+            if (!session) {
+              const result = setOfflineBySocket(client.id);
+              if (result?.wentOffline) {
+                void emitScoped(namespace, result.userId, getPresence(result.userId));
+              }
+              client.disconnect();
+              return;
+            }
+          }
           if (id) touchPresence(id);
           if (typeof ack === "function") ack({ ok: true });
-        },
-      );
+        })();
+      });
 
       client.on("presence:ping", (ack?: (res: { ok: boolean }) => void) => {
         if (typeof ack === "function") ack({ ok: true });
