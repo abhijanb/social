@@ -1,5 +1,5 @@
 import * as bcrypt from "bcrypt";
-import { AppError } from "../../lib/errorHandler.js";
+import { AppError, uniqueConflictTarget } from "../../lib/errorHandler.js";
 import { logger } from "../../lib/logger.js";
 import { getFriendIds } from "../../lib/friends.js";
 import { deleteUploadUrls } from "../../lib/uploads.js";
@@ -186,6 +186,19 @@ export async function updateUser(
       error.code === "P2025"
     )
       throw new AppError("User not found", 404);
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const target = uniqueConflictTarget(error);
+      if (target.some((field) => field.includes("username"))) {
+        throw new AppError(
+          `Username "${String(data.username)}" is already taken`,
+          409,
+        );
+      }
+      throw new AppError("That email is already registered", 409);
+    }
     throw error;
   }
 }

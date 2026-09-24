@@ -1,5 +1,5 @@
 import * as bcrypt from "bcrypt";
-import { AppError } from "../../lib/errorHandler.js";
+import { AppError, uniqueConflictTarget } from "../../lib/errorHandler.js";
 import { logger } from "../../lib/logger.js";
 import {
   authTokenExpiryDate,
@@ -9,6 +9,7 @@ import {
   verifyVerifyToken,
 } from "../../lib/jwt.js";
 import { sendVerificationEmail } from "../notification/mailNotification.js";
+import { Prisma } from "../../generated/prisma/client.js";
 import { prisma } from "../../lib/prisma.js";
 import { stripPassword } from "../../lib/stripPassword.js";
 import { validateOrThrow } from "../../lib/validate.js";
@@ -57,16 +58,36 @@ export async function register(input: unknown) {
       },
     );
   }
-  const user = await prisma.user.create({
-    data: {
-      username: dto.username,
-      email: dto.email,
-      emailVerified: false,
-      password: await bcrypt.hash(dto.password, 10),
-    },
-  });
-  log.info({ userId: user.id, username: user.username }, "user created");
-  return { user: stripPassword(user) };
+  const email = dto.email.trim().toLowerCase();
+  try {
+    const user = await prisma.user.create({
+      data: {
+        username: dto.username,
+        email,
+        emailVerified: false,
+        password: await bcrypt.hash(dto.password, 10),
+      },
+    });
+    log.info({ userId: user.id, username: user.username }, "user created");
+    return { user: stripPassword(user) };
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const target = uniqueConflictTarget(error);
+      if (target.some((field) => field.includes("username"))) {
+        log.warn({ username: dto.username }, "register conflict: username taken");
+        throw Object.assign(
+          new AppError(`Username "${dto.username}" is already taken`, 409),
+          { suggestions: await suggestUsernames(dto.username) },
+        );
+      }
+      log.warn({ username: dto.username }, "register conflict: email taken");
+      throw new AppError("That email is already registered", 409);
+    }
+    throw error;
+  }
 }
 
 // Port of UserService.login — validates input, 401 on unknown user or

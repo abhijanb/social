@@ -25,6 +25,24 @@ export const AppError: AppErrorConstructor = function (
   return err;
 } as unknown as AppErrorConstructor;
 
+export function uniqueConflictTarget(error: unknown): string[] {
+  const meta = (
+    error as { meta?: Record<string, unknown> } | null
+  )?.meta;
+  if (!meta || typeof meta !== "object") return [];
+  if (Array.isArray(meta.target)) return meta.target.map(String);
+  const cause = (
+    meta.driverAdapterError as { cause?: unknown } | undefined
+  )?.cause as
+    | { constraint?: { index?: unknown; fields?: unknown }; fields?: unknown }
+    | undefined;
+  const constraint = cause?.constraint;
+  if (typeof constraint?.index === "string") return [constraint.index];
+  if (Array.isArray(constraint?.fields)) return constraint.fields.map(String);
+  if (Array.isArray(cause?.fields)) return cause.fields.map(String);
+  return [];
+}
+
 // ValidationError wraps zod issues — a 400 HttpError carrying the
 // formatted issues so the envelope serializes them as { message, errors }.
 export function ValidationError(
