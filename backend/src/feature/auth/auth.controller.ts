@@ -3,7 +3,7 @@ import { env } from "../../config/env.js";
 import { AppError } from "../../lib/errorHandler.js";
 import { logger } from "../../lib/logger.js";
 import { withLogging } from "../../lib/asyncHandler.js";
-import { signToken, verifyToken } from "../../lib/jwt.js";
+import { signVerifyToken, verifyAuthToken } from "../../lib/jwt.js";
 import type { JwtPayload } from "../../lib/jwt.js";
 import {
   responseCreated,
@@ -17,7 +17,7 @@ function getCurrentUser(req: Request): JwtPayload | null {
     (req.cookies as Record<string, string> | undefined)?.token ??
     req.headers.authorization?.replace(/^Bearer\s+/i, "");
   if (!token) return null;
-  const payload = verifyToken(token);
+  const payload = verifyAuthToken(token);
   if (!payload?.id || !payload?.username) return null;
   return payload;
 }
@@ -41,7 +41,7 @@ export const registerController = withLogging(
     log.info({ username: (req.body as { username?: string })?.username }, "register request");
     const { user } = await register(req.body);
     log.info({ userId: user.id }, "register success");
-    const verificationToken = signToken({ id: user.id, username: user.username }, "24h");
+    const verificationToken = signVerifyToken({ id: user.id, username: user.username });
     sendVerificationEmail(user.id, verificationToken).catch((err) =>
       log.warn({ err, userId: user.id }, "verification email failed"),
     );

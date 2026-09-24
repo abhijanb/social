@@ -1,7 +1,7 @@
 import * as bcrypt from "bcrypt";
 import { AppError } from "../../lib/errorHandler.js";
 import { logger } from "../../lib/logger.js";
-import { signToken, verifyToken } from "../../lib/jwt.js";
+import { signAuthToken, signVerifyToken, verifyVerifyToken } from "../../lib/jwt.js";
 import { sendVerificationEmail } from "../notification/mailNotification.js";
 import { prisma } from "../../lib/prisma.js";
 import { stripPassword } from "../../lib/stripPassword.js";
@@ -62,7 +62,7 @@ export async function register(input: unknown) {
   log.info({ userId: user.id, username: user.username }, "user created");
   return {
     user: stripPassword(user),
-    token: signToken({ id: user.id, username: user.username }),
+    token: signAuthToken({ id: user.id, username: user.username }),
   };
 }
 
@@ -85,13 +85,14 @@ export async function login(input: unknown) {
   log.info({ userId: user.id, username: user.username }, "login success");
   return {
     user: stripPassword(user),
-    token: signToken({ id: user.id, username: user.username }),
+    token: signAuthToken({ id: user.id, username: user.username }),
   };
 }
 
-// Verify email via token — sets emailVerified: true on success.
+// Verify email via token — accepts only verify-purpose tokens, so a
+// session token can never verify an email and vice versa.
 export async function verifyEmail(token: string) {
-  const payload = verifyToken(token);
+  const payload = verifyVerifyToken(token);
   if (!payload?.id) throw new AppError("Invalid or expired token", 400);
   const user = await prisma.user.findUnique({ where: { id: payload.id } });
   if (!user) throw new AppError("User not found", 404);
@@ -110,7 +111,7 @@ export async function resendVerification(username: string) {
   const user = await prisma.user.findUnique({ where: { username } });
   if (!user) throw new AppError("User not found", 404);
   if (user.emailVerified) throw new AppError("Email already verified", 400);
-  const token = signToken({ id: user.id, username: user.username }, "24h");
+  const token = signVerifyToken({ id: user.id, username: user.username });
   sendVerificationEmail(user.id, token).catch((err) =>
       log.warn({ err, userId: user.id }, "verification email failed"),
     );

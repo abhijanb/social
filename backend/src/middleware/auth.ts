@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { AppError } from "../lib/errorHandler.js";
-import { verifyToken } from "../lib/jwt.js";
+import { verifyAuthToken } from "../lib/jwt.js";
 import type { JwtPayload } from "../lib/jwt.js";
 
 // Request with the verified JWT payload attached (when present).
@@ -13,7 +13,7 @@ function readUser(req: Request): JwtPayload | null {
     (req.cookies as Record<string, string> | undefined)?.token ??
     req.headers.authorization?.replace(/^Bearer\s+/i, "");
   if (!token) return null;
-  const payload = verifyToken(token);
+  const payload = verifyAuthToken(token);
   if (!payload?.id || !payload?.username) return null;
   return payload;
 }

@@ -1,7 +1,7 @@
 import type { Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
 import type { Namespace, Socket } from "socket.io";
-import { verifyToken } from "../lib/jwt.js";
+import { verifyAuthToken } from "../lib/jwt.js";
 
 let io: Server | null = null;
 
@@ -78,7 +78,7 @@ export function authenticateSocket(
     return { userId: null, authenticated: false };
   }
   try {
-    const payload = verifyToken(token);
+    const payload = verifyAuthToken(token);
     if (!payload?.id) {
       return { userId: null, authenticated: false };
     }

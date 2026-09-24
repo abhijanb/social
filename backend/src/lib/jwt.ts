@@ -6,18 +6,54 @@ import { env } from "../config/env.js";
 const JWT_SECRET = env.JWT_SECRET;
 const JWT_EXPIRES_IN = env.JWT_EXPIRES_IN;
 
-export type JwtPayload = { id: string; username: string };
+export type JwtPurpose = "auth" | "verify";
 
-export function signToken(payload: JwtPayload, expiresIn?: string): string {
+export type JwtPayload = { id: string; username: string; purpose: JwtPurpose };
+
+type AuthTokenInput = { id: string; username: string };
+type VerifyTokenInput = { id: string; username: string };
+
+function signPayload(
+  payload: JwtPayload,
+  expiresIn: string,
+): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: expiresIn ?? JWT_EXPIRES_IN,
+    expiresIn,
   } as jwt.SignOptions);
 }
 
-export function verifyToken(token: string): JwtPayload | null {
+// Session token — issued on login (and register response), accepted by
+// auth middleware, controllers, and sockets. Rejects verify-purpose and
+// legacy purpose-less tokens.
+export function signAuthToken(input: AuthTokenInput): string {
+  return signPayload({ ...input, purpose: "auth" }, JWT_EXPIRES_IN);
+}
+
+// Email-verification token — 24h, accepted only by verifyEmail.
+// Never valid as a session, so an unverified user cannot use the
+// verification link to access protected routes or sockets.
+export function signVerifyToken(input: VerifyTokenInput): string {
+  return signPayload({ ...input, purpose: "verify" }, "24h");
+}
+
+function verifyWithPurpose(
+  token: string,
+  requiredPurpose: JwtPurpose,
+): JwtPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const payload = jwt.verify(token, JWT_SECRET) as Partial<JwtPayload>;
+    if (payload?.purpose !== requiredPurpose) return null;
+    if (!payload?.id || !payload?.username) return null;
+    return payload as JwtPayload;
   } catch {
     return null;
   }
+}
+
+export function verifyAuthToken(token: string): JwtPayload | null {
+  return verifyWithPurpose(token, "auth");
+}
+
+export function verifyVerifyToken(token: string): JwtPayload | null {
+  return verifyWithPurpose(token, "verify");
 }

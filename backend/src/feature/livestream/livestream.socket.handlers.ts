@@ -1,6 +1,6 @@
 import type { Namespace, Socket } from "socket.io";
 import { getTokenFromSocket } from "../../socket/socket.js";
-import { verifyToken } from "../../lib/jwt.js";
+import { verifyAuthToken } from "../../lib/jwt.js";
 import {
   getJoinContext,
   isSignalKind,
@@ -29,7 +29,7 @@ export function authenticateClient(
     client.disconnect();
     return null;
   }
-  const payload = verifyToken(token);
+  const payload = verifyAuthToken(token);
   if (!payload?.id) {
     client.disconnect();
     return null;
