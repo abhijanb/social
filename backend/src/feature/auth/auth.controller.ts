@@ -28,7 +28,7 @@ import {
 } from "./auth.service.js";
 import type { AuthRequest } from "../../middleware/auth.js";
 import { disconnectSessionSockets } from "../../socket/socket.js";
-import { sendVerificationEmail, sendWelcomeEmail } from "../notification/mailNotification.js";
+import { sendWelcomeVerificationEmail } from "../notification/mailNotification.js";
 
 function getCurrentUser(req: Request): JwtPayload | null {
   const token =
@@ -76,12 +76,16 @@ export const registerController = withLogging(
     const { user } = await register(req.body);
     log.info({ userId: user.id }, "register success");
     const verificationToken = signVerifyToken({ id: user.id, username: user.username });
-    sendVerificationEmail(user.id, verificationToken).catch((err) =>
-      log.warn({ err, userId: user.id }, "verification email failed"),
-    );
-    sendWelcomeEmail(user.id, user.username).catch((err) =>
-      log.warn({ err, userId: user.id }, "welcome email failed"),
-    );
+    try {
+      await sendWelcomeVerificationEmail(user.id, user.username, verificationToken);
+    } catch (err) {
+      log.warn({ err, userId: user.id }, "welcome verification email failed");
+      return responseCreated(
+        res,
+        user,
+        "Registered, but the verification email could not be sent. Try resending it.",
+      );
+    }
     return responseCreated(res, user, "Registered successfully");
   },
   "register",

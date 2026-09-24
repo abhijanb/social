@@ -2,7 +2,14 @@ import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { env } from "../../config/env.js";
 import { AppError } from "../../lib/errorHandler.js";
+import { logger } from "../../lib/logger.js";
 import { prisma } from "../../lib/prisma.js";
+
+const log = logger.child({ service: "mail" });
+
+export function buildVerificationLink(token: string): string {
+  return `${env.APP_URL}/verify-email?token=${token}`;
+}
 
 export type SendMailInput = {
   to: string | string[];
@@ -60,15 +67,20 @@ export async function sendMailToUser(
 
 // --- Dedicated per-type email wrappers ---
 
-// Welcome email sent on registration. Username is passed directly (already known).
-export async function sendWelcomeEmail(
+export async function sendWelcomeVerificationEmail(
   userId: string,
   username: string,
+  token: string,
 ): Promise<void> {
+  const link = buildVerificationLink(token);
+  if (!env.SMTP_HOST && env.NODE_ENV !== "production") {
+    log.warn({ userId, link }, "SMTP not configured, welcome verification link logged for dev");
+    return;
+  }
   await sendMailToUser(userId, {
-    subject: "Welcome to Social",
-    text: `Hi ${username}, welcome to our app!`,
-    html: `<p>Hi ${username}, welcome to our app!</p>`,
+    subject: "Welcome to Social, verify your email",
+    text: `Hi ${username}, welcome to our app! Verify your email by visiting: ${link}`,
+    html: `<p>Hi ${username}, welcome to our app!</p><p>Verify your email by visiting: <a href="${link}">Verify Email</a></p>`,
   });
 }
 
@@ -130,8 +142,11 @@ export async function sendVerificationEmail(
   userId: string,
   token: string,
 ): Promise<void> {
-  const baseUrl = env.APP_URL;
-  const link = `${baseUrl}/verify-email?token=${token}`;
+  const link = buildVerificationLink(token);
+  if (!env.SMTP_HOST && env.NODE_ENV !== "production") {
+    log.warn({ userId, link }, "SMTP not configured, verification link logged for dev");
+    return;
+  }
   await sendMailToUser(userId, {
     subject: "Verify your email",
     text: `Verify your email by visiting: ${link}`,
