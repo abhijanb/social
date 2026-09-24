@@ -1,16 +1,11 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
+import { env } from "../config/env.js";
 
-// Port of back/src/lib/prisma.ts — same DATABASE_URL contract and
-// adapter setup so the Express backend talks to the shared database
-const rawDatabaseUrl = process.env.DATABASE_URL;
-const databaseUrl = (rawDatabaseUrl ?? "").trim();
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is required");
-}
-
+// DATABASE_URL comes from validated env — env.ts fails fast at boot
+// if it is missing.
 const adapter = new PrismaPg({
-  connectionString: databaseUrl,
+  connectionString: env.DATABASE_URL,
 });
 
 export const prismaClientOptions = { adapter };
@@ -33,6 +28,6 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
+if (env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }

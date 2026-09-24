@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
+import { env } from "../../config/env.js";
 import { AppError } from "../../lib/errorHandler.js";
 import { prisma } from "../../lib/prisma.js";
 
@@ -17,15 +18,15 @@ let transporter: Transporter | null = null;
 // port-465 style TLS, SMTP_USER/SMTP_PASS for auth (omit both for a local
 // relay). Missing host fails fast so misconfig surfaces immediately.
 function getTransporter(): Transporter {
-  const host = process.env.SMTP_HOST;
+  const host = env.SMTP_HOST;
   if (!host) throw new AppError("Mail not configured (SMTP_HOST missing)", 500);
   if (!transporter) {
     transporter = nodemailer.createTransport({
       host,
-      port: Number(process.env.SMTP_PORT ?? 587),
-      secure: process.env.SMTP_SECURE === "true",
-      auth: process.env.SMTP_USER
-        ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS ?? "" }
+      port: env.SMTP_PORT,
+      secure: env.SMTP_SECURE,
+      auth: env.SMTP_USER
+        ? { user: env.SMTP_USER, pass: env.SMTP_PASS ?? "" }
         : undefined,
     });
   }
@@ -39,7 +40,7 @@ export async function sendMail(input: SendMailInput): Promise<void> {
   if (!input.text && !input.html) {
     throw new AppError("Mail needs text or html body", 400);
   }
-  const from = process.env.MAIL_FROM ?? "Social <no-reply@localhost>";
+  const from = env.MAIL_FROM;
   await getTransporter().sendMail({ from, ...input });
 }
 
@@ -129,7 +130,7 @@ export async function sendVerificationEmail(
   userId: string,
   token: string,
 ): Promise<void> {
-  const baseUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const baseUrl = env.APP_URL;
   const link = `${baseUrl}/verify-email?token=${token}`;
   await sendMailToUser(userId, {
     subject: "Verify your email",

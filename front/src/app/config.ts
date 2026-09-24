@@ -1,5 +1,7 @@
+import { env } from './env'
+
 // Single source of truth for the backend origin (REST + sockets + uploads).
-// Same expression the five call sites duplicated; no slash normalization.
+// Validated + trailing-slash-free via env.ts so `${base}/chat` never doubles.
 export function getApiBaseUrl(): string {
-  return (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3000'
+  return env.VITE_API_URL
 }

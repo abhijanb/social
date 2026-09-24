@@ -1,4 +1,5 @@
 import { type Request, type Response } from "express";
+import { env } from "../../config/env.js";
 import { AppError } from "../../lib/errorHandler.js";
 import { logger } from "../../lib/logger.js";
 import { withLogging } from "../../lib/asyncHandler.js";
@@ -25,7 +26,7 @@ function setAuthCookie(res: Response, token: string): void {
   res.cookie("token", token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: env.NODE_ENV === "production",
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: "/",
   });

@@ -39,8 +39,11 @@ export async function findAll(
   const and: Record<string, unknown>[] = [];
   if (search) {
     and.push({ username: { contains: search, mode: "insensitive" as const } });
-    and.push({ isPublic: true });
   }
+  // Private (isPublic=false) users are never listed — with or without a
+  // search term. Previously the filter only applied when searching, so an
+  // anonymous GET /user leaked the 10 newest private profiles.
+  and.push({ isPublic: true });
   if (excludeIds.length) and.push({ id: { notIn: excludeIds } });
 
   const where = and.length ? ({ AND: and } as never) : undefined;
@@ -53,11 +56,37 @@ export async function findAll(
   return users.map(stripPassword);
 }
 
+// Public shell of a user row for strangers viewing a private profile:
+// username/avatar stay visible so friend-request flows keep working, but
+// email/bio stay hidden. Self, public profiles, and friends get the full
+// stripped row instead.
+function publicMiniUser(target: {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  isPublic: boolean;
+}) {
+  return {
+    id: target.id,
+    username: target.username,
+    displayName: target.displayName,
+    avatarUrl: target.avatarUrl,
+    isPublic: target.isPublic,
+  };
+}
+
 // Port of UserService.findOne — null when missing so the route can 404.
-export async function findUserById(id: string) {
+// Private profiles return only the public shell to strangers (self,
+// public, and friends see the full row).
+export async function findUserById(id: string, viewerId?: string) {
   log.debug({ id }, "find user by id");
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return null;
+  if (viewerId && viewerId !== user.id && !user.isPublic) {
+    const friendIds = await getFriendIds(viewerId);
+    if (!friendIds.includes(user.id)) return publicMiniUser(user);
+  }
   return stripPassword(user);
 }
 
@@ -79,15 +108,15 @@ export type ProfileRelation = {
 };
 
 // Profile payload for /u/:username: user + counts + viewer relation.
-// Private (isPublic=false) users hide counts from strangers; posts grid
-// itself stays guarded by GET /post?authorId= (403).
+// Private (isPublic=false) users hide counts AND email/bio from strangers
+// (public shell only); posts grid itself stays guarded by
+// GET /post?authorId= (403).
 export async function getProfile(viewerId: string, username: string) {
   log.debug({ viewerId, username }, "profile lookup");
   const target = await prisma.user.findFirst({
     where: { username: { equals: username.trim(), mode: "insensitive" } },
   });
   if (!target) throw new AppError("User not found", 404);
-  const user = stripPassword(target);
   const isSelf = target.id === viewerId;
 
   let isFriend = false;
@@ -123,6 +152,7 @@ export async function getProfile(viewerId: string, username: string) {
     : [0, 0, 0];
 
   const relation: ProfileRelation = { isSelf, isFriend, pending, canViewPosts };
+  const user = isSelf || canViewPosts ? stripPassword(target) : publicMiniUser(target);
   return { user, stats: { posts, friends, storiesActive }, relation };
 }
 

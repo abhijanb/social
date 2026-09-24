@@ -1,4 +1,4 @@
-import "dotenv/config";
+import { env } from "./config/env.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -98,15 +98,8 @@ registerLivestreamHandlers();
 // Overlap-safe, unref'd — no intervals.
 startSchedules(schedules);
 
-const rawPort = (process.env.PORT ?? "").trim();
-const parsedPort = rawPort.length > 0 ? Number(rawPort) : Number.NaN;
-const port =
-  Number.isFinite(parsedPort) && parsedPort >= 0 && parsedPort <= 65535
-    ? parsedPort
-    : 3000;
-
-httpServer.listen(port, "0.0.0.0", () => {
-  console.info(`Server is running on port ${port}`);
+httpServer.listen(env.PORT, "0.0.0.0", () => {
+  console.info(`Server is running on port ${env.PORT}`);
 });
 
 function gracefulShutdown(signal: string): void {

@@ -49,12 +49,14 @@ export const listUsersController = withLogging(
   (req) => ({ userId: req.user?.id }),
 );
 
-// GET /user/:id — single profile. Port of UserController.findOne.
+// GET /user/:id — single profile. Private profiles return only the
+// public shell to strangers (see user.service publicMiniUser).
 export const getUserController = withLogging(
   async (req: AuthRequest, res: Response) => {
+    if (!req.user) throw new AppError("Not authenticated", 401);
     const { id } = validateOrThrow(userIdParamSchema, req.params);
     log.debug({ id }, "user lookup");
-    const user = await findUserById(id);
+    const user = await findUserById(id, req.user.id);
     if (!user) throw new AppError("User not found", 404);
     return responseSuccess(res, user);
   },
