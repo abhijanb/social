@@ -1,4 +1,5 @@
 import { type Request, type Response, type NextFunction } from "express";
+import createHttpError from "http-errors";
 import { isClientClosed } from "./clientClosed.js";
 import { logger } from "./logger.js";
 
@@ -22,6 +23,13 @@ export function withLogging<T extends Request = Request>(
       // Aborted by frontend (next keystroke, unmount) — not a real failure.
       if (isClientClosed(req, res)) {
         log.debug({ err, ...extra }, `${context} aborted by client`);
+      } else if (
+        createHttpError.isHttpError(err) &&
+        err.statusCode < 500
+      ) {
+        // Expected client errors (401 pre-login polls, 404s, 400 validation)
+        // bubble to errorMiddleware which logs them once at warn/debug.
+        log.debug({ err, ...extra }, `${context} client error`);
       } else {
         log.error({ err, ...extra }, `${context} failed`);
       }
@@ -44,6 +52,11 @@ export function withCleanup<T extends Request = Request>(
       const extra = logContext ? logContext(req) : {};
       if (isClientClosed(req, res)) {
         log.debug({ err, ...extra }, `${context} aborted by client`);
+      } else if (
+        createHttpError.isHttpError(err) &&
+        err.statusCode < 500
+      ) {
+        log.debug({ err, ...extra }, `${context} client error`);
       } else {
         log.error({ err, ...extra }, `${context} failed`);
       }

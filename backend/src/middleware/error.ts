@@ -19,10 +19,16 @@ export function errorMiddleware(
   }
   const isHttp = createHttpError.isHttpError(err);
   const statusCode = isHttp ? err.statusCode : 500;
-  log.error(
-    { err, path: req.path, method: req.method, ip: req.ip, statusCode },
-    "unhandled error",
-  );
+  const details = { err, path: req.path, method: req.method, ip: req.ip, statusCode };
+  // Expected client errors (pre-login polls, stale sessions, 404s) are not
+  // service failures — keep them out of ERROR so real 5xx stand out.
+  if (statusCode >= 500) {
+    log.error(details, "unhandled error");
+  } else if (statusCode === 401 || statusCode === 404) {
+    log.debug(details, "client error");
+  } else {
+    log.warn(details, "client error");
+  }
   if (statusCode >= 500) {
     responseError(res, undefined, "Internal server error", 500);
     return;
